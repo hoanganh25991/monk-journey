@@ -9,6 +9,7 @@ import { FOG_CONFIG } from '../../config/render.js';
  * - Time of day
  * - Weather conditions
  * - Performance settings
+ * - Distance-based darkening for far objects
  */
 export class FogManager {
     constructor(scene, worldManager, game = null) {
@@ -21,6 +22,11 @@ export class FogManager {
         this.currentFogDensity = FOG_CONFIG.density;
         this.targetFogColor = new THREE.Color(FOG_CONFIG.color);
         this.targetFogDensity = FOG_CONFIG.density;
+        
+        // Distance-based fog settings
+        this.distanceFalloff = FOG_CONFIG.distanceFalloff || 1.5;
+        this.maxVisibleDistance = FOG_CONFIG.maxVisibleDistance || 150;
+        this.darkeningFactor = FOG_CONFIG.darkeningFactor || 0.7;
         
         // Initialize fog based on config
         this.initFog();
@@ -38,6 +44,9 @@ export class FogManager {
         // Performance tracking
         this.qualityLevel = 'ultra';
         this.drawDistanceMultiplier = 1.0;
+        
+        // Create a distance-based darkening shader if needed
+        this.setupDistanceDarkening();
     }
     
     // setGame method removed - game is now passed in constructor
@@ -54,6 +63,7 @@ export class FogManager {
         // Create the appropriate fog type
         switch (FOG_CONFIG.type) {
             case 'exp2':
+                // Exponential squared fog - best for hiding distant objects
                 this.scene.fog = new THREE.FogExp2(
                     FOG_CONFIG.color,
                     FOG_CONFIG.density
@@ -67,6 +77,7 @@ export class FogManager {
                 );
                 break;
             case 'linear':
+                // Linear fog with adjusted near/far values
                 this.scene.fog = new THREE.Fog(
                     FOG_CONFIG.color,
                     FOG_CONFIG.near,
@@ -81,7 +92,36 @@ export class FogManager {
                 );
         }
         
+        // Apply initial fog color
+        this.scene.fog.color.set(FOG_CONFIG.color);
+        
         console.debug(`Fog initialized with type: ${FOG_CONFIG.type}, density: ${FOG_CONFIG.density}`);
+    }
+    
+    /**
+     * Setup distance-based darkening effect using a scene post-processing shader
+     * This creates a gradual darkening effect for distant objects
+     */
+    setupDistanceDarkening() {
+        // Check if the scene already has a background color
+        if (!this.scene.background) {
+            // Set a default background color that matches the fog
+            this.scene.background = new THREE.Color(FOG_CONFIG.color).multiplyScalar(0.5);
+        }
+        
+        // We'll use the scene's background as the "far distance" color
+        // This ensures that objects at maximum distance blend with the background
+        
+        // If the game has a renderer with post-processing capabilities, we could add
+        // a custom shader for distance-based darkening. For now, we'll rely on the
+        // exponential fog which naturally creates a stronger effect at distance.
+        
+        // Adjust the scene's background to be darker than the fog color
+        // This creates the illusion that objects fade to darkness at distance
+        if (this.scene.background instanceof THREE.Color) {
+            const bgColor = new THREE.Color(FOG_CONFIG.color).multiplyScalar(this.darkeningFactor);
+            this.scene.background.copy(bgColor);
+        }
     }
     
     /**
@@ -166,18 +206,44 @@ export class FogManager {
         this.currentFogColor.lerp(this.targetFogColor, transitionSpeed);
         this.scene.fog.color.copy(this.currentFogColor);
         
+        // Also update the background color to match the darkened fog color
+        if (this.scene.background instanceof THREE.Color) {
+            const bgColor = new THREE.Color().copy(this.currentFogColor).multiplyScalar(this.darkeningFactor);
+            this.scene.background.copy(bgColor);
+        }
+        
         // Smoothly transition fog density
         if (this.scene.fog instanceof THREE.FogExp2) {
+            // For exponential fog, adjust the density directly
             this.currentFogDensity += (this.targetFogDensity - this.currentFogDensity) * transitionSpeed;
             this.scene.fog.density = this.currentFogDensity;
+            
+            // Apply distance falloff adjustment to make distant objects darker
+            // Higher values of distanceFalloff make the fog effect stronger at distance
+            const adjustedDensity = this.currentFogDensity * this.distanceFalloff;
+            this.scene.fog.density = adjustedDensity;
+            
         } else if (this.scene.fog instanceof THREE.Fog) {
-            // For linear fog, adjust near and far values
+            // For linear fog, we need a different approach since near/far don't work well for hiding distant objects
+            
+            // First, update the current density for consistency
+            this.currentFogDensity += (this.targetFogDensity - this.currentFogDensity) * transitionSpeed;
+            
+            // Calculate adjusted near and far values based on density
+            // Higher density = shorter far distance
             const near = FOG_CONFIG.near;
+            
+            // Calculate far based on density and draw distance
+            // This creates an inverse relationship - higher density = shorter far distance
+            const densityFactor = FOG_CONFIG.density / this.currentFogDensity;
+            const drawDistanceFactor = this.drawDistanceMultiplier;
+            
+            // Calculate far value with a non-linear relationship to density
+            // This makes the fog effect much stronger at distance
             const baseFar = FOG_CONFIG.far;
+            const far = baseFar * Math.pow(densityFactor, 0.5) * drawDistanceFactor;
             
-            // Adjust far value based on density (inverse relationship)
-            const far = baseFar * (FOG_CONFIG.density / this.currentFogDensity);
-            
+            // Apply the calculated values
             this.scene.fog.near = near;
             this.scene.fog.far = far;
         }
@@ -214,63 +280,96 @@ export class FogManager {
     
     /**
      * Adjust fog based on time of day
+     * Enhanced to create more dramatic distance effects
      */
     adjustFogForTimeOfDay() {
+        // Store the original density before applying time-of-day adjustments
+        const originalDensity = this.targetFogDensity;
+        
         switch (this.timeOfDay) {
             case 'dawn':
-                // Lighter pinkish tint at dawn
+                // Pinkish-orange tint at dawn
                 this.targetFogColor.lerp(new THREE.Color(0xffc0d0), 0.3);
-                // Slightly increase density at dawn
-                this.targetFogDensity *= 1.1;
+                // Increase density at dawn to create morning mist effect
+                this.targetFogDensity = originalDensity * 1.4;
+                // Increase distance falloff for dawn
+                this.distanceFalloff = FOG_CONFIG.distanceFalloff * 1.2;
                 break;
+                
             case 'dusk':
-                // Lighter orange tint at dusk
+                // Orange-red tint at dusk
                 this.targetFogColor.lerp(new THREE.Color(0xffa060), 0.3);
-                // Slightly increase density at dusk
-                this.targetFogDensity *= 1.2;
+                // Increase density at dusk for sunset haze
+                this.targetFogDensity = originalDensity * 1.5;
+                // Increase distance falloff for dusk
+                this.distanceFalloff = FOG_CONFIG.distanceFalloff * 1.3;
                 break;
+                
             case 'night':
-                // Less dark blue at night
-                this.targetFogColor.lerp(new THREE.Color(0x202045), 0.5);
-                // Moderately increase density at night
-                this.targetFogDensity *= 1.5;
+                // Dark blue at night, but not too bright
+                this.targetFogColor.lerp(new THREE.Color(0x101035), 0.6);
+                // Significantly increase density at night to hide distant objects
+                this.targetFogDensity = originalDensity * 2.0;
+                // Increase distance falloff for night - objects disappear more quickly with distance
+                this.distanceFalloff = FOG_CONFIG.distanceFalloff * 1.8;
+                // Increase darkening factor at night
+                this.darkeningFactor = FOG_CONFIG.darkeningFactor * 0.7;
                 break;
+                
             default: // day
-                // During day, add a slight brightness
+                // During day, add a slight blue tint for sky color
                 this.targetFogColor.lerp(new THREE.Color(0x90b0e0), 0.2);
-                // Keep density normal during day
-                this.targetFogDensity *= 1.0;
+                // Keep base density during day
+                this.targetFogDensity = originalDensity * 1.0;
+                // Use standard distance falloff during day
+                this.distanceFalloff = FOG_CONFIG.distanceFalloff;
+                // Use standard darkening factor during day
+                this.darkeningFactor = FOG_CONFIG.darkeningFactor;
         }
     }
     
     /**
      * Adjust fog based on weather conditions
+     * Enhanced to create more dramatic distance effects
      */
     adjustFogForWeather() {
+        // Store the density after time-of-day adjustments
+        const timeAdjustedDensity = this.targetFogDensity;
+        
         switch (this.currentWeather) {
             case 'rain':
-                // Lighter gray fog during rain
-                this.targetFogColor.lerp(new THREE.Color(0x8090a0), 0.4);
-                // Moderately increase density during rain
-                this.targetFogDensity *= 1.3;
+                // Darker gray fog during rain
+                this.targetFogColor.lerp(new THREE.Color(0x606880), 0.5);
+                // Significantly increase density during rain
+                this.targetFogDensity = timeAdjustedDensity * 1.6;
+                // Increase distance falloff during rain
+                this.distanceFalloff = this.distanceFalloff * 1.3;
                 break;
+                
             case 'fog':
-                // Lighter gray fog during foggy weather
-                this.targetFogColor.lerp(new THREE.Color(0xc0c0c0), 0.6);
-                // Increase density during fog, but less dramatically
-                this.targetFogDensity *= 2.5;
+                // Gray fog during foggy weather
+                this.targetFogColor.lerp(new THREE.Color(0xa0a0a0), 0.7);
+                // Dramatically increase density during fog
+                this.targetFogDensity = timeAdjustedDensity * 3.0;
+                // Increase distance falloff during fog
+                this.distanceFalloff = this.distanceFalloff * 2.0;
                 break;
+                
             case 'storm':
-                // Less dark gray fog during storms
-                this.targetFogColor.lerp(new THREE.Color(0x505050), 0.5);
-                // Increase density during storms, but less dramatically
-                this.targetFogDensity *= 2.0;
+                // Dark gray fog during storms
+                this.targetFogColor.lerp(new THREE.Color(0x404050), 0.6);
+                // Dramatically increase density during storms
+                this.targetFogDensity = timeAdjustedDensity * 2.5;
+                // Increase distance falloff during storms
+                this.distanceFalloff = this.distanceFalloff * 1.8;
+                // Increase darkening factor during storms
+                this.darkeningFactor = this.darkeningFactor * 0.8;
                 break;
+                
             default: // clear weather
-                // In clear weather, add a slight brightness
-                this.targetFogColor.lerp(new THREE.Color(0x90b0e0), 0.2);
-                // Keep normal density in clear weather
-                this.targetFogDensity *= 1.0;
+                // In clear weather, keep the time-adjusted settings
+                // No additional adjustments needed
+                break;
         }
     }
     
