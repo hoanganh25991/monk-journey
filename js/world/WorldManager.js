@@ -7,6 +7,7 @@ import { ZoneManager } from './zones/ZoneManager.js';
 import { LightingManager } from './lighting/LightingManager.js';
 import { FogManager } from './environment/FogManager.js';
 import { TeleportManager } from './teleport/TeleportManager.js';
+import { LODManager } from './LODManager.js';
 
 
 /**
@@ -27,6 +28,7 @@ export class WorldManager {
         this.interactiveManager = new InteractiveObjectManager(scene, this, game);
         this.zoneManager = new ZoneManager(scene, this, game);
         this.teleportManager = new TeleportManager(scene, this, game);
+        this.lodManager = new LODManager(scene, this);
         
         // For screen-based enemy spawning
         this.lastPlayerPosition = new THREE.Vector3(0, 0, 0);
@@ -47,6 +49,9 @@ export class WorldManager {
         this.memoryCheckInterval = 10000; // Check every 10 seconds
         this.lastGarbageCollection = Date.now();
         this.gcInterval = 30000; // Force GC hint every 30 seconds
+        
+        // Performance tracking for LOD adjustments
+        this.lastPerformanceLevel = null; // Track last performance level to detect changes
         
         // Performance monitoring
         this.frameRateHistory = [];
@@ -593,6 +598,9 @@ export class WorldManager {
         // Initialize fog system
         this.fogManager.initFog();
         
+        // Initialize LOD manager
+        this.lodManager.init();
+        
         // Initialize terrain
         await this.terrainManager.init();
         
@@ -1010,6 +1018,60 @@ export class WorldManager {
             
             // Update teleport portals with player position and delta time
             this.teleportManager.update(deltaTime, playerPosition);
+        }
+        
+        // Update LOD for objects based on camera position
+        if (this.lodManager && playerPosition) {
+            // Apply performance-based adjustments to LOD distances
+            if (this.game && this.game.performanceManager) {
+                const performanceLevel = this.game.performanceManager.getCurrentPerformanceLevel();
+                const drawDistanceMultiplier = this.game.performanceManager.getDrawDistanceMultiplier();
+                
+                // Adjust LOD distances based on performance
+                // Lower performance = show outlines at closer distances
+                const lodConfig = this.lodManager.getConfig();
+                
+                // Only update if performance changes significantly
+                if (performanceLevel !== this.lastPerformanceLevel) {
+                    // Store current performance level
+                    this.lastPerformanceLevel = performanceLevel;
+                    
+                    // Adjust distances based on performance
+                    if (performanceLevel === 'low') {
+                        // For low performance, show outlines at closer distances
+                        this.lodManager.setConfig({
+                            distances: {
+                                ...lodConfig.distances,
+                                wireframe: 100, // Show wireframe sooner
+                                outlineOnly: 150 // Show outline-only sooner
+                            }
+                        });
+                    } else if (performanceLevel === 'medium') {
+                        // Default distances for medium performance
+                        this.lodManager.setConfig({
+                            distances: {
+                                ...lodConfig.distances,
+                                wireframe: 150,
+                                outlineOnly: 200
+                            }
+                        });
+                    } else {
+                        // For high performance, show detailed models at greater distances
+                        this.lodManager.setConfig({
+                            distances: {
+                                ...lodConfig.distances,
+                                wireframe: 200, // Show wireframe later
+                                outlineOnly: 250 // Show outline-only later
+                            }
+                        });
+                    }
+                    
+                    console.debug(`Adjusted LOD distances for ${performanceLevel} performance`);
+                }
+            }
+            
+            // Update LOD based on player position
+            this.lodManager.update(playerPosition);
         }
         
         // Periodically check memory and performance

@@ -134,6 +134,13 @@ export class PlayerCombat {
                 }
             }
             
+            // Check for defense boost effect from Fist of Thunder
+            if (this.game?.player?.statusEffects?.hasEffect('defenseBoost')) {
+                // Add 50% damage reduction from the Fist of Thunder defense boost
+                totalDamageReduction += 50;
+                console.debug("Applied 50% damage reduction from Fist of Thunder defense boost");
+            }
+            
             // Apply defense formula: damage reduction percentage based on defense
             // Formula: reduction = defense / (defense + 100)
             // This gives diminishing returns for high defense values

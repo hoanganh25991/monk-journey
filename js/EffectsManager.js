@@ -249,6 +249,237 @@ export class EffectsManager {
     }
     
     /**
+     * Create a level up effect in the 3D scene
+     * @param {number} level - The new level
+     * @param {Object} position - 3D position {x, y, z}, defaults to player position if not provided
+     * @returns {Object|null} - The created level up effect or null if creation failed
+     */
+    createLevelUpEffect(level, position = null) {
+        // Use player position if no position is provided
+        if (!position && this.game && this.game.player) {
+            position = this.game.player.model.getPosition();
+        }
+        
+        // If still no position, use a default
+        if (!position) {
+            position = new THREE.Vector3(0, 1, 0);
+        }
+        
+        // Create a group to hold all level up effect elements
+        const group = new THREE.Group();
+        
+        // Create sprites for "LEVEL UP" text
+        // Main sprite for "LEVEL"
+        const levelSprite = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+                color: 0xffcc00,
+                transparent: true,
+                opacity: 0.8
+            })
+        );
+        levelSprite.scale.set(2, 0.7, 1);
+        levelSprite.position.set(-0.8, 2, 0);
+        group.add(levelSprite);
+        
+        // Sprite for level number
+        const numberSprite = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+                color: 0xffcc00,
+                transparent: true,
+                opacity: 0.8
+            })
+        );
+        numberSprite.scale.set(1, 1, 1);
+        numberSprite.position.set(0.8, 2, 0);
+        group.add(numberSprite);
+        
+        // Create a ring effect
+        const ringGeometry = new THREE.RingGeometry(1.5, 2, 32);
+        const ringMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffcc00,
+            transparent: true,
+            opacity: 0.7,
+            side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.rotation.x = Math.PI / 2; // Lay flat
+        ring.position.y = 0.1; // Just above ground
+        group.add(ring);
+        
+        // Create particles for the effect
+        const particleCount = 50;
+        const particleGeometry = new THREE.BufferGeometry();
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0xffcc00,
+            size: 0.1,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        // Create particle positions
+        const positions = new Float32Array(particleCount * 3);
+        const velocities = [];
+        
+        for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            // Start particles in a circle around the center
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 0.5 + Math.random() * 1.0;
+            
+            positions[i3] = Math.cos(angle) * radius;     // x
+            positions[i3 + 1] = 0.1;                      // y - start near ground
+            positions[i3 + 2] = Math.sin(angle) * radius; // z
+            
+            // Store velocity for animation
+            velocities.push({
+                x: positions[i3] * 0.2,
+                y: 0.5 + Math.random() * 1.0,
+                z: positions[i3 + 2] * 0.2
+            });
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        group.add(particles);
+        
+        // Position the group
+        group.position.copy(position);
+        
+        // Create a custom effect object
+        const levelUpEffect = {
+            type: 'levelUp',
+            group: group,
+            isActive: true,
+            isPaused: false,
+            duration: 2.0, // 2 seconds duration
+            elapsedTime: 0,
+            level: level,
+            levelSprite: levelSprite,
+            numberSprite: numberSprite,
+            ring: ring,
+            particles: particles,
+            particlePositions: positions,
+            particleVelocities: velocities,
+            
+            // Update method for the level up effect
+            update: function(delta) {
+                // Update elapsed time
+                this.elapsedTime += delta;
+                
+                // Animation based on elapsed time
+                const progress = this.elapsedTime / this.duration;
+                const fadeInOut = progress < 0.3 ? progress / 0.3 : 
+                                 progress > 0.7 ? (1 - progress) / 0.3 : 
+                                 1.0;
+                
+                // Update ring
+                const ringScale = 1 + progress * 2;
+                this.ring.scale.set(ringScale, ringScale, ringScale);
+                ringMaterial.opacity = 0.7 * (1 - progress);
+                
+                // Update particles
+                const positions = this.particlePositions;
+                for (let i = 0; i < this.particleVelocities.length; i++) {
+                    const i3 = i * 3;
+                    const vel = this.particleVelocities[i];
+                    
+                    // Move particles upward and outward
+                    positions[i3] += vel.x * delta;     // x
+                    positions[i3 + 1] += vel.y * delta; // y
+                    positions[i3 + 2] += vel.z * delta; // z
+                }
+                this.particles.geometry.attributes.position.needsUpdate = true;
+                
+                // Fade out particles
+                this.particles.material.opacity = 0.8 * (1 - progress);
+                
+                // Update sprites
+                this.levelSprite.material.opacity = fadeInOut;
+                this.numberSprite.material.opacity = fadeInOut;
+                
+                // Float upward
+                const floatY = 2 + progress * 0.5;
+                this.levelSprite.position.y = floatY;
+                this.numberSprite.position.y = floatY;
+                
+                // Check if effect has expired
+                if (this.elapsedTime >= this.duration) {
+                    this.isActive = false;
+                }
+            },
+            
+            // Dispose method to clean up resources
+            dispose: function() {
+                if (this.group && this.group.parent) {
+                    this.group.parent.remove(this.group);
+                }
+                
+                // Dispose geometries and materials
+                if (this.textMesh) {
+                    this.textMesh.geometry.dispose();
+                    this.textMesh.material.dispose();
+                }
+                
+                this.tempSprite.material.dispose();
+                this.ring.geometry.dispose();
+                this.ring.material.dispose();
+                this.particles.geometry.dispose();
+                this.particles.material.dispose();
+            }
+        };
+        
+        // Try to load the font for better text (non-blocking)
+        try {
+            fontLoader.load('/assets/fonts/helvetiker_bold.typeface.json', (font) => {
+                // If the effect is still active, replace the sprite with actual text
+                if (levelUpEffect.isActive) {
+                    // Create text for "LEVEL"
+                    const levelTextGeo = new THREE.TextGeometry('LEVEL ' + level, {
+                        font: font,
+                        size: 0.3,
+                        height: 0.05,
+                        curveSegments: 12,
+                        bevelEnabled: false
+                    });
+                    
+                    levelTextGeo.computeBoundingBox();
+                    const textWidth = levelTextGeo.boundingBox.max.x - levelTextGeo.boundingBox.min.x;
+                    
+                    const textMesh = new THREE.Mesh(levelTextGeo, textMaterial);
+                    textMesh.position.set(-textWidth/2, 2, 0); // Center text
+                    
+                    // Remove the temporary sprite
+                    group.remove(tempSprite);
+                    
+                    // Add the text mesh
+                    group.add(textMesh);
+                    levelUpEffect.textMesh = textMesh;
+                }
+            });
+        } catch (error) {
+            console.warn("Could not load font for level up effect:", error);
+            // Continue with sprite as fallback
+        }
+        
+        // Add the level up effect to the scene
+        if (this.game && this.game.scene) {
+            this.game.scene.add(group);
+            
+            // Add to the effects array for updates
+            this.effects.push(levelUpEffect);
+            
+            // Play level up sound
+            if (this.game.audioManager) {
+                this.game.audioManager.playSound('levelUp');
+            }
+            
+            return levelUpEffect;
+        }
+        
+        return null;
+    }
+    
+    /**
      * Get all active effects
      * @returns {Array} - Array of active effects
      */

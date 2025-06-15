@@ -8,6 +8,8 @@ export class FistOfThunderEffect extends SkillEffect {
     constructor(skill) {
         super(skill);
         this.teleportState = null;
+        this.defenseBoostDuration = 3.0; // 3 seconds of defense boost
+        this.defenseBoostIntensity = 0.5; // 50% damage reduction
     }
 
     /**
@@ -32,7 +34,31 @@ export class FistOfThunderEffect extends SkillEffect {
         this.effect = effectGroup;
         this.isActive = true;
         
+        // Apply defense boost to the player
+        this._applyDefenseBoost();
+        
         return effectGroup;
+    }
+    
+    /**
+     * Apply defense boost to the player when Fist of Thunder is cast
+     * @private
+     */
+    _applyDefenseBoost() {
+        // Check if we have access to the game and player
+        if (!this.skill || !this.skill.game || !this.skill.game.player || !this.skill.game.player.statusEffects) {
+            console.warn('Cannot apply defense boost: missing required references');
+            return;
+        }
+        
+        // Apply the defense boost effect
+        this.skill.game.player.statusEffects.applyEffect(
+            'defenseBoost',
+            this.defenseBoostDuration,
+            this.defenseBoostIntensity
+        );
+        
+        console.debug(`Applied defense boost: ${this.defenseBoostIntensity * 100}% damage reduction for ${this.defenseBoostDuration} seconds`);
     }
 
     /**

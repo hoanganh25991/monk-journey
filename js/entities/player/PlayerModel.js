@@ -581,4 +581,15 @@ export class PlayerModel {
     getModelGroup() {
         return this.modelGroup;
     }
+    
+    /**
+     * Gets the position of the model in the scene
+     * @returns {THREE.Vector3} The current position vector
+     */
+    getPosition() {
+        if (this.modelGroup) {
+            return this.modelGroup.position.clone();
+        }
+        return new THREE.Vector3(0, 0, 0);
+    }
 }

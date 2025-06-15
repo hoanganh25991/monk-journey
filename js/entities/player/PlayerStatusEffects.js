@@ -108,6 +108,41 @@ export class PlayerStatusEffects {
                         this.game.effectsManager.removeShieldEffect();
                     }
                 }
+            },
+            // Defense boost effect for Fist of Thunder skill
+            defenseBoost: {
+                apply: (intensity) => {
+                    // Store original state (nothing to store for defense boost)
+                    const originalValue = 0;
+                    
+                    // Visual feedback
+                    if (this.game?.hudManager) {
+                        this.game.hudManager.showStatusEffect('defenseBoost');
+                    }
+                    
+                    // Add visual effect to player model if available
+                    if (this.game?.effectsManager) {
+                        // Create a shield/glow effect around the player
+                        this.game.effectsManager.createDefenseBoostEffect(this.playerMovement.getPosition());
+                    }
+                    
+                    console.debug(`Applied defense boost effect: ${intensity * 100}% damage reduction`);
+                    
+                    return originalValue;
+                },
+                remove: (originalValue) => {
+                    // Remove visual feedback
+                    if (this.game?.hudManager) {
+                        this.game.hudManager.hideStatusEffect('defenseBoost');
+                    }
+                    
+                    // Remove shield effect if it exists
+                    if (this.game?.effectsManager) {
+                        this.game.effectsManager.removeDefenseBoostEffect();
+                    }
+                    
+                    console.debug("Defense boost effect expired");
+                }
             }
         };
     }

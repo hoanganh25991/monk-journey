@@ -23,6 +23,10 @@ export class PerformanceManager {
     getCurrentQualityLevel() {
         return "ultra";
     }
+
+    getCurrentPerformanceLevel() {
+        return "ultra";
+    }
     
     update() {
         if (this.stats) {

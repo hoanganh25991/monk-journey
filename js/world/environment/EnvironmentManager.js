@@ -277,6 +277,14 @@ export class EnvironmentManager {
                 object.scale.set(scale, scale, scale);
             }
             
+            // Apply LOD if available and appropriate for this object type
+            // Skip LOD for very small objects or objects that don't benefit from it
+            const skipLodTypes = ['flower', 'tall_grass', 'small_mushroom', 'small_plant'];
+            if (this.worldManager.lodManager && !skipLodTypes.includes(type) && scale > 0.5) {
+                // Apply LOD to the object
+                object = this.worldManager.lodManager.applyLOD(object, type, position);
+            }
+            
             // Add to scene (only if not already added by factory)
             if (object.parent === null) {
                 this.scene.add(object);

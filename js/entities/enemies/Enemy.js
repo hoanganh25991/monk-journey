@@ -319,7 +319,9 @@ export class Enemy {
                 this.rotation.y = Math.atan2(normalizedDirectionX, normalizedDirectionZ);
                 
                 // Calculate new position
-                const moveSpeed = this.speed * delta;
+                // Apply 1.5x speed multiplier for faster movement
+                const speedMultiplier = 1.5;
+                const moveSpeed = this.speed * delta * speedMultiplier;
                 const newPosition = {
                     x: this.position.x + normalizedDirectionX * moveSpeed,
                     y: this.position.y,
