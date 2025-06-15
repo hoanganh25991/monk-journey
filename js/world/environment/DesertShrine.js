@@ -23,7 +23,7 @@ export class DesertShrine extends EnvironmentObject {
         this.hasTorches = Math.random() > 0.5; // 50% chance to have torches/fire
         
         // Get zone type from world manager if available
-        this.zoneType = worldManager?.getCurrentZoneType(position) || 'Desert';
+        this.zoneType = worldManager?.getZoneTypeAt(position.x, position.z) || 'Desert';
         
         // Create the shrine
         this.object = this.create();

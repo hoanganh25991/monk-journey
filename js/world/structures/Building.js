@@ -993,4 +993,270 @@ export class Building {
         frontSill2.position.set(this.width / 4, this.height / 2, this.depth / 2 + 0.15);
         buildingGroup.add(frontSill2);
     }
+    
+    /**
+     * Add moss and vines to the building for Swamp zones
+     * @param {THREE.Group} buildingGroup - The building group
+     * @param {Object} zoneColors - Colors for the current zone
+     */
+    addMossAndVines(buildingGroup, zoneColors) {
+        // Create moss material
+        const mossMaterial = new THREE.MeshStandardMaterial({
+            color: zoneColors.vegetation || 0x2E8B57, // Sea Green default
+            roughness: 1.0,
+            metalness: 0.0
+        });
+        
+        // Add moss patches to walls
+        for (let i = 0; i < 5; i++) {
+            // Random position on the building
+            const side = Math.floor(Math.random() * 4); // 0: front, 1: right, 2: back, 3: left
+            const height = Math.random() * this.height * 0.8;
+            
+            // Create moss patch
+            const mossSize = 0.3 + Math.random() * 0.5;
+            const mossGeometry = new THREE.SphereGeometry(mossSize, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+            const moss = new THREE.Mesh(mossGeometry, mossMaterial);
+            
+            // Position based on side
+            switch (side) {
+                case 0: // front
+                    moss.position.set(
+                        (Math.random() - 0.5) * this.width * 0.8,
+                        height,
+                        this.depth / 2 + 0.01
+                    );
+                    moss.rotation.x = Math.PI / 2;
+                    break;
+                case 1: // right
+                    moss.position.set(
+                        this.width / 2 + 0.01,
+                        height,
+                        (Math.random() - 0.5) * this.depth * 0.8
+                    );
+                    moss.rotation.z = Math.PI / 2;
+                    moss.rotation.y = Math.PI / 2;
+                    break;
+                case 2: // back
+                    moss.position.set(
+                        (Math.random() - 0.5) * this.width * 0.8,
+                        height,
+                        -this.depth / 2 - 0.01
+                    );
+                    moss.rotation.x = -Math.PI / 2;
+                    break;
+                case 3: // left
+                    moss.position.set(
+                        -this.width / 2 - 0.01,
+                        height,
+                        (Math.random() - 0.5) * this.depth * 0.8
+                    );
+                    moss.rotation.z = -Math.PI / 2;
+                    moss.rotation.y = Math.PI / 2;
+                    break;
+            }
+            
+            // Scale the moss patch to be flatter
+            moss.scale.set(1, 0.3, 1);
+            buildingGroup.add(moss);
+        }
+        
+        // Add hanging vines
+        for (let i = 0; i < 3; i++) {
+            // Create a vine
+            const vineLength = 1 + Math.random() * 2;
+            const vineWidth = 0.1 + Math.random() * 0.1;
+            const vineGeometry = new THREE.CylinderGeometry(vineWidth, vineWidth, vineLength, 8);
+            const vine = new THREE.Mesh(vineGeometry, mossMaterial);
+            
+            // Position at random points along the roof
+            const angle = Math.random() * Math.PI * 2;
+            const radius = (Math.random() * 0.3 + 0.7) * Math.min(this.width, this.depth) / 2;
+            
+            vine.position.set(
+                Math.cos(angle) * radius,
+                this.height + 0.1,
+                Math.sin(angle) * radius
+            );
+            
+            // Rotate to hang down
+            vine.rotation.x = Math.PI / 2;
+            
+            // Move origin to top of vine so it hangs properly
+            vineGeometry.translate(0, -vineLength / 2, 0);
+            
+            buildingGroup.add(vine);
+        }
+    }
+    
+    /**
+     * Add cracks and vines to the building for Ruins zones
+     * @param {THREE.Group} buildingGroup - The building group
+     * @param {Object} zoneColors - Colors for the current zone
+     */
+    addCracksAndVines(buildingGroup, zoneColors) {
+        // Create vine material
+        const vineMaterial = new THREE.MeshStandardMaterial({
+            color: zoneColors.vegetation || 0x2E8B57, // Sea Green default
+            roughness: 1.0,
+            metalness: 0.0
+        });
+        
+        // Create crack material (slightly darker than the building)
+        const crackMaterial = new THREE.MeshStandardMaterial({
+            color: 0x222222, // Dark gray
+            roughness: 1.0,
+            metalness: 0.0
+        });
+        
+        // Add cracks to walls
+        for (let i = 0; i < 4; i++) {
+            // Random position on the building
+            const side = Math.floor(Math.random() * 4); // 0: front, 1: right, 2: back, 3: left
+            const height = Math.random() * this.height * 0.8;
+            
+            // Create jagged crack
+            const crackWidth = 0.05 + Math.random() * 0.1;
+            const crackHeight = 0.5 + Math.random() * 1.5;
+            
+            // Create a jagged line for the crack
+            const crackShape = new THREE.Shape();
+            crackShape.moveTo(0, 0);
+            
+            const segments = 8;
+            const segmentHeight = crackHeight / segments;
+            
+            for (let j = 1; j <= segments; j++) {
+                const jitter = (Math.random() - 0.5) * crackWidth * 2;
+                crackShape.lineTo(jitter, j * segmentHeight);
+            }
+            
+            const crackGeometry = new THREE.ShapeGeometry(crackShape);
+            const crack = new THREE.Mesh(crackGeometry, crackMaterial);
+            
+            // Position based on side
+            switch (side) {
+                case 0: // front
+                    crack.position.set(
+                        (Math.random() - 0.5) * this.width * 0.8,
+                        height,
+                        this.depth / 2 + 0.01
+                    );
+                    crack.rotation.x = Math.PI / 2;
+                    break;
+                case 1: // right
+                    crack.position.set(
+                        this.width / 2 + 0.01,
+                        height,
+                        (Math.random() - 0.5) * this.depth * 0.8
+                    );
+                    crack.rotation.z = Math.PI / 2;
+                    crack.rotation.y = Math.PI / 2;
+                    break;
+                case 2: // back
+                    crack.position.set(
+                        (Math.random() - 0.5) * this.width * 0.8,
+                        height,
+                        -this.depth / 2 - 0.01
+                    );
+                    crack.rotation.x = -Math.PI / 2;
+                    break;
+                case 3: // left
+                    crack.position.set(
+                        -this.width / 2 - 0.01,
+                        height,
+                        (Math.random() - 0.5) * this.depth * 0.8
+                    );
+                    crack.rotation.z = -Math.PI / 2;
+                    crack.rotation.y = Math.PI / 2;
+                    break;
+            }
+            
+            buildingGroup.add(crack);
+        }
+        
+        // Add vines growing on the building
+        for (let i = 0; i < 3; i++) {
+            // Create a vine system
+            const vineGroup = new THREE.Group();
+            
+            // Main vine
+            const mainVineLength = 1.5 + Math.random() * 2;
+            const mainVineWidth = 0.05;
+            const mainVineGeometry = new THREE.CylinderGeometry(mainVineWidth, mainVineWidth, mainVineLength, 8);
+            const mainVine = new THREE.Mesh(mainVineGeometry, vineMaterial);
+            
+            // Rotate to grow along wall
+            mainVine.rotation.z = Math.PI / 2;
+            
+            // Move origin to bottom of vine
+            mainVineGeometry.translate(0, mainVineLength / 2, 0);
+            
+            vineGroup.add(mainVine);
+            
+            // Add branches
+            const branchCount = 2 + Math.floor(Math.random() * 3);
+            for (let j = 0; j < branchCount; j++) {
+                const branchLength = 0.5 + Math.random() * 1;
+                const branchWidth = 0.03;
+                const branchGeometry = new THREE.CylinderGeometry(branchWidth, branchWidth, branchLength, 8);
+                const branch = new THREE.Mesh(branchGeometry, vineMaterial);
+                
+                // Position along main vine
+                const position = (j + 1) / (branchCount + 1) * mainVineLength;
+                
+                // Rotate branch
+                const angle = Math.random() * Math.PI;
+                branch.rotation.x = angle;
+                
+                // Move origin to connection point
+                branchGeometry.translate(0, branchLength / 2, 0);
+                
+                branch.position.set(0, position, 0);
+                
+                vineGroup.add(branch);
+            }
+            
+            // Position the vine group on a random wall
+            const side = Math.floor(Math.random() * 4); // 0: front, 1: right, 2: back, 3: left
+            const height = Math.random() * this.height * 0.5;
+            
+            switch (side) {
+                case 0: // front
+                    vineGroup.position.set(
+                        (Math.random() - 0.5) * this.width * 0.8,
+                        height,
+                        this.depth / 2 + 0.05
+                    );
+                    vineGroup.rotation.y = Math.PI / 2;
+                    break;
+                case 1: // right
+                    vineGroup.position.set(
+                        this.width / 2 + 0.05,
+                        height,
+                        (Math.random() - 0.5) * this.depth * 0.8
+                    );
+                    vineGroup.rotation.y = 0;
+                    break;
+                case 2: // back
+                    vineGroup.position.set(
+                        (Math.random() - 0.5) * this.width * 0.8,
+                        height,
+                        -this.depth / 2 - 0.05
+                    );
+                    vineGroup.rotation.y = -Math.PI / 2;
+                    break;
+                case 3: // left
+                    vineGroup.position.set(
+                        -this.width / 2 - 0.05,
+                        height,
+                        (Math.random() - 0.5) * this.depth * 0.8
+                    );
+                    vineGroup.rotation.y = Math.PI;
+                    break;
+            }
+            
+            buildingGroup.add(vineGroup);
+        }
+    }
 }
