@@ -62,7 +62,7 @@ export class WorldManager {
         // Procedural generation settings
         this.generatedChunks = new Set(); // Track which chunks have been generated
         this.currentZoneType = 'Forest'; // Current zone type
-        this.zoneSize = 200; // Reduced size of each zone in world units for more frequent zone changes
+        this.zoneSize = 500; // Reduced size of each zone in world units for more frequent zone changes
         this.zoneTransitionBuffer = 20; // Buffer zone for transitions
         
         // Flag to track initial terrain creation
