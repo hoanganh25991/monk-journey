@@ -210,14 +210,16 @@ export class WorldManager {
                 const clusterCenterX = worldX + Math.random() * chunkSize;
                 const clusterCenterZ = worldZ + Math.random() * chunkSize;
                 
-                // Random cluster radius - smaller radius for better performance
-                const clusterRadius = 3 + Math.random() * 7; // Reduced from 5-15 to 3-10
+                // Random cluster radius - increased by 5x for more spacing between objects
+                const clusterRadius = (3 + Math.random() * 7) * 5; // Increased from 3-10 to 15-50
                 
                 // Generate objects in this cluster
                 for (let i = 0; i < objectsPerCluster; i++) {
                     // Random angle and distance from cluster center
                     const angle = Math.random() * Math.PI * 2;
-                    const distance = Math.random() * clusterRadius;
+                    // Minimum distance to ensure objects aren't too close together
+                    const minDistance = clusterRadius * 0.2; // At least 20% of radius
+                    const distance = minDistance + Math.random() * (clusterRadius - minDistance);
                     
                     // Calculate position
                     const x = clusterCenterX + Math.cos(angle) * distance;
@@ -279,10 +281,23 @@ export class WorldManager {
                 // Limit the number of individual objects to further improve performance
                 const maxIndividualObjects = Math.min(remainingObjects, 10);
                 
+                // Divide the chunk into grid sections to ensure better spacing
+                const gridSize = Math.ceil(Math.sqrt(maxIndividualObjects));
+                const cellSize = chunkSize / gridSize;
+                
                 for (let i = 0; i < maxIndividualObjects; i++) {
-                    // Random position within chunk
-                    const x = worldX + Math.random() * chunkSize;
-                    const z = worldZ + Math.random() * chunkSize;
+                    // Calculate grid position
+                    const gridX = i % gridSize;
+                    const gridZ = Math.floor(i / gridSize);
+                    
+                    // Add randomness within the grid cell, but ensure objects are spread out
+                    const cellX = worldX + (gridX * cellSize);
+                    const cellZ = worldZ + (gridZ * cellSize);
+                    
+                    // Random position within grid cell with padding to ensure spacing
+                    const padding = cellSize * 0.2; // 20% padding
+                    const x = cellX + padding + Math.random() * (cellSize - 2 * padding);
+                    const z = cellZ + padding + Math.random() * (cellSize - 2 * padding);
                     
                     // Make sure we have valid environment types
                     if (!zoneDensity.environmentTypes || zoneDensity.environmentTypes.length === 0) {
@@ -378,9 +393,10 @@ export class WorldManager {
                     const buildingCount = 1 + Math.floor(Math.random() * 2); // Reduced from 2-4 to 1-2
                     
                     for (let i = 0; i < buildingCount; i++) {
-                        // Position buildings in a circle around the village
+                        // Position buildings in a circle around the village with increased spacing
                         const angle = (i / buildingCount) * Math.PI * 2;
-                        const distance = 15 + Math.random() * 10;
+                        // Increase distance by 5x for more spacing
+                        const distance = (15 + Math.random() * 10) * 5; // Increased from 15-25 to 75-125
                         
                         const buildingX = villageX + Math.cos(angle) * distance;
                         const buildingZ = villageZ + Math.sin(angle) * distance;
@@ -519,11 +535,12 @@ export class WorldManager {
             // Reduced number of objects to add for better performance
             const objectCount = 3 + Math.floor(Math.random() * 4); // Reduced from 5-14 to 3-6
             
-            // Add objects in a circle around the structure
+            // Add objects in a circle around the structure with increased spacing
             for (let i = 0; i < objectCount; i++) {
-                // Random angle and distance
-                const angle = Math.random() * Math.PI * 2;
-                const distance = 5 + Math.random() * 5; // Reduced from 5-15 to 5-10
+                // Evenly distribute angles for better spacing
+                const angle = (i / objectCount) * Math.PI * 2 + (Math.random() * 0.5); // Add small randomness
+                // Increase distance by 5x for more spacing
+                const distance = (5 + Math.random() * 5) * 5; // Increased from 5-10 to 25-50
                 
                 // Calculate position
                 const objX = x + Math.cos(angle) * distance;
