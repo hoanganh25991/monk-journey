@@ -60,7 +60,7 @@ export class EnemyUI extends UIComponent {
             
             // Get health values
             const currentHealth = Math.round(closestEnemy.getHealth());
-            const maxHealth = closestEnemy.getMaxHealth();
+            const maxHealth = Math.round(closestEnemy.getMaxHealth());
             const healthPercent = (currentHealth / maxHealth) * 100;
             
             // Update enemy health bar

@@ -1,0 +1,139 @@
+/* 
+ * hud-skills.css - Skills display and buttons
+ * Part of the Diablo Immortal CSS optimization
+ * This file contains styles for skills container and buttons
+ */
+
+/* Skills Container */
+#skills-container {
+    display: grid;
+    grid-template-rows: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    pointer-events: auto;
+    position: relative;
+    z-index: 120; /* Higher than joystick overlay to ensure skill buttons work */
+}
+
+/* Change Skills Button */
+.change-skills-button {
+    grid-column: 1 / span 4;
+    grid-row: 1;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid #6b4c2a;
+    border-radius: 5px;
+    color: #ffcc66;
+    padding: calc(var(--padding-small) + 3px) 0;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 10px rgba(255, 150, 0, 0.3);
+    margin-bottom: 5px;
+    pointer-events: auto;
+}
+
+.change-skills-button:hover {
+    background-color: rgba(30, 30, 30, 0.9);
+    border-color: #ff9600;
+    box-shadow: 0 0 15px rgba(255, 150, 0, 0.5);
+}
+
+.change-skills-button:active {
+    transform: scale(0.98);
+}
+
+/* Skill Button - HUD specific sizing and positioning */
+.skill-button {
+    width: 65px;
+    height: 65px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid #6b4c2a;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    box-shadow: 0 0 10px rgba(255, 150, 0, 0.3);
+    overflow: hidden; /* Ensure cooldown overlay stays within the circle */
+    z-index: 125; /* Higher than skills container to ensure proper touch handling */
+    touch-action: none; /* Prevent default touch behaviors */
+    pointer-events: auto; /* Ensure skill buttons can receive touch events */
+}
+
+.skill-button:active {
+    transform: scale(0.95);
+}
+
+.skill-button:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(255, 150, 0, 0.7), 0 0 10px rgba(255, 150, 0, 0.3);
+    border-color: #ff9600;
+}
+
+.skill-key {
+    position: absolute;
+    bottom: 10px; /* Increased from 5px to 10px to move it higher */
+    right: 5px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid #6b4c2a;
+    border-radius: 3px;
+    padding: calc(var(--padding-small) - 3px) calc(var(--padding-small) - 1px);
+    font-size: 10px;
+    color: white;
+    font-weight: bold;
+    z-index: 50; /* HUD Elements - Skill Key */
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    pointer-events: none; /* Don't block clicks */
+}
+
+.skill-name {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ffcc66;
+    font-size: 12px;
+    text-shadow: 1px 1px 2px black;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.skill-button:hover .skill-name {
+    opacity: 1;
+}
+
+.showing-cooldown::after {
+    content: attr(data-cooldown);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px black;
+}
+
+.not-enough-mana {
+    filter: grayscale(70%);
+    border-color: #555 !important;
+}
+
+/* Skills Overlay - Right half of screen for skill button priority */
+#skills-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 50%; /* Only cover the right half of the screen */
+    height: 100%;
+    z-index: 100; /* Lower than skill buttons but above other elements */
+    pointer-events: none; /* Allow events to pass through to skill buttons */
+    touch-action: none;
+    background-color: transparent; /* Make it invisible */
+}

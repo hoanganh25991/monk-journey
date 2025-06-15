@@ -1,14 +1,14 @@
 import { ISaveSystem } from './ISaveSystem.js';
-import { LocalStorageAdapter } from './LocalStorageAdapter.js';
 import { PlayerSerializer } from './serializers/PlayerSerializer.js';
 import { QuestSerializer } from './serializers/QuestSerializer.js';
 import { SettingsSerializer } from './serializers/SettingsSerializer.js';
 import { InventorySerializer } from './serializers/InventorySerializer.js';
 import { SaveOperationProgress } from './utils/SaveOperationProgress.js';
 import { STORAGE_KEYS } from '../config/storage-keys.js';
+import storageService from './StorageService.js';
 
 /**
- * SaveManager implementation using localStorage
+ * SaveManager implementation using StorageService
  * Handles saving and loading game state with progress indicators
  */
 export class SaveManager extends ISaveSystem {
@@ -31,8 +31,8 @@ export class SaveManager extends ISaveSystem {
         this.lastSaveTime = 0; // Track time of last save
         this.minTimeBetweenSaves = 60_000; // Minimum minute between saves
         
-        // Create storage adapter
-        this.storage = new LocalStorageAdapter();
+        // Use the centralized storage service directly
+        this.storage = storageService;
         
         // Current save version
         this.currentVersion = '1.1.0';
@@ -40,9 +40,12 @@ export class SaveManager extends ISaveSystem {
     
     /**
      * Initialize the save system
-     * @returns {boolean} Success status
+     * @returns {Promise<boolean>} Success status
      */
-    init() {
+    async init() {
+        // Initialize the storage service
+        await storageService.init();
+        
         // Start auto-save timer
         this.startAutoSave();
         
@@ -84,9 +87,11 @@ export class SaveManager extends ISaveSystem {
      * Save the current game state with progress indicator
      * Only saves hero information (player data, quests, settings)
      * @param {boolean} forceSave - Whether to force save regardless of conditions
+     * @param {boolean} autoSave - Whether this is an automatic save
+     * @param {boolean} requireCloudSave - Whether to ensure cloud save by requiring login
      * @returns {Promise<boolean>} Promise resolving to success status
      */
-    async saveGame(forceSave = false, autoSave = false) {
+    async saveGame(forceSave = false, autoSave = false, requireCloudSave = false) {
         try {
             const currentTime = Date.now();
             const playerLevel = this.game.player.stats.level;
@@ -99,28 +104,43 @@ export class SaveManager extends ISaveSystem {
                 console.debug('Skipping save - not enough time passed since last save');
                 return true; // Skip saving but return success
             }
+            
+            // If cloud save is required, ensure the user is logged in
+            if (requireCloudSave && !autoSave) {
+                const isLoggedIn = await this.ensureLogin(true, 
+                    'To save your progress to the cloud, you need to be logged in with Google.\n\n' +
+                    'Would you like to login now?\n' +
+                    'Click OK to login and save to the cloud.\n' +
+                    'Click Cancel to save locally only.'
+                );
+                
+                if (!isLoggedIn) {
+                    console.debug('User chose not to login for cloud save, continuing with local save only');
+                    // We'll still save locally, so we continue with the save process
+                }
+            }
 
             // Initialize progress indicator
             !autoSave && this.saveProgress.start('Preparing to save hero data...');
             
             // Create save data object (only hero-related data)
             !autoSave && this.saveProgress.update('Collecting player data...', 15);
-            await this.delay(50); // Small delay for UI update
+            !autoSave && await this.delay(50); // Small delay for UI update
             
             const playerData = PlayerSerializer.serialize(this.game.player);
             
             !autoSave && this.saveProgress.update('Collecting inventory data...', 30);
-            await this.delay(50); // Small delay for UI update
+            !autoSave && await this.delay(50); // Small delay for UI update
             
             const inventoryData = InventorySerializer.serialize(this.game.player);
             
             !autoSave && this.saveProgress.update('Collecting quest data...', 45);
-            await this.delay(50); // Small delay for UI update
+            !autoSave && await this.delay(50); // Small delay for UI update
             
             const questData = QuestSerializer.serialize(this.game.questManager);
             
             !autoSave && this.saveProgress.update('Collecting settings...', 60);
-            await this.delay(50); // Small delay for UI update
+            !autoSave && await this.delay(50); // Small delay for UI update
             
             const settingsData = SettingsSerializer.serialize(this.game);
             
@@ -134,10 +154,10 @@ export class SaveManager extends ISaveSystem {
             };
             
             !autoSave && this.saveProgress.update('Writing hero data to storage...', 80);
-            await this.delay(10); // Small delay for UI update
+            !autoSave && await this.delay(10); // Small delay for UI update
         
-            // Save to storage
-            const success = this.storage.saveData(this.saveKey, saveData);
+            // Save to storage (now async)
+            const success = await this.storage.saveData(this.saveKey, saveData);
             
             if (!success) {
                 throw new Error('Failed to save hero data');
@@ -146,8 +166,15 @@ export class SaveManager extends ISaveSystem {
             this.lastSaveTime = currentTime;
             this.lastSaveLevel = playerLevel;
             
-            !autoSave && this.saveProgress.update('Save complete!', 100);
-            await this.delay(10); // Show completion for a moment
+            // Show appropriate message based on login status
+            if (!autoSave) {
+                if (this.isSignedInToGoogle()) {
+                    this.saveProgress.update('Save complete! Your progress is saved to the cloud.', 100);
+                } else {
+                    this.saveProgress.update('Save complete! (Local save only)', 100);
+                }
+                await this.delay(10); // Show completion for a moment
+            }
             
             console.debug('Hero data saved successfully');
             
@@ -188,12 +215,14 @@ export class SaveManager extends ISaveSystem {
             this.loadProgress.update('Reading save data...', 20);
             await this.delay(10); // Small delay for UI update
             
-            const saveData = this.storage.loadData(this.saveKey);
+            const saveData = await this.storage.loadData(this.saveKey);
             
             // Check if save data exists
             if (!saveData) {
                 console.debug('No save data found');
-                this.loadProgress.error('No save data found');
+                this.loadProgress.update('No save data found, continuing with new game', 100);
+                await this.delay(10);
+                this.loadProgress.complete();
                 return false;
             }
             
@@ -310,6 +339,72 @@ export class SaveManager extends ISaveSystem {
     }
     
     /**
+     * Sign in to Google Drive
+     * @returns {Promise<boolean>} Whether sign-in was successful
+     */
+    async signInToGoogle() {
+        try {
+            // Use the centralized storageService instead of the adapter directly
+            const success = await storageService.signInToGoogle();
+            
+            if (success) {
+                console.debug('Successfully signed in to Google Drive');
+                
+                // Check if save data exists before trying to load
+                const hasSaveData = await this.hasSaveData();
+                
+                if (hasSaveData) {
+                    // Try to load save data from Google Drive
+                    await this.loadGame();
+                } else {
+                    console.debug('No save data found in Google Drive, continuing with new game');
+                    // Complete the progress indicator if it was started
+                    if (this.loadProgress.isActive) {
+                        this.loadProgress.complete();
+                    }
+                }
+            } else {
+                console.debug('Failed to sign in to Google Drive');
+            }
+            
+            return success;
+        } catch (error) {
+            console.error('Error signing in to Google Drive:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Ensures the user is logged in before proceeding with an operation
+     * Shows the login flow if the user is not logged in
+     * 
+     * @param {boolean} silentMode - Whether to attempt silent login first
+     * @param {string} message - Custom message to show in the confirmation dialog
+     * @returns {Promise<boolean>} Whether the user is now logged in
+     */
+    async ensureLogin(silentMode = false, message = null) {
+        return await storageService.ensureLogin(silentMode, message);
+    }
+    
+    /**
+     * Sign out from Google Drive
+     */
+    signOutFromGoogle() {
+        // Use the centralized storageService instead of the adapter directly
+        storageService.signOutFromGoogle();
+        console.debug('Signed out from Google Drive');
+    }
+    
+    /**
+     * Check if signed in to Google Drive
+     * @returns {boolean} Whether signed in to Google Drive
+     */
+    isSignedInToGoogle() {
+        // Use the centralized storageService instead of the adapter directly
+        return storageService.isSignedInToGoogle();
+    }
+    
+    /**
      * Load world data with progress updates
      * @param {Object} worldData - World data to load
      * @param {Function} chunkLoader - Function to load individual chunks
@@ -394,13 +489,8 @@ export class SaveManager extends ISaveSystem {
         this.loadProgress.update('Processing world data...', 85);
         await this.delay(10);
         
-        if (worldData.environmentObjects) {
-            if (world.environmentManager) {
-                world.environmentManager.savedObjects = worldData.environmentObjects;
-            } else {
-                world.savedEnvironmentObjects = worldData.environmentObjects;
-            }
-        }
+        // Environment objects are no longer saved or loaded
+        // This code has been removed as it's no longer needed
         
         if (worldData.terrainChunks) {
             if (world.terrainManager) {
@@ -474,6 +564,11 @@ export class SaveManager extends ISaveSystem {
      * @returns {boolean} Whether save data exists
      */
     hasSaveData() {
-        return this.storage.hasData(this.saveKey);
+        try {
+            return this.storage.hasData(this.saveKey);
+        } catch (error) {
+            console.error('Error checking if save data exists:', error);
+            return false;
+        }
     }
 }

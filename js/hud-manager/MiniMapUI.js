@@ -989,6 +989,9 @@ export class MiniMapUI extends UIComponent {
     drawWorldElements(playerX, playerY, centerX, centerY) {
         const world = this.game.world;
         
+        // Draw remote players if in multiplayer mode
+        this.drawRemotePlayers(playerX, playerY, centerX, centerY);
+        
         // Draw trees if available
         if (world.getTrees) {
             const trees = world.getTrees();
@@ -1012,6 +1015,90 @@ export class MiniMapUI extends UIComponent {
             const paths = world.getPaths();
             this.drawFeatureGroup(paths, playerX, playerY, centerX, centerY, 'rgba(210, 180, 140, 0.5)', 2, true);
         }
+    }
+    
+    /**
+     * Draw remote players on the mini map
+     * @param {number} playerX - Player's X position in the world
+     * @param {number} playerY - Player's Y position in the world (Z in 3D space)
+     * @param {number} centerX - Center X of the mini map
+     * @param {number} centerY - Center Y of the mini map
+     */
+    drawRemotePlayers(playerX, playerY, centerX, centerY) {
+        // Check if we have a multiplayer manager with remote players
+        if (!this.game.multiplayerManager || !this.game.multiplayerManager.remotePlayerManager) {
+            return;
+        }
+        
+        const remotePlayerManager = this.game.multiplayerManager.remotePlayerManager;
+        const remotePlayers = remotePlayerManager.getPlayers();
+        
+        // Skip if no remote players
+        if (!remotePlayers || remotePlayers.size === 0) {
+            return;
+        }
+        
+        // Draw each remote player
+        remotePlayers.forEach((remotePlayer, peerId) => {
+            // Skip if player doesn't have a position
+            if (!remotePlayer.group) return;
+            
+            // Get position from the group
+            const position = remotePlayer.group.position;
+            
+            // Calculate position relative to player
+            const relX = (position.x - playerX) * this.scale;
+            const relY = (position.z - playerY) * this.scale;
+            
+            // Apply map offset
+            const screenX = centerX + relX + this.mapOffsetX;
+            const screenY = centerY + relY + this.mapOffsetY;
+            
+            // Calculate distance from center (for circular bounds check)
+            const distFromCenter = Math.sqrt(
+                Math.pow(screenX - centerX, 2) + 
+                Math.pow(screenY - centerY, 2)
+            );
+            
+            // Only draw if within circular mini map bounds
+            if (distFromCenter <= (this.mapSize / 2 - 2)) {
+                // Get player color from remote player
+                const playerColor = remotePlayer.playerColor || '#FFFFFF';
+                
+                // Draw a glow effect
+                this.ctx.fillStyle = `${playerColor}40`; // 25% opacity version of the color
+                this.ctx.beginPath();
+                this.ctx.arc(screenX, screenY, 7, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Draw player marker with their color
+                this.ctx.fillStyle = playerColor;
+                this.ctx.beginPath();
+                this.ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Add a white border to make it pop
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
+                this.ctx.stroke();
+                
+                // Draw player direction indicator if rotation is available
+                if (remotePlayer.targetRotation) {
+                    const rotation = remotePlayer.targetRotation.y;
+                    this.ctx.strokeStyle = playerColor;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(screenX, screenY);
+                    this.ctx.lineTo(
+                        screenX + Math.sin(rotation) * 8,
+                        screenY + Math.cos(rotation) * 8
+                    );
+                    this.ctx.stroke();
+                }
+            }
+        });
     }
     
     /**

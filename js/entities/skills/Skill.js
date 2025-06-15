@@ -55,7 +55,7 @@ export class Skill {
      * Create a new skill
      * @param {Object} config - Skill configuration
      */
-    constructor(config) {
+    constructor(config, game) {
         this.name = config.name || 'Unknown Skill';
         this.description = config.description || '';
         this.type = config.type || 'ranged';
@@ -93,7 +93,10 @@ export class Skill {
         this.direction = new THREE.Vector3();
 
         // Game reference
-        this.game = null;
+        this.game = game;
+        
+        // Target enemy reference (for auto-targeting)
+        this.targetEnemy = config.targetEnemy;
         
         // Add a unique instance ID for this skill
         // This helps with tracking which skill instance has hit which enemies
@@ -163,12 +166,43 @@ export class Skill {
             playerRotation = { y: 0 };
         }
         
-        // Set skill direction based on player rotation
-        this.direction.set(
-            Math.sin(playerRotation.y),
-            0,
-            Math.cos(playerRotation.y)
-        );
+        // Check if we have a target enemy and adjust direction accordingly
+        if (this.targetEnemy) {
+            try {
+                // Get enemy position
+                const enemyPosition = this.targetEnemy.getPosition();
+                
+                // Validate enemy position
+                if (this.validateVector(enemyPosition)) {
+                    // Calculate direction to enemy
+                    const targetDirection = new THREE.Vector3().subVectors(enemyPosition, this.position).normalize();
+                    
+                    // Set skill direction based on enemy position
+                    this.direction.copy(targetDirection);
+                    this.direction.y = 0; // Keep direction horizontal
+                    this.direction.normalize();
+                    
+                    console.debug(`Skill ${this.name} targeting enemy at position: ${enemyPosition.x.toFixed(2)}, ${enemyPosition.y.toFixed(2)}, ${enemyPosition.z.toFixed(2)}`);
+                } else {
+                    throw new Error("Invalid enemy position");
+                }
+            } catch (error) {
+                console.warn(`Error targeting enemy with skill ${this.name}: ${error.message}. Using player rotation instead.`);
+                // Fallback to player rotation if there's any error with the enemy
+                this.direction.set(
+                    Math.sin(playerRotation.y),
+                    0,
+                    Math.cos(playerRotation.y)
+                );
+            }
+        } else {
+            // No target enemy, use player rotation as before
+            this.direction.set(
+                Math.sin(playerRotation.y),
+                0,
+                Math.cos(playerRotation.y)
+            );
+        }
         
         // Validate direction vector
         if (!this.validateVector(this.direction)) {
@@ -258,61 +292,116 @@ export class Skill {
             // Add level bonus (each level adds 2 damage)
             damage += (player.stats.getLevel() - 1) * 2;
             
-            // Add weapon damage if equipped
+            // Get equipment
             const equipment = player.inventory.getEquipment();
+            
+            // Add weapon damage if equipped
             if (equipment.weapon) {
                 // Check if the weapon has the getStat method before calling it
                 if (typeof equipment.weapon.getStat === 'function') {
-                    damage += equipment.weapon.getStat('damage') || 0;
+                    // Base weapon damage
+                    const weaponDamage = equipment.weapon.getStat('damage') || 0;
+                    damage += weaponDamage;
+                    
+                    console.debug(`Adding weapon damage: ${weaponDamage}`);
                     
                     // Apply elemental bonuses if matching
                     if (this.element && equipment.weapon.getStat(`${this.element}Damage`)) {
-                        damage *= (1 + (equipment.weapon.getStat(`${this.element}Damage`) / 100));
+                        const elementalBonus = equipment.weapon.getStat(`${this.element}Damage`);
+                        const elementalMultiplier = 1 + (elementalBonus / 100);
+                        damage *= elementalMultiplier;
+                        console.debug(`Applied ${this.element} damage bonus: ${elementalBonus}%, multiplier: ${elementalMultiplier.toFixed(2)}`);
                     }
                 } else if (equipment.weapon.baseStats && equipment.weapon.baseStats.damage) {
                     // Fallback to directly accessing baseStats if getStat is not available
-                    damage += equipment.weapon.baseStats.damage;
+                    const weaponDamage = equipment.weapon.baseStats.damage;
+                    damage += weaponDamage;
+                    console.debug(`Adding weapon base damage: ${weaponDamage}`);
                 }
             }
             
-            // Apply skill damage bonuses from items
+            // Apply skill damage bonuses from all equipped items
             let skillDamageBonus = 0;
+            let specificSkillBonus = 0;
+            let variantBonus = 0;
             
             // Check all equipped items for skill damage bonuses
             for (const slot in equipment) {
                 const item = equipment[slot];
-                if (item) {
-                    // Check if the item has the getStat method
-                    if (typeof item.getStat === 'function') {
-                        // General skill damage bonus
-                        skillDamageBonus += item.getStat('skillDamage') || 0;
-                        
-                        // Specific skill type bonus
-                        if (this.variant) {
-                            skillDamageBonus += item.getStat(`${this.variant}Damage`) || 0;
-                        }
-                        
-                        // Specific skill bonus
-                        skillDamageBonus += item.getStat(`${this.name}Damage`) || 0;
-                    } else if (item.processedSecondaryStats && Array.isArray(item.processedSecondaryStats)) {
-                        // Fallback to directly checking secondary stats
-                        item.processedSecondaryStats.forEach(stat => {
-                            if (stat.type === 'skillDamage') {
-                                skillDamageBonus += stat.value || 0;
-                            }
-                            if (this.variant && stat.type === `${this.variant}Damage`) {
-                                skillDamageBonus += stat.value || 0;
-                            }
-                            if (stat.type === `${this.name}Damage`) {
-                                skillDamageBonus += stat.value || 0;
-                            }
-                        });
+                if (!item) continue;
+                
+                // Check if the item has the getStat method
+                if (typeof item.getStat === 'function') {
+                    // General skill damage bonus
+                    const generalBonus = item.getStat('skillDamage') || 0;
+                    skillDamageBonus += generalBonus;
+                    
+                    // Specific skill type bonus (variant)
+                    if (this.variant) {
+                        const typeBonus = item.getStat(`${this.variant}Damage`) || 0;
+                        variantBonus += typeBonus;
                     }
+                    
+                    // Specific skill name bonus
+                    const nameBonus = item.getStat(`${this.name}Damage`) || 0;
+                    specificSkillBonus += nameBonus;
+                    
+                    // Intelligence bonus for magical skills
+                    if (this.type === 'magical' && item.getStat('intelligence')) {
+                        const intBonus = item.getStat('intelligence') * 0.5;
+                        damage += intBonus;
+                        console.debug(`Adding intelligence bonus from ${slot}: ${intBonus.toFixed(1)}`);
+                    }
+                    
+                    // Dexterity bonus for ranged skills
+                    if (this.type === 'ranged' && item.getStat('dexterity')) {
+                        const dexBonus = item.getStat('dexterity') * 0.3;
+                        damage += dexBonus;
+                        console.debug(`Adding dexterity bonus from ${slot}: ${dexBonus.toFixed(1)}`);
+                    }
+                    
+                    // Strength bonus for melee skills
+                    if (this.type === 'melee' && item.getStat('strength')) {
+                        const strBonus = item.getStat('strength') * 0.4;
+                        damage += strBonus;
+                        console.debug(`Adding strength bonus from ${slot}: ${strBonus.toFixed(1)}`);
+                    }
+                    
+                } else if (item.processedSecondaryStats && Array.isArray(item.processedSecondaryStats)) {
+                    // Fallback to directly checking secondary stats
+                    item.processedSecondaryStats.forEach(stat => {
+                        if (stat.type === 'skillDamage') {
+                            skillDamageBonus += stat.value || 0;
+                        }
+                        if (this.variant && stat.type === `${this.variant}Damage`) {
+                            variantBonus += stat.value || 0;
+                        }
+                        if (stat.type === `${this.name}Damage`) {
+                            specificSkillBonus += stat.value || 0;
+                        }
+                    });
                 }
             }
             
-            // Apply skill damage bonus
-            damage *= (1 + (skillDamageBonus / 100));
+            // Log the bonuses for debugging
+            if (skillDamageBonus > 0 || variantBonus > 0 || specificSkillBonus > 0) {
+                console.debug(`Skill damage bonuses - General: ${skillDamageBonus}%, Variant(${this.variant}): ${variantBonus}%, Specific(${this.name}): ${specificSkillBonus}%`);
+            }
+            
+            // Apply general skill damage bonus
+            if (skillDamageBonus > 0) {
+                damage *= (1 + (skillDamageBonus / 100));
+            }
+            
+            // Apply variant-specific bonus (stacks with general)
+            if (variantBonus > 0) {
+                damage *= (1 + (variantBonus / 100));
+            }
+            
+            // Apply skill-specific bonus (stacks with others)
+            if (specificSkillBonus > 0) {
+                damage *= (1 + (specificSkillBonus / 100));
+            }
             
             // Apply small random variation (±10%)
             const variation = damage * 0.2 * (Math.random() - 0.5);
@@ -407,11 +496,17 @@ export class Skill {
      * @returns {boolean} - Whether the sound was played successfully
      */
     playSound(type) {
-        if (!this.game || !this.game.audioManager) return false;
+        if (!this.game || !this.game.audioManager) {
+            console.warn(`[${this.name}] Cannot play sound: game or audioManager not available`);
+            return false;
+        }
         
         const soundName = this.sounds && this.sounds[type];
         if (soundName) {
+            console.debug(`[${this.name}] Playing sound: ${type} (ID: ${soundName})`);
             return this.game.audioManager.playSound(soundName);
+        } else {
+            console.warn(`[${this.name}] Sound not found for type: ${type}`);
         }
         
         return false;
@@ -429,6 +524,9 @@ export class Skill {
         // Reset position and direction
         this.position = new THREE.Vector3();
         this.direction = new THREE.Vector3();
+        
+        // Reset target enemy
+        this.targetEnemy = null;
         
         // Generate a new instance ID when the skill is reset
         // This ensures that each use of the skill is treated as a new instance

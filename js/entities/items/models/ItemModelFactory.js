@@ -4,8 +4,14 @@ import { DaggerModel } from './weapons/DaggerModel.js';
 import { FistModel } from './weapons/FistModel.js';
 import { HelmetModel } from './armor/HelmetModel.js';
 import { RobeModel } from './armor/RobeModel.js';
+import { BootsModel } from './armor/BootsModel.js';
+import { BeltModel } from './armor/BeltModel.js';
+import { GlovesModel } from './armor/GlovesModel.js';
 import { AmuletModel } from './accessory/AmuletModel.js';
+import { TalismanModel } from './accessory/TalismanModel.js';
+import { RingModel } from './accessory/RingModel.js';
 import { PotionModel } from './consumable/PotionModel.js';
+import { FoodModel } from './consumable/FoodModel.js';
 
 /**
  * Factory class for creating item models
@@ -43,6 +49,12 @@ export class ItemModelFactory {
                         return new HelmetModel(item, modelGroup);
                     case 'robe':
                         return new RobeModel(item, modelGroup);
+                    case 'boots':
+                        return new BootsModel(item, modelGroup);
+                    case 'belt':
+                        return new BeltModel(item, modelGroup);
+                    case 'gloves':
+                        return new GlovesModel(item, modelGroup);
                     // Add more armor subtypes as they are implemented
                     default:
                         console.warn(`No specific model for armor subtype: ${subType}, using default`);
@@ -53,6 +65,10 @@ export class ItemModelFactory {
                 switch (subType) {
                     case 'amulet':
                         return new AmuletModel(item, modelGroup);
+                    case 'talisman':
+                        return new TalismanModel(item, modelGroup);
+                    case 'ring':
+                        return new RingModel(item, modelGroup);
                     // Add more accessory subtypes as they are implemented
                     default:
                         console.warn(`No specific model for accessory subtype: ${subType}, using default`);
@@ -63,6 +79,8 @@ export class ItemModelFactory {
                 switch (subType) {
                     case 'potion':
                         return new PotionModel(item, modelGroup);
+                    case 'food':
+                        return new FoodModel(item, modelGroup);
                     // Add more consumable subtypes as they are implemented
                     default:
                         console.warn(`No specific model for consumable subtype: ${subType}, using default`);

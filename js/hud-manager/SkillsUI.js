@@ -57,11 +57,15 @@ export class SkillsUI extends UIComponent {
         // Render the template
         this.render(skillsHTML);
         
+        // Create skill overlay for right half of screen
+        this.createSkillOverlay();
+        
         // Add event listeners to skill buttons
         this.skillButtons = this.container.querySelectorAll('.skill-button');
         this.skillButtons.forEach(button => {
-            // Prevent zoom on double tap
-            button.style.touchAction = 'manipulation';
+            // Prevent zoom on double tap and ensure proper touch handling
+            button.style.touchAction = 'none';
+            button.style.pointerEvents = 'auto';
             
             const index = parseInt(button.getAttribute('data-skill-index'));
             const skill = skills[index];
@@ -69,8 +73,9 @@ export class SkillsUI extends UIComponent {
             
             // Handle click events
             button.addEventListener('click', (e) => {
-                // Prevent default behavior to avoid any zoom
+                // Prevent default behavior and stop propagation
                 e.preventDefault();
+                e.stopPropagation();
                 
                 // Check if this is the basic attack skill
                 if (isPrimaryAttack) {
@@ -90,6 +95,7 @@ export class SkillsUI extends UIComponent {
             // Start continuous casting on touch start
             button.addEventListener('touchstart', (e) => {
                 e.preventDefault(); // Prevent default behavior
+                e.stopPropagation(); // Stop event from bubbling to other elements
                 
                 // Clear any existing interval for this skill
                 this.stopContinuousCasting(index);
@@ -142,6 +148,7 @@ export class SkillsUI extends UIComponent {
             // Stop continuous casting on touch end
             button.addEventListener('touchend', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 this.stopContinuousCasting(index);
                 button.classList.remove('skill-activated');
             });
@@ -149,6 +156,7 @@ export class SkillsUI extends UIComponent {
             // Also stop on touch cancel
             button.addEventListener('touchcancel', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 this.stopContinuousCasting(index);
                 button.classList.remove('skill-activated');
             });
@@ -157,9 +165,21 @@ export class SkillsUI extends UIComponent {
             button.title = `${skill.name}: ${skill.description}`;
         });
         
-        // No "Change Skills" button event listener needed
-        
         return true;
+    }
+    
+    /**
+     * Get the skill overlay for the right half of the screen
+     * This ensures skill buttons have priority over other touch events in their area
+     */
+    createSkillOverlay() {
+        // Get the existing overlay element from the DOM
+        this.skillsOverlay = document.getElementById('skills-overlay');
+        
+        // If for some reason the element doesn't exist in the HTML, log a warning
+        if (!this.skillsOverlay) {
+            console.warn('Skills overlay element not found in HTML. Touch handling may be affected.');
+        }
     }
     
     /**
@@ -257,6 +277,10 @@ export class SkillsUI extends UIComponent {
     destroy() {
         // Stop all continuous casting
         this.stopAllContinuousCasting();
+        
+        // We don't remove the skills overlay from DOM since it's defined in HTML
+        // Just clear the reference
+        this.skillsOverlay = null;
         
         // Call parent destroy method if it exists
         if (super.destroy) {

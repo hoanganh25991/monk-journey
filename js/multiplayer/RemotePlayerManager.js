@@ -164,15 +164,20 @@ export class RemotePlayerManager {
     handleSkillCast(peerId, skillName, variant, targetEnemyId) {
         // Check if player exists
         if (!this.remotePlayers.has(peerId)) {
-            console.debug(`[RemotePlayerManager] Cannot cast skill: Remote player ${peerId} not found`);
+            console.debug(`[RemotePlayerManager] Cannot cast skill: Remote player ${peerId} not found - player may have disconnected`);
             return false;
         }
         
-        // Get remote player
-        const remotePlayer = this.remotePlayers.get(peerId);
-        
-        // Cast the skill with variant and target enemy information
-        return remotePlayer.castSkill(skillName, variant, targetEnemyId);
+        try {
+            // Get remote player
+            const remotePlayer = this.remotePlayers.get(peerId);
+            
+            // Cast the skill with variant and target enemy information
+            return remotePlayer.castSkill(skillName, variant, targetEnemyId);
+        } catch (error) {
+            console.error(`[RemotePlayerManager] Error casting skill ${skillName} for player ${peerId}:`, error);
+            return false;
+        }
     }
     
     /**

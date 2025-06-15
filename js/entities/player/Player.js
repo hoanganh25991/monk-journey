@@ -27,6 +27,7 @@ import { PlayerModel } from './PlayerModel.js';
 import { PlayerMovement } from './PlayerMovement.js';
 import { PlayerSkills } from './PlayerSkills.js';
 import { PlayerCombat } from './PlayerCombat.js';
+import { PlayerStatusEffects } from './PlayerStatusEffects.js';
 
 export class Player {
     /**
@@ -52,6 +53,7 @@ export class Player {
         this.movement = null;
         this.skills = null;
         this.combat = null;
+        this.statusEffects = null;
     }
     
     /**
@@ -69,6 +71,7 @@ export class Player {
         this.movement = new PlayerMovement(this.state, this.stats, this.model.getModelGroup(), this.camera, this.game);
         this.skills = new PlayerSkills(this.scene, this.stats, this.movement.getPosition(), this.movement.getRotation(), this.game);
         this.combat = new PlayerCombat(this.scene, this.state, this.stats, this.model, this.inventory, this.game);
+        this.statusEffects = new PlayerStatusEffects(this.stats, this.movement, this.game);
         
         // Initialize skills
         this.skills.initializeSkills();
@@ -120,6 +123,11 @@ export class Player {
         
         // Regenerate resources
         this.stats.regenerateResources(delta);
+        
+        // Update status effects
+        if (this.statusEffects) {
+            this.statusEffects.update(delta);
+        }
     }
     
     // Movement methods
@@ -406,6 +414,60 @@ export class Player {
      */
     getCurrentAnimation() {
         return this.model ? this.model.currentAnimation : null;
+    }
+    
+    /**
+     * Apply a status effect to the player
+     * @param {string} effectType - The type of effect to apply
+     * @param {number} duration - Duration of the effect in seconds
+     * @param {number} [intensity=1] - Intensity of the effect (1 = 100%)
+     * @returns {boolean} - Whether the effect was successfully applied
+     */
+    applyEffect(effectType, duration, intensity = 1) {
+        if (!this.statusEffects) {
+            console.warn('Cannot apply effect: status effects manager not initialized');
+            return false;
+        }
+        
+        return this.statusEffects.applyEffect(effectType, duration, intensity);
+    }
+    
+    /**
+     * Remove a specific status effect
+     * @param {string} effectType - The type of effect to remove
+     * @returns {boolean} - Whether the effect was successfully removed
+     */
+    removeEffect(effectType) {
+        if (!this.statusEffects) {
+            return false;
+        }
+        
+        return this.statusEffects.removeEffect(effectType);
+    }
+    
+    /**
+     * Check if a specific effect is active
+     * @param {string} effectType - The type of effect to check
+     * @returns {boolean} - Whether the effect is active
+     */
+    hasEffect(effectType) {
+        if (!this.statusEffects) {
+            return false;
+        }
+        
+        return this.statusEffects.hasEffect(effectType);
+    }
+    
+    /**
+     * Get all active effects
+     * @returns {Object} - Map of active effects with their durations
+     */
+    getActiveEffects() {
+        if (!this.statusEffects) {
+            return {};
+        }
+        
+        return this.statusEffects.getAllEffects();
     }
     
     // Skills getters - delegate to PlayerSkills

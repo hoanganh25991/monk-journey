@@ -449,10 +449,9 @@
     position: absolute;
     display: flex;
     justify-content: center;
-    bottom: 0px;
-    width: 100%;
+    width: 288px;
+    bottom: var(--padding-large);
     z-index: 50;
-    margin: auto;
 }
 
 .inventory-action-btn {
@@ -461,8 +460,8 @@
     justify-content: center;
     background-color: rgba(138, 109, 59, 0.5);
     border: 1px solid #8a6d3b;
-    border-radius: var(--padding-small);
-    padding: var(--padding-small);
+    border-radius: 3px;
+    padding: 3px;
     color: #ffcc00;
     font-size: 1rem;
     cursor: pointer;
@@ -481,4 +480,8 @@
 
 .btn-text {
     font-weight: bold;
+}
+
+#inventory-teleport {
+    margin-right: var(--padding-medium);
 }

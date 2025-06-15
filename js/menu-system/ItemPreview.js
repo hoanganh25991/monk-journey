@@ -196,7 +196,7 @@ export class ItemPreview {
      * @param {Object} item - The item to load
      */
     loadItemModel(item) {
-        console.log('ItemPreview: Loading model for item', item ? item.name : 'unknown');
+        console.debug('ItemPreview: Loading model for item', item ? item.name : 'unknown');
         
         // Remove existing model if any
         if (this.model) {
@@ -289,7 +289,7 @@ export class ItemPreview {
     }
     
     /**
-     * Center the model in the scene
+     * Center the model in the scene and dynamically adjust camera
      * @private
      */
     centerModel() {
@@ -309,14 +309,154 @@ export class ItemPreview {
         const size = box.getSize(new THREE.Vector3());
         this.model.position.y = -box.min.y;
         
-        // Adjust camera position based on model size if needed
+        // Dynamically adjust camera position based on item dimensions
+        this.adjustCameraForItem(size);
+    }
+    
+    /**
+     * Dynamically adjust camera position based on item dimensions
+     * @param {THREE.Vector3} size - The size of the item's bounding box
+     * @private
+     */
+    adjustCameraForItem(size) {
+        // Get the maximum dimension of the item
         const maxDimension = Math.max(size.x, size.y, size.z);
-        if (maxDimension > 2) {
-            // For larger models, move camera back proportionally
-            const distanceFactor = maxDimension / 2;
-            this.camera.position.z = Math.min(10, 5.0 * distanceFactor);
-            this.camera.updateProjectionMatrix();
+        
+        // Calculate the optimal distance based on item type and size
+        let optimalDistance;
+        
+        // Check if we have an item type and subType to make specific adjustments
+        if (this.currentItem && this.currentItem.type) {
+            // First check the main type
+            switch (this.currentItem.type.toLowerCase()) {
+                case 'weapon':
+                    // For weapons, check the subType
+                    if (this.currentItem.subType) {
+                        switch (this.currentItem.subType.toLowerCase()) {
+                            case 'staff':
+                            case 'spear':
+                            case 'polearm':
+                                // For long weapons, ensure the entire length is visible
+                                // Use a more aggressive scaling factor for the y dimension (length)
+                                optimalDistance = Math.max(2.0, size.y * 1.2 * 1.7);
+                                
+                                // Add extra distance for very long staffs
+                                if (size.y > 3) {
+                                    optimalDistance *= 1.2 * 1.7;
+                                }
+                                
+                                console.debug('Staff adjustment: size.y =', size.y, 'optimalDistance =', optimalDistance);
+                                break;
+                                
+                            case 'fist':
+                                optimalDistance = Math.max(1.0, maxDimension);
+                                break;
+                            case 'sword':
+                            case 'axe':
+                            case 'mace':
+                            case 'dagger':
+                                // For handheld weapons
+                                optimalDistance = Math.max(1.5, maxDimension * 1.0);
+                                break;
+                                
+                            default:
+                                // Default for other weapon types
+                                optimalDistance = Math.max(1.5, maxDimension * 1.1);
+                        }
+                    } else {
+                        // Generic weapon without subtype
+                        optimalDistance = Math.max(1.5, maxDimension * 1.1);
+                    }
+                    break;
+                    
+                case 'armor':
+                    // For armor, check the subType
+                    if (this.currentItem.subType) {
+                        switch (this.currentItem.subType.toLowerCase()) {
+                            case 'helmet':
+                            case 'robe':
+                            case 'chest':
+                            case 'shield':
+                                // For armor pieces, ensure we can see the full item
+                                optimalDistance = Math.max(1.5, maxDimension * 1.2 * 1.5);
+                                break;
+                                
+                            default:
+                                // Default for other armor types
+                                optimalDistance = Math.max(1.5, maxDimension * 1.2 * 1.5);
+                        }
+                    } else {
+                        // Generic armor without subtype
+                        optimalDistance = Math.max(1.5, maxDimension * 1.2 * 1.5);
+                    }
+                    break;
+                    
+                case 'accessory':
+                    // For accessories, check the subType
+                    if (this.currentItem.subType) {
+                        switch (this.currentItem.subType.toLowerCase()) {
+                            case 'ring':
+                            case 'amulet':
+                            case 'trinket':
+                                // For small items, zoom in closer but maintain minimum distance
+                                optimalDistance = Math.max(1.2, maxDimension * 1.5);
+                                break;
+                                
+                            default:
+                                // Default for other accessory types
+                                optimalDistance = Math.max(1.2, maxDimension * 1.5);
+                        }
+                    } else {
+                        // Generic accessory without subtype
+                        optimalDistance = Math.max(1.2, maxDimension * 1.5);
+                    }
+                    break;
+                    
+                default:
+                    // Default calculation for any other item type
+                    optimalDistance = Math.max(1.5, maxDimension * 1.1);
+            }
+        } else {
+            // If no item type or no item, use a generic calculation
+            optimalDistance = Math.max(1.5, maxDimension * 1.1);
         }
+        
+        // Add a margin to ensure the entire item is visible
+        // Use a larger margin for longer items
+        const isLongItem = this.currentItem && 
+            this.currentItem.type?.toLowerCase() === 'weapon' && 
+            ['staff', 'spear', 'polearm'].includes(this.currentItem.subType?.toLowerCase());
+            
+        if (isLongItem) {
+            // Larger margin for staffs and other long items
+            optimalDistance *= 1.4;
+        } else {
+            // Standard margin for other items
+            optimalDistance *= 1.2;
+        }
+        
+        // Clamp the distance to reasonable bounds
+        // Allow greater maximum distance for long items
+        const maxDistance = isLongItem ? 15 : 10;
+        optimalDistance = Math.min(maxDistance, Math.max(1.0, optimalDistance));
+        
+        // Adjust field of view for long items
+        if (isLongItem) {
+            // Use a wider FOV for staffs and other long items to fit them better
+            this.camera.fov = 55; // Wider FOV (default was 45)
+        } else {
+            // Reset to default FOV for other items
+            this.camera.fov = 45;
+        }
+        
+        // Set the camera position
+        this.camera.position.set(0, 0, optimalDistance);
+        this.camera.updateProjectionMatrix();
+        
+        console.debug('ItemPreview: Adjusted camera for item', 
+            this.currentItem ? `${this.currentItem.name} (${this.currentItem.type})` : 'unknown',
+            '- distance:', optimalDistance, 
+            '- FOV:', this.camera.fov);
     }
     
     /**
@@ -369,10 +509,19 @@ export class ItemPreview {
     }
     
     /**
-     * Reset camera to default position
+     * Reset camera to optimal position for current item
      */
     resetCamera() {
-        this.camera.position.set(0, 0, 1); // Zoomed in 5x closer (from 5 to 1)
+        if (this.model) {
+            // If we have a model, recalculate the optimal camera position
+            const box = new THREE.Box3().setFromObject(this.model);
+            const size = box.getSize(new THREE.Vector3());
+            this.adjustCameraForItem(size);
+        } else {
+            // Default position if no model is loaded
+            this.camera.position.set(0, 0, 1.5);
+        }
+        
         this.camera.lookAt(0, 0, 0);
         this.controls.reset();
     }

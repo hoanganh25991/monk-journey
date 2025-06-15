@@ -16,6 +16,7 @@ export class DeadlyReachEffect extends SkillEffect {
         this.maxDistance = skill.range || 10; // Maximum distance to travel
         this.beamLength = 2; // Fixed beam length
         this.targetEnemy = null; // Reference to the targeted enemy
+        this.hasHitEnemy = false; // Track if the effect has hit an enemy
     }
 
     /**
@@ -234,9 +235,6 @@ export class DeadlyReachEffect extends SkillEffect {
             return;
         }
         
-        // Update direction if we have a targeted enemy
-        this.updateTargetTracking();
-        
         // Move projectile forward
         const moveDistance = this.projectileSpeed * delta;
         this.effect.position.x += this.direction.x * moveDistance;
@@ -252,34 +250,6 @@ export class DeadlyReachEffect extends SkillEffect {
         this.distanceTraveled += moveDistance;
         
         this.updateDeadlyReachEffect(delta);
-    }
-    
-    /**
-     * Update the direction to track the targeted enemy if it exists and is alive
-     * @private
-     */
-    updateTargetTracking() {
-        // Skip if no target or no game reference
-        if (!this.targetEnemy || !this.skill.game) return;
-        
-        // Skip if enemy is dead
-        if (this.targetEnemy.isDead && this.targetEnemy.isDead()) {
-            this.targetEnemy = null;
-            return;
-        }
-        
-        // Get current positions
-        const currentPosition = this.effect.position.clone();
-        const enemyPosition = this.targetEnemy.getPosition();
-        
-        // Calculate new direction to enemy
-        const newDirection = new THREE.Vector3()
-            .subVectors(enemyPosition, currentPosition)
-            .normalize();
-        
-        // Update direction with some smoothing to avoid sharp turns
-        this.direction.lerp(newDirection, 0.2); // 20% blend toward new direction
-        this.direction.normalize(); // Ensure it's still a unit vector
     }
 
     /**

@@ -3,6 +3,7 @@ import { ZONE_COLORS } from '../../config/colors.js';
 
 /**
  * Represents a building structure styled for Monk Journey
+ * Enhanced with multiple building types and styles
  */
 export class Building {
     /**
@@ -11,13 +12,17 @@ export class Building {
      * @param {number} width - Building width
      * @param {number} depth - Building depth
      * @param {number} height - Building height
+     * @param {string} buildingType - Type of building (house, shop, temple)
+     * @param {number} style - Style variant (0-2)
      */
-    constructor(zoneType = 'Forest', width = 5, depth = 5, height = 4) {
+    constructor(zoneType = 'Forest', width = 5, depth = 5, height = 4, buildingType = 'house', style = 0) {
         // Ensure all dimensions are valid numbers
         this.width = isNaN(width) || width <= 0 ? 5 : width;
         this.depth = isNaN(depth) || depth <= 0 ? 5 : depth;
         this.height = isNaN(height) || height <= 0 ? 4 : height;
         this.zoneType = zoneType || 'Forest';
+        this.buildingType = buildingType || 'house';
+        this.style = style || 0;
         this.random = Math.random;
     }
     
@@ -38,7 +43,44 @@ export class Building {
             metalness: 0.2
         });
         
-        // Create pagoda-style building for Monk Journey theme
+        // Create accent material
+        const accentMaterial = new THREE.MeshStandardMaterial({
+            color: zoneColors.accent || 0xDAA520, // Golden Rod default
+            roughness: 0.7,
+            metalness: 0.3
+        });
+        
+        // Choose building creation method based on type and style
+        switch (this.buildingType) {
+            case 'temple':
+                this.createTemple(buildingGroup, wallMaterial, accentMaterial, zoneColors);
+                break;
+            case 'shop':
+                this.createShop(buildingGroup, wallMaterial, accentMaterial, zoneColors);
+                break;
+            case 'house':
+            default:
+                // Different house styles
+                if (this.style === 1) {
+                    this.createTwoStoryHouse(buildingGroup, wallMaterial, accentMaterial, zoneColors);
+                } else if (this.style === 2) {
+                    this.createRoundedHouse(buildingGroup, wallMaterial, accentMaterial, zoneColors);
+                } else {
+                    this.createPagodaStyleHouse(buildingGroup, wallMaterial, accentMaterial, zoneColors);
+                }
+                break;
+        }
+        
+        // Add zone-specific decorations
+        this.addZoneSpecificDecorations(buildingGroup, zoneColors);
+        
+        return buildingGroup;
+    }
+    
+    /**
+     * Create a pagoda-style house (default style)
+     */
+    createPagodaStyleHouse(buildingGroup, wallMaterial, accentMaterial, zoneColors) {
         // Base structure - slightly wider at the bottom
         const baseHeight = this.height * 0.3;
         const baseGeometry = new THREE.BoxGeometry(this.width * 1.1, baseHeight, this.depth * 1.1);
@@ -69,20 +111,13 @@ export class Building {
         
         buildingGroup.add(top);
         
-        // Create pagoda-style roof
-        const roofMaterial = new THREE.MeshStandardMaterial({
-            color: zoneColors.accent || 0xDAA520, // Golden Rod default
-            roughness: 0.9,
-            metalness: 0.1
-        });
-        
         // Create curved, multi-tiered roof
         const roofWidth = Math.sqrt(this.width * this.width + this.depth * this.depth) / 2 + 0.8;
         const roofHeight = this.height * 0.4;
         
         // First roof tier (bottom)
         const roofGeometry1 = new THREE.ConeGeometry(roofWidth, roofHeight * 0.6, 4);
-        const roof1 = new THREE.Mesh(roofGeometry1, roofMaterial);
+        const roof1 = new THREE.Mesh(roofGeometry1, accentMaterial);
         roof1.position.y = this.height + roofHeight * 0.3;
         roof1.rotation.y = Math.PI / 4;
         roof1.scale.y = 0.5; // Flatten it
@@ -93,7 +128,7 @@ export class Building {
         
         // Second roof tier (top)
         const roofGeometry2 = new THREE.ConeGeometry(roofWidth * 0.7, roofHeight * 0.4, 4);
-        const roof2 = new THREE.Mesh(roofGeometry2, roofMaterial);
+        const roof2 = new THREE.Mesh(roofGeometry2, accentMaterial);
         roof2.position.y = this.height + roofHeight * 0.6;
         roof2.rotation.y = Math.PI / 4;
         roof2.scale.y = 0.5; // Flatten it
@@ -102,18 +137,11 @@ export class Building {
         
         buildingGroup.add(roof2);
         
-        // Add decorative roof edges (eaves)
-        const eavesMaterial = new THREE.MeshStandardMaterial({
-            color: zoneColors.accent || 0xDAA520, // Golden Rod default
-            roughness: 0.7,
-            metalness: 0.3
-        });
-        
         // Add curved eaves at each corner
         for (let i = 0; i < 4; i++) {
             const angle = (i / 4) * Math.PI * 2;
             const eaveGeometry = new THREE.BoxGeometry(this.width * 0.2, 0.1, this.depth * 0.2);
-            const eave = new THREE.Mesh(eaveGeometry, eavesMaterial);
+            const eave = new THREE.Mesh(eaveGeometry, accentMaterial);
             
             // Position at corners with slight upward curve
             eave.position.set(
@@ -233,19 +261,614 @@ export class Building {
         buildingGroup.add(sideWindow1);
         buildingGroup.add(sideWindow2);
         
-        // Add decorative elements based on zone type
-        if (this.zoneType === 'Forest') {
-            // Add lanterns for forest pagodas
-            this.addLanterns(buildingGroup, zoneColors);
-        } else if (this.zoneType === 'Desert') {
-            // Add awnings for desert buildings
-            this.addAwnings(buildingGroup, zoneColors);
-        } else if (this.zoneType === 'Mountains') {
-            // Add snow caps for mountain buildings
-            this.addSnowCaps(buildingGroup, zoneColors);
-        }
+        // Add zone-specific decorations
+        this.addZoneSpecificDecorations(buildingGroup, zoneColors);
         
         return buildingGroup;
+    }
+    
+    /**
+     * Create a two-story house (style 1)
+     */
+    createTwoStoryHouse(buildingGroup, wallMaterial, accentMaterial, zoneColors) {
+        // First floor
+        const firstFloorHeight = this.height * 0.5;
+        const firstFloorGeometry = new THREE.BoxGeometry(this.width, firstFloorHeight, this.depth);
+        const firstFloor = new THREE.Mesh(firstFloorGeometry, wallMaterial);
+        firstFloor.position.y = firstFloorHeight / 2;
+        firstFloor.castShadow = true;
+        firstFloor.receiveShadow = true;
+        
+        buildingGroup.add(firstFloor);
+        
+        // Second floor - slightly smaller
+        const secondFloorHeight = this.height * 0.4;
+        const secondFloorGeometry = new THREE.BoxGeometry(this.width * 0.85, secondFloorHeight, this.depth * 0.85);
+        const secondFloor = new THREE.Mesh(secondFloorGeometry, wallMaterial);
+        secondFloor.position.y = firstFloorHeight + secondFloorHeight / 2;
+        secondFloor.castShadow = true;
+        secondFloor.receiveShadow = true;
+        
+        buildingGroup.add(secondFloor);
+        
+        // Create sloped roof
+        const roofHeight = this.height * 0.3;
+        const roofWidth = this.width * 0.95;
+        const roofDepth = this.depth * 0.95;
+        
+        // Create a pyramid-shaped roof
+        const roofGeometry = new THREE.ConeGeometry(
+            Math.sqrt(roofWidth * roofWidth + roofDepth * roofDepth) / 2,
+            roofHeight,
+            4
+        );
+        const roof = new THREE.Mesh(roofGeometry, accentMaterial);
+        roof.position.y = firstFloorHeight + secondFloorHeight + roofHeight / 2;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        
+        buildingGroup.add(roof);
+        
+        // Add balcony to second floor
+        const balconyDepth = 1.2;
+        const balconyWidth = this.width * 0.4;
+        const balconyHeight = 0.1;
+        
+        const balconyGeometry = new THREE.BoxGeometry(balconyWidth, balconyHeight, balconyDepth);
+        const balcony = new THREE.Mesh(balconyGeometry, accentMaterial);
+        balcony.position.set(0, firstFloorHeight + 0.05, this.depth / 2 + balconyDepth / 2);
+        
+        buildingGroup.add(balcony);
+        
+        // Add balcony railings
+        const railingHeight = 0.6;
+        const railingMaterial = new THREE.MeshStandardMaterial({
+            color: zoneColors.structure || 0x4A4A4A,
+            roughness: 0.7,
+            metalness: 0.3
+        });
+        
+        // Front railing
+        const frontRailingGeometry = new THREE.BoxGeometry(balconyWidth, railingHeight, 0.05);
+        const frontRailing = new THREE.Mesh(frontRailingGeometry, railingMaterial);
+        frontRailing.position.set(0, firstFloorHeight + railingHeight / 2 + balconyHeight, this.depth / 2 + balconyDepth);
+        
+        // Side railings
+        const sideRailingGeometry = new THREE.BoxGeometry(0.05, railingHeight, balconyDepth);
+        const leftRailing = new THREE.Mesh(sideRailingGeometry, railingMaterial);
+        leftRailing.position.set(-balconyWidth / 2, firstFloorHeight + railingHeight / 2 + balconyHeight, this.depth / 2 + balconyDepth / 2);
+        
+        const rightRailing = new THREE.Mesh(sideRailingGeometry, railingMaterial);
+        rightRailing.position.set(balconyWidth / 2, firstFloorHeight + railingHeight / 2 + balconyHeight, this.depth / 2 + balconyDepth / 2);
+        
+        buildingGroup.add(frontRailing);
+        buildingGroup.add(leftRailing);
+        buildingGroup.add(rightRailing);
+        
+        // Add windows
+        this.addWindows(buildingGroup, wallMaterial, zoneColors, firstFloorHeight);
+        
+        // Add door
+        this.addDoor(buildingGroup, accentMaterial, zoneColors);
+    }
+    
+    /**
+     * Create a rounded house (style 2)
+     */
+    createRoundedHouse(buildingGroup, wallMaterial, accentMaterial, zoneColors) {
+        // Create a cylindrical base
+        const baseRadius = Math.min(this.width, this.depth) / 2;
+        const baseHeight = this.height * 0.7;
+        const baseGeometry = new THREE.CylinderGeometry(baseRadius, baseRadius * 1.1, baseHeight, 12);
+        const base = new THREE.Mesh(baseGeometry, wallMaterial);
+        base.position.y = baseHeight / 2;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        
+        buildingGroup.add(base);
+        
+        // Create a dome roof
+        const roofRadius = baseRadius * 1.2;
+        const roofHeight = this.height * 0.4;
+        const roofGeometry = new THREE.SphereGeometry(roofRadius, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+        const roof = new THREE.Mesh(roofGeometry, accentMaterial);
+        roof.position.y = baseHeight;
+        roof.castShadow = true;
+        
+        buildingGroup.add(roof);
+        
+        // Add a decorative spire on top
+        const spireHeight = this.height * 0.3;
+        const spireGeometry = new THREE.ConeGeometry(baseRadius * 0.15, spireHeight, 8);
+        const spire = new THREE.Mesh(spireGeometry, accentMaterial);
+        spire.position.y = baseHeight + roofRadius * 0.8;
+        spire.castShadow = true;
+        
+        buildingGroup.add(spire);
+        
+        // Add windows around the cylindrical base
+        const windowCount = 5;
+        const windowWidth = 0.8;
+        const windowHeight = 1.2;
+        const windowDepth = 0.1;
+        
+        const windowMaterial = new THREE.MeshStandardMaterial({
+            color: 0x88ccff,
+            roughness: 0.3,
+            metalness: 0.8,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        for (let i = 0; i < windowCount; i++) {
+            const angle = (i / windowCount) * Math.PI * 2;
+            
+            // Skip one position for the door
+            if (i === 0) continue;
+            
+            const windowGeometry = new THREE.BoxGeometry(windowWidth, windowHeight, windowDepth);
+            const window = new THREE.Mesh(windowGeometry, windowMaterial);
+            
+            // Position around the cylinder
+            window.position.set(
+                Math.sin(angle) * (baseRadius + 0.05),
+                baseHeight / 2,
+                Math.cos(angle) * (baseRadius + 0.05)
+            );
+            
+            // Rotate to face outward
+            window.rotation.y = angle + Math.PI / 2;
+            
+            buildingGroup.add(window);
+        }
+        
+        // Add a door at the front
+        const doorWidth = 1.2;
+        const doorHeight = 2;
+        const doorDepth = 0.2;
+        
+        const doorGeometry = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
+        const door = new THREE.Mesh(doorGeometry, accentMaterial);
+        
+        // Position at the front
+        door.position.set(0, doorHeight / 2, baseRadius + 0.05);
+        
+        buildingGroup.add(door);
+        
+        // Add steps leading to the door
+        const stepsWidth = doorWidth * 1.5;
+        const stepsDepth = 0.8;
+        const stepsHeight = 0.2;
+        
+        const stepsGeometry = new THREE.BoxGeometry(stepsWidth, stepsHeight, stepsDepth);
+        const steps = new THREE.Mesh(stepsGeometry, wallMaterial);
+        steps.position.set(0, stepsHeight / 2, baseRadius + stepsDepth / 2 + 0.1);
+        
+        buildingGroup.add(steps);
+    }
+    
+    /**
+     * Create a temple building
+     */
+    createTemple(buildingGroup, wallMaterial, accentMaterial, zoneColors) {
+        // Create a larger, more ornate building for temples
+        
+        // Base platform
+        const baseWidth = this.width * 1.2;
+        const baseDepth = this.depth * 1.2;
+        const baseHeight = this.height * 0.2;
+        
+        const baseGeometry = new THREE.BoxGeometry(baseWidth, baseHeight, baseDepth);
+        const base = new THREE.Mesh(baseGeometry, wallMaterial);
+        base.position.y = baseHeight / 2;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        
+        buildingGroup.add(base);
+        
+        // Main temple structure
+        const templeWidth = this.width;
+        const templeDepth = this.depth;
+        const templeHeight = this.height * 0.6;
+        
+        const templeGeometry = new THREE.BoxGeometry(templeWidth, templeHeight, templeDepth);
+        const temple = new THREE.Mesh(templeGeometry, wallMaterial);
+        temple.position.y = baseHeight + templeHeight / 2;
+        temple.castShadow = true;
+        temple.receiveShadow = true;
+        
+        buildingGroup.add(temple);
+        
+        // Create multi-tiered pagoda roof
+        const roofTiers = 3;
+        const roofBaseWidth = templeWidth * 1.3;
+        const roofBaseDepth = templeDepth * 1.3;
+        const totalRoofHeight = this.height * 0.5;
+        const tierHeight = totalRoofHeight / roofTiers;
+        
+        for (let i = 0; i < roofTiers; i++) {
+            const tierScale = 1 - (i * 0.2);
+            const tierWidth = roofBaseWidth * tierScale;
+            const tierDepth = roofBaseDepth * tierScale;
+            
+            // Create a flattened pyramid for each tier
+            const tierGeometry = new THREE.BoxGeometry(tierWidth, tierHeight * 0.7, tierDepth);
+            const tier = new THREE.Mesh(tierGeometry, accentMaterial);
+            
+            // Position each tier
+            tier.position.y = baseHeight + templeHeight + (i * tierHeight) + tierHeight / 2;
+            tier.castShadow = true;
+            
+            buildingGroup.add(tier);
+            
+            // Add decorative corners to each tier
+            for (let j = 0; j < 4; j++) {
+                const angle = (j / 4) * Math.PI * 2;
+                const cornerX = Math.sin(angle) * (tierWidth / 2);
+                const cornerZ = Math.cos(angle) * (tierDepth / 2);
+                
+                const cornerGeometry = new THREE.ConeGeometry(0.3, tierHeight * 0.5, 4);
+                const corner = new THREE.Mesh(cornerGeometry, accentMaterial);
+                
+                corner.position.set(
+                    cornerX,
+                    baseHeight + templeHeight + (i * tierHeight) + tierHeight,
+                    cornerZ
+                );
+                
+                buildingGroup.add(corner);
+            }
+        }
+        
+        // Add a spire at the top
+        const spireHeight = this.height * 0.3;
+        const spireGeometry = new THREE.ConeGeometry(0.4, spireHeight, 8);
+        const spire = new THREE.Mesh(spireGeometry, accentMaterial);
+        spire.position.y = baseHeight + templeHeight + totalRoofHeight + spireHeight / 2;
+        spire.castShadow = true;
+        
+        buildingGroup.add(spire);
+        
+        // Add ornate entrance
+        const entranceWidth = templeWidth * 0.4;
+        const entranceHeight = templeHeight * 0.7;
+        const entranceDepth = 0.8;
+        
+        const entranceGeometry = new THREE.BoxGeometry(entranceWidth, entranceHeight, entranceDepth);
+        const entrance = new THREE.Mesh(entranceGeometry, accentMaterial);
+        entrance.position.set(0, baseHeight + entranceHeight / 2, templeDepth / 2 + entranceDepth / 2);
+        
+        buildingGroup.add(entrance);
+        
+        // Add steps leading to the entrance
+        const stepsWidth = entranceWidth * 1.5;
+        const stepsDepth = 1.2;
+        const stepsHeight = 0.2;
+        
+        const stepsGeometry = new THREE.BoxGeometry(stepsWidth, stepsHeight, stepsDepth);
+        const steps = new THREE.Mesh(stepsGeometry, wallMaterial);
+        steps.position.set(0, stepsHeight / 2, templeDepth / 2 + entranceDepth + stepsDepth / 2);
+        
+        buildingGroup.add(steps);
+        
+        // Add decorative columns
+        const columnRadius = 0.3;
+        const columnHeight = templeHeight * 0.9;
+        
+        for (let i = 0; i < 2; i++) {
+            const side = i === 0 ? -1 : 1;
+            const columnGeometry = new THREE.CylinderGeometry(columnRadius, columnRadius, columnHeight, 8);
+            const column = new THREE.Mesh(columnGeometry, wallMaterial);
+            
+            column.position.set(
+                side * (entranceWidth / 2 + columnRadius * 2),
+                baseHeight + columnHeight / 2,
+                templeDepth / 2 + columnRadius
+            );
+            
+            buildingGroup.add(column);
+        }
+        
+        // Add decorative windows
+        const windowWidth = 0.8;
+        const windowHeight = 1.5;
+        const windowDepth = 0.1;
+        
+        const windowMaterial = new THREE.MeshStandardMaterial({
+            color: 0x88ccff,
+            roughness: 0.3,
+            metalness: 0.8,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        // Add windows to sides
+        for (let i = 0; i < 2; i++) {
+            const side = i === 0 ? -1 : 1;
+            
+            for (let j = 0; j < 2; j++) {
+                const offset = j === 0 ? -1 : 1;
+                
+                const windowGeometry = new THREE.BoxGeometry(windowDepth, windowHeight, windowWidth);
+                const window = new THREE.Mesh(windowGeometry, windowMaterial);
+                
+                window.position.set(
+                    side * (templeWidth / 2 + windowDepth / 2),
+                    baseHeight + templeHeight / 2,
+                    offset * (templeDepth / 4)
+                );
+                
+                buildingGroup.add(window);
+            }
+        }
+    }
+    
+    /**
+     * Create a shop building
+     */
+    createShop(buildingGroup, wallMaterial, accentMaterial, zoneColors) {
+        // Create a shop with a distinctive storefront
+        
+        // Main structure
+        const shopWidth = this.width;
+        const shopDepth = this.depth;
+        const shopHeight = this.height * 0.8;
+        
+        const shopGeometry = new THREE.BoxGeometry(shopWidth, shopHeight, shopDepth);
+        const shop = new THREE.Mesh(shopGeometry, wallMaterial);
+        shop.position.y = shopHeight / 2;
+        shop.castShadow = true;
+        shop.receiveShadow = true;
+        
+        buildingGroup.add(shop);
+        
+        // Create sloped roof
+        const roofHeight = this.height * 0.3;
+        const roofWidth = shopWidth * 1.2; // Extend beyond walls
+        const roofDepth = shopDepth * 1.2; // Extend beyond walls
+        
+        // Create a pyramid-shaped roof
+        const roofGeometry = new THREE.ConeGeometry(
+            Math.sqrt(roofWidth * roofWidth + roofDepth * roofDepth) / 2,
+            roofHeight,
+            4
+        );
+        const roof = new THREE.Mesh(roofGeometry, accentMaterial);
+        roof.position.y = shopHeight + roofHeight / 2;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        
+        buildingGroup.add(roof);
+        
+        // Create storefront with large display window
+        const windowWidth = shopWidth * 0.7;
+        const windowHeight = shopHeight * 0.5;
+        const windowDepth = 0.1;
+        
+        const windowMaterial = new THREE.MeshStandardMaterial({
+            color: 0x88ccff,
+            roughness: 0.3,
+            metalness: 0.8,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        const windowGeometry = new THREE.BoxGeometry(windowWidth, windowHeight, windowDepth);
+        const window = new THREE.Mesh(windowGeometry, windowMaterial);
+        window.position.set(0, shopHeight / 2, shopDepth / 2 + windowDepth / 2);
+        
+        buildingGroup.add(window);
+        
+        // Create window frame
+        const frameWidth = windowWidth + 0.2;
+        const frameHeight = windowHeight + 0.2;
+        const frameDepth = 0.2;
+        const frameMaterial = new THREE.MeshStandardMaterial({
+            color: zoneColors.accent || 0xDAA520,
+            roughness: 0.7,
+            metalness: 0.3
+        });
+        
+        // Create frame parts
+        const frameTop = new THREE.BoxGeometry(frameWidth, 0.2, frameDepth);
+        const frameBottom = new THREE.BoxGeometry(frameWidth, 0.2, frameDepth);
+        const frameLeft = new THREE.BoxGeometry(0.2, frameHeight, frameDepth);
+        const frameRight = new THREE.BoxGeometry(0.2, frameHeight, frameDepth);
+        
+        const topFrame = new THREE.Mesh(frameTop, frameMaterial);
+        topFrame.position.set(0, shopHeight / 2 + windowHeight / 2 + 0.1, shopDepth / 2 + frameDepth / 2);
+        
+        const bottomFrame = new THREE.Mesh(frameBottom, frameMaterial);
+        bottomFrame.position.set(0, shopHeight / 2 - windowHeight / 2 - 0.1, shopDepth / 2 + frameDepth / 2);
+        
+        const leftFrame = new THREE.Mesh(frameLeft, frameMaterial);
+        leftFrame.position.set(-windowWidth / 2 - 0.1, shopHeight / 2, shopDepth / 2 + frameDepth / 2);
+        
+        const rightFrame = new THREE.Mesh(frameRight, frameMaterial);
+        rightFrame.position.set(windowWidth / 2 + 0.1, shopHeight / 2, shopDepth / 2 + frameDepth / 2);
+        
+        buildingGroup.add(topFrame);
+        buildingGroup.add(bottomFrame);
+        buildingGroup.add(leftFrame);
+        buildingGroup.add(rightFrame);
+        
+        // Add door to the side of the display window
+        const doorWidth = 1.2;
+        const doorHeight = 2;
+        const doorDepth = 0.2;
+        
+        const doorGeometry = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
+        const door = new THREE.Mesh(doorGeometry, accentMaterial);
+        
+        // Position door to the right of the window
+        door.position.set(windowWidth / 2 + doorWidth / 2 + 0.3, doorHeight / 2, shopDepth / 2 + doorDepth / 2);
+        
+        buildingGroup.add(door);
+        
+        // Add shop sign
+        const signWidth = shopWidth * 0.6;
+        const signHeight = 0.8;
+        const signDepth = 0.1;
+        
+        const signGeometry = new THREE.BoxGeometry(signWidth, signHeight, signDepth);
+        const sign = new THREE.Mesh(signGeometry, accentMaterial);
+        sign.position.set(0, shopHeight + 0.5, shopDepth / 2 + signDepth / 2 + 0.3);
+        
+        buildingGroup.add(sign);
+        
+        // Add sign support
+        const supportGeometry = new THREE.BoxGeometry(0.2, 1, 0.2);
+        const support = new THREE.Mesh(supportGeometry, wallMaterial);
+        support.position.set(0, shopHeight + 0.1, shopDepth / 2 + 0.3);
+        
+        buildingGroup.add(support);
+    }
+    
+    /**
+     * Add windows to a building
+     */
+    addWindows(buildingGroup, wallMaterial, zoneColors, firstFloorHeight = 0) {
+        const windowMaterial = new THREE.MeshStandardMaterial({
+            color: 0x88ccff,
+            roughness: 0.3,
+            metalness: 0.8,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        // Create lattice pattern for windows
+        const createLatticeWindow = (width, height, depth) => {
+            const windowGroup = new THREE.Group();
+            
+            // Window frame
+            const frameGeometry = new THREE.BoxGeometry(width, height, depth);
+            const frame = new THREE.Mesh(frameGeometry, wallMaterial);
+            windowGroup.add(frame);
+            
+            // Glass
+            const glassGeometry = new THREE.BoxGeometry(width - 0.1, height - 0.1, depth / 2);
+            const glass = new THREE.Mesh(glassGeometry, windowMaterial);
+            glass.position.z = depth / 4;
+            windowGroup.add(glass);
+            
+            // Horizontal lattice bars
+            const barHeight = 0.05;
+            const barWidth = width - 0.15;
+            for (let i = 1; i < 3; i++) {
+                const barY = (i / 3) * height - height / 2;
+                const barGeometry = new THREE.BoxGeometry(barWidth, barHeight, depth);
+                const bar = new THREE.Mesh(barGeometry, wallMaterial);
+                bar.position.y = barY;
+                windowGroup.add(bar);
+            }
+            
+            // Vertical lattice bars
+            const barDepth = depth;
+            const barThickness = 0.05;
+            for (let i = 1; i < 3; i++) {
+                const barX = (i / 3) * width - width / 2;
+                const barGeometry = new THREE.BoxGeometry(barThickness, height - 0.15, barDepth);
+                const bar = new THREE.Mesh(barGeometry, wallMaterial);
+                bar.position.x = barX;
+                windowGroup.add(bar);
+            }
+            
+            return windowGroup;
+        };
+        
+        // Add windows to front
+        const frontWindow1 = createLatticeWindow(1.2, 1.2, 0.2);
+        frontWindow1.position.set(-this.width / 4, this.height / 2 + 0.5, this.depth / 2 + 0.05);
+        
+        const frontWindow2 = createLatticeWindow(1.2, 1.2, 0.2);
+        frontWindow2.position.set(this.width / 4, this.height / 2 + 0.5, this.depth / 2 + 0.05);
+        
+        buildingGroup.add(frontWindow1);
+        buildingGroup.add(frontWindow2);
+        
+        // If this is a two-story building, add second floor windows
+        if (firstFloorHeight > 0) {
+            const secondFloorWindow1 = createLatticeWindow(1.2, 1.2, 0.2);
+            secondFloorWindow1.position.set(-this.width / 4, firstFloorHeight + this.height / 4, this.depth / 2 + 0.05);
+            
+            const secondFloorWindow2 = createLatticeWindow(1.2, 1.2, 0.2);
+            secondFloorWindow2.position.set(this.width / 4, firstFloorHeight + this.height / 4, this.depth / 2 + 0.05);
+            
+            buildingGroup.add(secondFloorWindow1);
+            buildingGroup.add(secondFloorWindow2);
+        }
+        
+        // Add windows to sides
+        const sideWindow1 = createLatticeWindow(0.2, 1.2, 1.2);
+        sideWindow1.position.set(this.width / 2 + 0.05, this.height / 2 + 0.5, 0);
+        sideWindow1.rotation.y = Math.PI / 2;
+        
+        const sideWindow2 = createLatticeWindow(0.2, 1.2, 1.2);
+        sideWindow2.position.set(-this.width / 2 - 0.05, this.height / 2 + 0.5, 0);
+        sideWindow2.rotation.y = Math.PI / 2;
+        
+        buildingGroup.add(sideWindow1);
+        buildingGroup.add(sideWindow2);
+    }
+    
+    /**
+     * Add a door to a building
+     */
+    addDoor(buildingGroup, accentMaterial, zoneColors) {
+        // Create sliding door (more Asian style)
+        const doorMaterial = new THREE.MeshStandardMaterial({
+            color: zoneColors.accent || 0xDAA520, // Golden Rod default
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        
+        const doorWidth = Math.min(this.width / 2.5, 1.5);
+        const doorHeight = Math.min(this.height / 2, 2);
+        
+        // Create door frame
+        const doorFrameGeometry = new THREE.BoxGeometry(doorWidth + 0.2, doorHeight + 0.2, 0.1);
+        const doorFrame = new THREE.Mesh(doorFrameGeometry, accentMaterial);
+        doorFrame.position.set(0, doorHeight / 2, this.depth / 2 + 0.05);
+        
+        buildingGroup.add(doorFrame);
+        
+        // Create sliding door panels
+        const doorPanelWidth = doorWidth / 2 - 0.05;
+        const doorPanelGeometry = new THREE.BoxGeometry(doorPanelWidth, doorHeight - 0.1, 0.05);
+        
+        // Left door panel
+        const leftDoor = new THREE.Mesh(doorPanelGeometry, doorMaterial);
+        leftDoor.position.set(-doorPanelWidth / 2 - 0.05, doorHeight / 2, this.depth / 2 + 0.1);
+        
+        // Right door panel
+        const rightDoor = new THREE.Mesh(doorPanelGeometry, doorMaterial);
+        rightDoor.position.set(doorPanelWidth / 2 + 0.05, doorHeight / 2, this.depth / 2 + 0.1);
+        
+        buildingGroup.add(leftDoor);
+        buildingGroup.add(rightDoor);
+    }
+    
+    /**
+     * Add zone-specific decorations to the building
+     */
+    addZoneSpecificDecorations(buildingGroup, zoneColors) {
+        switch (this.zoneType) {
+            case 'Forest':
+                this.addLanterns(buildingGroup, zoneColors);
+                break;
+            case 'Desert':
+                this.addAwnings(buildingGroup, zoneColors);
+                break;
+            case 'Mountains':
+                this.addSnowCaps(buildingGroup, zoneColors);
+                break;
+            case 'Swamp':
+                this.addMossAndVines(buildingGroup, zoneColors);
+                break;
+            case 'Ruins':
+                this.addCracksAndVines(buildingGroup, zoneColors);
+                break;
+        }
     }
     
     /**

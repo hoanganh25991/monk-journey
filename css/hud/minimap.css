@@ -1,0 +1,33 @@
+/* 
+ * hud-minimap.css - Mini map display
+ * Part of the Diablo Immortal CSS optimization
+ * This file contains styles for the mini map
+ */
+
+/* Mini Map */
+#mini-map {
+    position: absolute;
+    top: 60px; /* Position below the right panel buttons */
+    right: 10px;
+    color: white;
+    pointer-events: auto; /* Ensure clicks are registered */
+    z-index: 50; /* Below UI Controls but above other elements */
+    width: 200px;
+    height: 200px;
+}
+
+#mini-map-canvas {
+    border-radius: 50%;
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+@media (max-height: 430px) {
+    #mini-map {
+        width: 120px;
+        height: 120px;
+    }
+}

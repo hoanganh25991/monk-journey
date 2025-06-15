@@ -13,6 +13,9 @@ export class ZoneManager {
         // Zone collections
         this.zones = [];
         this.zoneMarkers = [];
+        
+        // Theme colors from loaded map (if any)
+        this.currentThemeColors = null;
     }
     
     /**
@@ -24,114 +27,249 @@ export class ZoneManager {
     }
     
     /**
+     * Set theme colors from a loaded map
+     * @param {Object} themeColors - Theme colors from map data
+     */
+    setThemeColors(themeColors) {
+        this.currentThemeColors = themeColors;
+        console.debug('Theme colors set:', themeColors);
+    }
+    
+    /**
+     * Get theme colors for a specific zone type
+     * @param {string} zoneType - The zone type
+     * @returns {Object} - The theme colors for the zone type
+     */
+    getThemeColorsForZoneType(zoneType) {
+        // If we have theme colors, return them directly
+        // This ensures the map's theme colors are used for all zones
+        if (this.currentThemeColors) {
+            // The map generator stores theme colors directly in the theme.colors property
+            // not as a nested object by zone type
+            console.debug(`Returning theme colors for zone ${zoneType}:`, this.currentThemeColors);
+            return this.currentThemeColors;
+        }
+        return null;
+    }
+    
+    /**
      * Initialize the zone system
      */
     init() {
         this.createZones();
+        
+        // Build zone cache for faster lookups
+        this.buildSimpleZoneCache();
     }
     
     /**
-     * Create zones throughout the world
+     * Update terrain colors based on current zones
+     * This ensures terrain colors match the zone types
      */
-    createZones() {
-        // Define zone types with colors from the Monk Journey theme
-        const zoneTypes = [
-            { name: 'Forest', color: ZONE_COLORS.Forest.foliage, radius: 20 },
-            { name: 'Desert', color: ZONE_COLORS.Desert.sand, radius: 20 },
-            { name: 'Mountains', color: ZONE_COLORS.Mountains.ice, radius: 20 },
-            { name: 'Swamp', color: ZONE_COLORS.Swamp.vegetation, radius: 20 },
-            { name: 'Ruins', color: ZONE_COLORS.Ruins.stone, radius: 15 },
-            { name: 'Dark Sanctum', color: ZONE_COLORS['Dark Sanctum'].structure, radius: 15 },
-            { name: 'Terrant', color: ZONE_COLORS.Terrant.soil, radius: 25 } // Larger radius for Terrant zones
-        ];
+    updateTerrainColors() {
+        console.debug('Updating terrain colors based on zones...');
         
-        // Initialize empty zones array
-        this.zones = [];
-        
-        // Create zones in a grid pattern across the world
-        // Use a larger spacing to create more distinct regions
-        const spacing = 50; // Space between zone centers
-        const range = 10; // More zones for better coverage
-        
-        // Create a deterministic zone layout using a grid-based approach
-        for (let x = -range; x <= range; x++) {
-            for (let z = -range; z <= range; z++) {
-                // Use a deterministic but varied zone selection
-                // This creates a more natural-looking pattern while remaining consistent
-                const seed = (x * 12345 + z * 54321) % 1000000;
-                const pseudoRandom = this.seededRandom(seed);
-                
-                // Choose zone type based on position and pseudo-random value
-                let zoneIndex;
-                
-                // Create larger contiguous regions by using grid quadrants
-                const quadrant = Math.floor((x + range) / 5) + Math.floor((z + range) / 5) * 4;
-                
-                // Assign zone types to quadrants with some variation
-                if (quadrant % 7 === 0) {
-                    zoneIndex = 0; // Forest
-                } else if (quadrant % 7 === 1) {
-                    zoneIndex = 1; // Desert
-                } else if (quadrant % 7 === 2) {
-                    zoneIndex = 2; // Mountains
-                } else if (quadrant % 7 === 3) {
-                    zoneIndex = 3; // Swamp
-                } else if (quadrant % 7 === 4) {
-                    zoneIndex = 4; // Ruins
-                } else if (quadrant % 7 === 5) {
-                    zoneIndex = 5; // Dark Sanctum
-                } else {
-                    zoneIndex = 6; // Terrant
-                }
-                
-                // Add some variation to prevent perfect grid patterns
-                if (pseudoRandom() < 0.2) {
-                    // 20% chance to use a different zone type
-                    zoneIndex = Math.floor(pseudoRandom() * zoneTypes.length);
-                }
-                
-                // Make sure zoneIndex is valid
-                zoneIndex = Math.min(Math.max(0, zoneIndex), zoneTypes.length - 1);
-                const zoneType = zoneTypes[zoneIndex];
-                
-                // Add some deterministic variation to zone positions
-                // This makes the zones less grid-like while remaining consistent
-                const offsetX = (pseudoRandom() - 0.5) * spacing * 0.4;
-                const offsetZ = (pseudoRandom() - 0.5) * spacing * 0.4;
-                
-                // Create the zone
-                this.zones.push({
-                    name: zoneType.name,
-                    center: new THREE.Vector3(
-                        x * spacing + offsetX, 
-                        0, 
-                        z * spacing + offsetZ
-                    ),
-                    radius: zoneType.radius * (0.9 + pseudoRandom() * 0.2), // Slight radius variation
-                    color: zoneType.color
-                });
-            }
+        if (!this.worldManager || !this.worldManager.terrainManager) {
+            console.warn('TerrainManager not available for color updates');
+            return;
         }
         
-        // Add special zones
-        // Dark Sanctum at the center
-        this.zones.push({
-            name: 'Dark Sanctum',
-            center: new THREE.Vector3(0, 0, 0),
-            radius: 15,
-            color: 0x330033
+        // Get all visible terrain chunks
+        const terrainChunks = this.worldManager.terrainManager.terrainChunks;
+        if (!terrainChunks) {
+            console.warn('No terrain chunks available for color updates');
+            return;
+        }
+        
+        // Determine the main theme zone (should cover 70% of the map)
+        let mainZone = null;
+        if (this.zones.length > 0) {
+            // Sort zones by radius (descending) to find the largest zone
+            const sortedZones = [...this.zones].sort((a, b) => b.radius - a.radius);
+            mainZone = sortedZones[0];
+            console.debug(`Main theme zone: ${mainZone.name} with radius ${mainZone.radius}`);
+        }
+        
+        // Log theme colors for debugging
+        console.debug('Current theme colors:', this.currentThemeColors);
+        
+        // Update each terrain chunk's color based on its position
+        Object.values(terrainChunks).forEach(chunk => {
+            if (chunk && !chunk.isPlaceholder) {
+                // Get chunk position
+                const chunkX = chunk.position.x;
+                const chunkZ = chunk.position.z;
+                
+                // Determine zone for this chunk
+                let zoneType = 'Terrant'; // Default
+                
+                if (mainZone) {
+                    // Calculate distance from chunk to main zone center
+                    const distance = Math.sqrt(
+                        Math.pow(chunkX - mainZone.center.x, 2) + 
+                        Math.pow(chunkZ - mainZone.center.z, 2)
+                    );
+                    
+                    // If within 70% of the main zone's radius, use the main zone type
+                    // This ensures approximately 70% of the map uses the main theme color
+                    if (distance <= mainZone.radius * 1.2) {
+                        zoneType = mainZone.name;
+                    } else {
+                        // Otherwise, find the closest zone
+                        const closestZone = this.getZoneAt(
+                            new THREE.Vector3(chunkX, 0, chunkZ)
+                        );
+                        if (closestZone) {
+                            zoneType = closestZone.name;
+                        }
+                    }
+                } else {
+                    // If no main zone, use the zone manager to determine zone
+                    const zone = this.getZoneAt(
+                        new THREE.Vector3(chunkX, 0, chunkZ)
+                    );
+                    if (zone) {
+                        zoneType = zone.name;
+                    }
+                }
+                
+                // Get theme colors for this zone
+                const themeColors = this.getThemeColorsForZoneType(zoneType);
+                
+                // Apply the zone-appropriate color to the terrain chunk
+                this.worldManager.terrainManager.colorTerrainUniform(chunk, zoneType, themeColors);
+            }
         });
         
-        // Add a large Terrant zone around the center
-        this.zones.push({
-            name: 'Terrant',
-            center: new THREE.Vector3(0, 0, 0),
-            radius: 40, // Large radius to cover the starting area
-            color: ZONE_COLORS.Terrant.soil
-        });
+        // Also update the base terrain if it exists
+        if (this.worldManager.terrainManager.terrain) {
+            const baseTerrain = this.worldManager.terrainManager.terrain;
+            const mainZoneType = mainZone ? mainZone.name : 'Terrant';
+            const themeColors = this.getThemeColorsForZoneType(mainZoneType);
+            
+            console.debug(`Coloring base terrain with zone type ${mainZoneType} and theme colors:`, themeColors);
+            this.worldManager.terrainManager.colorTerrainUniform(baseTerrain, mainZoneType, themeColors);
+        }
         
-        // Cache zone data for chunk lookups
-        this.buildZoneCache();
+        console.debug('Terrain colors updated successfully');
+    }
+    
+    /**
+     * Update terrain colors in a specific area
+     * This is used for chunk-based color updates to ensure consistency
+     * @param {number} worldX - World X coordinate of the area center
+     * @param {number} worldZ - World Z coordinate of the area center
+     * @param {number} width - Width of the area
+     * @param {number} depth - Depth of the area
+     * @param {Object} colors - Specific colors to apply (overrides zone-based colors)
+     */
+    updateTerrainColorsInArea(worldX, worldZ, width, depth, colors) {
+        if (!this.worldManager || !this.worldManager.terrainManager) {
+            console.warn('TerrainManager not available for area color updates');
+            return;
+        }
+        
+        // Get all visible terrain chunks
+        const terrainChunks = this.worldManager.terrainManager.terrainChunks;
+        if (!terrainChunks) {
+            console.warn('No terrain chunks available for area color updates');
+            return;
+        }
+        
+        // Calculate area bounds
+        const minX = worldX - width / 2;
+        const maxX = worldX + width / 2;
+        const minZ = worldZ - depth / 2;
+        const maxZ = worldZ + depth / 2;
+        
+        // Find terrain chunks that intersect with this area
+        Object.values(terrainChunks).forEach(chunk => {
+            if (chunk && !chunk.isPlaceholder) {
+                const chunkX = chunk.position.x;
+                const chunkZ = chunk.position.z;
+                const chunkSize = this.worldManager.terrainManager.terrainChunkSize || 50;
+                
+                // Check if this chunk intersects with our area
+                const chunkMinX = chunkX - chunkSize / 2;
+                const chunkMaxX = chunkX + chunkSize / 2;
+                const chunkMinZ = chunkZ - chunkSize / 2;
+                const chunkMaxZ = chunkZ + chunkSize / 2;
+                
+                // If chunk intersects with our area, update its colors
+                if (chunkMaxX >= minX && chunkMinX <= maxX && 
+                    chunkMaxZ >= minZ && chunkMinZ <= maxZ) {
+                    
+                    // If specific colors are provided, use them
+                    if (colors) {
+                        // Determine zone type based on the chunk position
+                        const zone = this.getZoneAt(new THREE.Vector3(chunkX, 0, chunkZ));
+                        const zoneType = zone ? zone.name : 'Terrant';
+                        
+                        // Apply the colors to the terrain chunk
+                        this.worldManager.terrainManager.colorTerrainUniform(chunk, zoneType, colors);
+                    } else {
+                        // Otherwise, use the standard zone-based coloring
+                        const zone = this.getZoneAt(new THREE.Vector3(chunkX, 0, chunkZ));
+                        const zoneType = zone ? zone.name : 'Terrant';
+                        const themeColors = this.getThemeColorsForZoneType(zoneType);
+                        
+                        this.worldManager.terrainManager.colorTerrainUniform(chunk, zoneType, themeColors);
+                    }
+                }
+            }
+        });
+    }
+    
+    /**
+     * Create simplified zones throughout the world
+     */
+    createZones() {
+        // Simplified zone types - fewer zones, larger areas
+        const zoneTypes = [
+            { name: 'Terrant', color: ZONE_COLORS.Terrant.soil, radius: 100 },
+            { name: 'Forest', color: ZONE_COLORS.Forest.foliage, radius: 80 },
+            { name: 'Desert', color: ZONE_COLORS.Desert.sand, radius: 80 },
+            { name: 'Mountains', color: ZONE_COLORS.Mountains.ice, radius: 80 }
+        ];
+        
+        // Initialize zones array with large, simple regions
+        this.zones = [
+            // Central Terrant zone (starting area)
+            {
+                name: 'Terrant',
+                center: new THREE.Vector3(0, 0, 0),
+                radius: 150,
+                color: ZONE_COLORS.Terrant.soil
+            },
+            // Four cardinal direction zones
+            {
+                name: 'Forest',
+                center: new THREE.Vector3(200, 0, 0),
+                radius: 120,
+                color: ZONE_COLORS.Forest.foliage
+            },
+            {
+                name: 'Desert',
+                center: new THREE.Vector3(-200, 0, 0),
+                radius: 120,
+                color: ZONE_COLORS.Desert.sand
+            },
+            {
+                name: 'Mountains',
+                center: new THREE.Vector3(0, 0, 200),
+                radius: 120,
+                color: ZONE_COLORS.Mountains.ice
+            },
+            {
+                name: 'Swamp',
+                center: new THREE.Vector3(0, 0, -200),
+                radius: 120,
+                color: ZONE_COLORS.Swamp.vegetation
+            }
+        ];
+        
+        // Build simple zone cache
+        this.buildSimpleZoneCache();
         
         // Visualize zones (for development)
         this.visualizeZones();
@@ -150,40 +288,11 @@ export class ZoneManager {
     }
     
     /**
-     * Build a cache of zone data for chunk lookups
-     * This improves performance by pre-calculating zone information for chunks
+     * Build a simplified cache of zone data for chunk lookups
      */
-    buildZoneCache() {
+    buildSimpleZoneCache() {
         this.zoneCache = {};
-        
-        // Make sure terrain manager is available
-        if (!this.worldManager || !this.worldManager.terrainManager) {
-            console.warn("Cannot build zone cache: terrain manager not available");
-            return;
-        }
-        
-        // Get the terrain chunk size
-        const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
-        
-        // Calculate the range of chunks to cache based on the world size
-        const range = 20; // Cache a 40x40 chunk area
-        
-        for (let x = -range; x <= range; x++) {
-            for (let z = -range; z <= range; z++) {
-                const chunkKey = `${x},${z}`;
-                
-                // Calculate the center of this chunk in world coordinates
-                const worldX = x * chunkSize + chunkSize / 2;
-                const worldZ = z * chunkSize + chunkSize / 2;
-                
-                // Find the zone at this position
-                const position = new THREE.Vector3(worldX, 0, worldZ);
-                const zone = this.getZoneAt(position);
-                
-                // Cache the zone type for this chunk
-                this.zoneCache[chunkKey] = zone ? zone.name : 'Terrant';
-            }
-        }
+        // Cache will be built on-demand in getZoneTypeForChunk
     }
     
     /**
@@ -222,118 +331,71 @@ export class ZoneManager {
     }
     
     /**
-     * Get the zone at a specific world position
+     * Get the zone at a specific world position (simplified)
      * @param {THREE.Vector3} position - The position to check
-     * @returns {object|null} - The zone at the specified position, or null if none
+     * @returns {object} - The zone at the specified position
      */
     getZoneAt(position) {
         // If zones array is empty, return default Terrant zone
         if (!this.zones || this.zones.length === 0) {
             return {
                 name: 'Terrant',
-                color: ZONE_COLORS.Terrant ? ZONE_COLORS.Terrant.soil : 0x8B4513, // Earth Brown
+                color: ZONE_COLORS.Terrant.soil,
                 center: position.clone(),
                 radius: 1
             };
         }
         
-        // Check if we have a cached zone for this chunk
-        if (this.zoneCache && this.worldManager && this.worldManager.terrainManager) {
-            // Calculate which chunk this position is in
-            const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
-            const chunkX = Math.floor(position.x / chunkSize);
-            const chunkZ = Math.floor(position.z / chunkSize);
-            const chunkKey = `${chunkX},${chunkZ}`;
-            
-            // If we have a cached zone type for this chunk, create a temporary zone object
-            if (this.zoneCache[chunkKey]) {
-                const zoneName = this.zoneCache[chunkKey];
-                
-                // Find the color for this zone type
-                let zoneColor = 0x4a9e4a; // Default color
-                for (const zone of this.zones) {
-                    if (zone.name === zoneName) {
-                        zoneColor = zone.color;
-                        break;
-                    }
-                }
-                
-                return {
-                    name: zoneName,
-                    color: zoneColor,
-                    // We don't need these properties for most use cases
-                    center: position.clone(),
-                    radius: 1
-                };
+        // Simple distance-based lookup - find the zone that contains this position
+        for (const zone of this.zones) {
+            const distance = position.distanceTo(zone.center);
+            if (distance <= zone.radius) {
+                return zone;
             }
         }
         
-        // If no cache or cache miss, fall back to distance-based lookup
-        try {
-            // Sort zones by distance to optimize lookup (closest first)
-            const sortedZones = [...this.zones].sort((a, b) => {
-                const distA = position.distanceTo(a.center);
-                const distB = position.distanceTo(b.center);
-                return distA - distB;
-            });
-            
-            // Check zones in order of proximity
-            for (const zone of sortedZones) {
-                const distance = position.distanceTo(zone.center);
-                if (distance <= zone.radius) {
-                    return zone;
-                }
+        // If no zone contains the position, return the closest one
+        let closestZone = this.zones[0];
+        let closestDistance = position.distanceTo(this.zones[0].center);
+        
+        for (let i = 1; i < this.zones.length; i++) {
+            const distance = position.distanceTo(this.zones[i].center);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestZone = this.zones[i];
             }
-        } catch (error) {
-            console.warn("Error in zone lookup:", error);
         }
         
-        // Default to Terrant if no zone found
-        return {
-            name: 'Terrant',
-            color: ZONE_COLORS.Terrant ? ZONE_COLORS.Terrant.soil : 0x8B4513, // Earth Brown
-            center: position.clone(),
-            radius: 1
-        };
+        return closestZone;
     }
     
     /**
-     * Get the zone type for a specific chunk
+     * Get the zone type for a specific chunk (simplified)
      * @param {number} chunkX - X chunk coordinate
      * @param {number} chunkZ - Z chunk coordinate
      * @returns {string} - The zone type name
      */
     getZoneTypeForChunk(chunkX, chunkZ) {
-        try {
-            const chunkKey = `${chunkX},${chunkZ}`;
-            
-            // Check if we have a cached zone type for this chunk
-            if (this.zoneCache && this.zoneCache[chunkKey]) {
-                return this.zoneCache[chunkKey];
-            }
-            
-            // Make sure terrain manager is available
-            if (!this.worldManager || !this.worldManager.terrainManager) {
-                return 'Terrant'; // Default if terrain manager not available
-            }
-            
-            // If not in cache, calculate it and cache the result
-            const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
-            const worldX = chunkX * chunkSize + chunkSize / 2;
-            const worldZ = chunkZ * chunkSize + chunkSize / 2;
-            
-            const position = new THREE.Vector3(worldX, 0, worldZ);
-            const zone = this.getZoneAt(position);
-            
-            // Cache the result for future lookups
-            if (!this.zoneCache) this.zoneCache = {};
-            this.zoneCache[chunkKey] = zone ? zone.name : 'Terrant';
-            
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // Check cache first
+        if (this.zoneCache && this.zoneCache[chunkKey]) {
             return this.zoneCache[chunkKey];
-        } catch (error) {
-            console.warn("Error getting zone type for chunk:", error);
-            return 'Terrant'; // Default to Terrant on error
         }
+        
+        // Calculate chunk center position
+        const chunkSize = this.worldManager?.terrainManager?.terrainChunkSize || 50;
+        const worldX = chunkX * chunkSize + chunkSize / 2;
+        const worldZ = chunkZ * chunkSize + chunkSize / 2;
+        
+        const position = new THREE.Vector3(worldX, 0, worldZ);
+        const zone = this.getZoneAt(position);
+        
+        // Cache the result
+        if (!this.zoneCache) this.zoneCache = {};
+        this.zoneCache[chunkKey] = zone.name;
+        
+        return zone.name;
     }
     
     /**

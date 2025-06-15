@@ -3,7 +3,7 @@ import { SKILL_ICONS } from './skill-icons.js';
 import { SKILL_SOUNDS } from './sounds.js';
 // Type definitions are available in skill-types.d.ts
 // @ts-check
-/** @typedef {import('./config.ts').SkillConfig} SkillConfig */
+/** @typedef {import('./config.type.js').SkillConfig} SkillConfig */
 
 // Primary attacks - basic attacks that don't consume mana
 /** @type {SkillConfig[]} */
@@ -12,7 +12,7 @@ export const PRIMARY_ATTACKS = [
         name: 'Fist of Thunder',
         description: 'Teleport to the nearest enemy and strike them with lightning',
         type: 'teleport',
-        damage: 25,
+        damage: 15, // Balanced primary attack damage
         manaCost: 0,
         cooldown: 0.2, // Very short cooldown for basic attack
         range: 13, // Teleport range
@@ -31,7 +31,7 @@ export const PRIMARY_ATTACKS = [
         name: "Deadly Reach",
         description: "Extend your reach to strike enemies from a distance.",
         type: "projectile",
-        damage: 10,
+        damage: 10, // Keeping this the same as it's already balanced
         manaCost: 0,
         cooldown: 0.2,
         range: 25, // Increased range for a proper ranged attack
@@ -59,12 +59,12 @@ export const NORMAL_SKILLS = [
         name: 'Wave of Light',
         description: 'Summon a massive bell that crashes down on enemies',
         type: 'wave',
-        damage: 50,
-        manaCost: 20,
+        damage: 35, // Reduced from 50 for better balance
+        manaCost: 25, // Increased from 20 to match damage output
         cooldown: 0.2, // Reduced cooldown
         range: 25,
         radius: 5,
-        duration: 5.0, // Further increased duration from 3.5 to 5.0
+        duration: 3.0, // Further increased duration from 3.5 to 5.0
         get color() { return SKILL_ICONS[this.name].color; },
         get icon() { return SKILL_ICONS[this.name].emoji; },
         sounds: {
@@ -77,8 +77,8 @@ export const NORMAL_SKILLS = [
         name: 'Shield of Zen',
         description: 'Envelop yourself in a golden aura with a protective Buddha figure that absorbs 30% of damage and reflects 10% back to attackers',
         type: 'buff',
-        damage: 2, // This is a defensive skill
-        manaCost: 30,
+        damage: 2, // This is a defensive skill, low damage is appropriate
+        manaCost: 25, // Reduced from 30 as it's a defensive skill
         cooldown: 0.2, // Reduced cooldown
         range: 0, // Self-cast
         radius: 3, // Area of effect around player
@@ -95,9 +95,9 @@ export const NORMAL_SKILLS = [
         name: 'Breath of Heaven',
         description: 'A healing skill that restores health to the Monk and nearby allies.',
         type: 'heal',
-        damage: 5,
-        healing: 10, // Amount of health restored per pulse
-        manaCost: 20,
+        damage: 5, // Low damage is appropriate for a healing skill
+        healing: 15, // Increased from 10 to make healing more effective
+        manaCost: 25, // Increased from 20 to balance the improved healing
         cooldown: 0.2, // Longer cooldown for healing ability
         range: 0, // Centered on player
         radius: 8, // Large radius to affect multiple allies/enemies
@@ -114,8 +114,8 @@ export const NORMAL_SKILLS = [
         name: 'Wave Strike',
         description: 'Send a wave of energy towards enemies',
         type: 'ranged',
-        damage: 20,
-        manaCost: 20,
+        damage: 25, // Increased from 20 to make it more effective
+        manaCost: 20, // Kept the same as it's balanced
         cooldown: 0.2, // Reduced cooldown
         range: 25,
         radius: 3,
@@ -132,8 +132,8 @@ export const NORMAL_SKILLS = [
         name: 'Cyclone Strike',
         description: 'Generate a vortex of wind that pulls in enemies and deals damage.',
         type: 'aoe',
-        damage: 30,
-        manaCost: 40,
+        damage: 30, // Kept the same as it's balanced
+        manaCost: 35, // Reduced from 40 to make it more usable
         cooldown: 0.2, // Reduced cooldown
         range: 0,
         radius: 4,
@@ -150,8 +150,8 @@ export const NORMAL_SKILLS = [
         name: 'Seven-Sided Strike',
         description: 'Rapidly attack multiple enemies',
         type: 'multi',
-        damage: 50,
-        manaCost: 30,
+        damage: 40, // Reduced from 50 for better balance
+        manaCost: 35, // Increased from 30 to match the power
         cooldown: 0.2, // Reduced cooldown
         range: 0,
         radius: 5,
@@ -169,8 +169,8 @@ export const NORMAL_SKILLS = [
         name: 'Inner Sanctuary',
         description: 'Create a protective zone that reduces damage',
         type: 'buff',
-        damage: 5,
-        manaCost: 20,
+        damage: 5, // Low damage is appropriate for a defensive skill
+        manaCost: 25, // Increased from 20 to match the utility
         cooldown: 0.2, // Reduced cooldown
         range: 0,
         radius: 5,
@@ -187,8 +187,8 @@ export const NORMAL_SKILLS = [
         name: 'Mystic Allies',
         description: 'Summon spirit allies to fight alongside you',
         type: 'summon',
-        damage: 50,
-        manaCost: 0,
+        damage: 30, // Reduced from 50 for better balance
+        manaCost: 40, // Increased from 0 to match the power (summoning should cost mana)
         cooldown: 0.2, // Reduced cooldown
         range: 0, // Increased range for summoning
         radius: 10, // Increased radius for summoning circle
@@ -206,8 +206,8 @@ export const NORMAL_SKILLS = [
         name: 'Exploding Palm',
         description: 'A skill that marks an enemy for death, causing them to explode upon death and deal damage to nearby enemies.',
         type: 'mark',
-        damage: 55,
-        manaCost: 50,
+        damage: 45, // Reduced from 55 for better balance
+        manaCost: 45, // Reduced from 50 to match the adjusted damage
         cooldown: 0.2, // Reduced cooldown
         range: 30,
         radius: 3,
@@ -224,8 +224,8 @@ export const NORMAL_SKILLS = [
         name: 'Flying Dragon',
         description: 'A powerful attack that launches the Monk into the air, striking enemies with a flurry of kicks.',
         type: 'dash',
-        damage: 120,
-        manaCost: 100,
+        damage: 100, // Significantly reduced from 120 for better balance
+        manaCost: 60, // Reduced from 100 to match the adjusted damage
         cooldown: 0.2,
         range: 30, // Increased range for fast forward movement
         radius: 5, // Adjusted radius for the area of effect
@@ -246,8 +246,8 @@ export const NORMAL_SKILLS = [
         name: 'Flying Kick',
         description: 'A swift kick that propels the Monk forward, dealing damage to enemies in its path.',
         type: 'dash',
-        damage: 30,
-        manaCost: 20,
+        damage: 30, // Kept the same as it's balanced
+        manaCost: 25, // Increased from 20 to match other mobility skills
         cooldown: 0.2,
         radius: 2,
         // Configuration parameters for the kick effect:
@@ -266,8 +266,8 @@ export const NORMAL_SKILLS = [
         name: 'Imprisoned Fists',
         description: 'A powerful strike that locks enemies in place, preventing them from moving.',
         type: 'control',
-        damage: 5,
-        manaCost: 25,
+        damage: 15, // Increased from 5 to make it more impactful
+        manaCost: 30, // Increased from 25 to match the utility
         range: 10,
         radius: 5,
         moveSpeed: 30, // Speed at which the effect moves forward
@@ -299,12 +299,43 @@ export const NORMAL_SKILLS = [
         name: 'Bul Palm',
         description: 'Giant palm moving, damaging all enemies on the path.',
         type: 'projectile',
-        damage: 100,
-        manaCost: 25,
+        get damage() {
+            if (!this.variant) {
+                return 200;
+            }
+            return 500;
+        }, // Reduced from 100 for better balance
+        get manaCost() {
+            if (!this.variant) {
+                return 50;
+            }
+            return 50;
+        }, // Increased from 25 to match the power
         cooldown: 0.2, // Moderate cooldown
         range: 40, // Long range
         radius: 3, // Explosion radius
-        duration: 5, // Duration in seconds
+        // Rain variant configuration
+        palmRainConfig: {
+            palmCount: 20, // Number of palms to create
+            palmDelay: 0.15, // Delay between palm creations in seconds
+            fallSpeed: 25, // Speed at which palms fall
+        },
+        // Storm of Palms variant configuration
+        stormOfPalmsConfig: {
+            palmCount: 30, // Increased number of palms
+            palmDelay: 0.12, // Faster palm creation
+            fallSpeed: 30, // Faster falling speed
+        },
+        // Duration is calculated based on palmCount and palmDelay plus extra time for explosions
+        get duration() { 
+            if (this.variant === 'Storm of Palms' && this.stormOfPalmsConfig) {
+                return 5 + (this.stormOfPalmsConfig.palmCount * this.stormOfPalmsConfig.palmDelay) + 3;
+            } else if (this.palmRainConfig) {
+                return (this.palmRainConfig.palmCount * this.palmRainConfig.palmDelay) + 2;
+            } else {
+                return 5; // Default duration if not using rain variant
+            }
+        },
         get color() { return SKILL_ICONS[this.name]?.color; }, // Green color
         get icon() { return SKILL_ICONS[this.name]?.emoji; }, // Leaf emoji as fallback
         sounds: {
@@ -322,9 +353,9 @@ export const NORMAL_SKILLS = [
         name: 'Bul Breath Of Heaven',
         description: 'Same like Breath of Heaven, which allows you to run faster, but x5 current effect, like cast 5 times continuously.',
         type: 'buff',
-        damage: 5,
-        healing: 10, // Small healing amount per pulse
-        manaCost: 25,
+        damage: 5, // Low damage is appropriate for a utility skill
+        healing: 20, // Increased from 10 to match the enhanced effect
+        manaCost: 35, // Increased from 25 to match the enhanced effect
         cooldown: 0.2, // Moderate cooldown
         range: 0, // Self-cast
         radius: 5, // Large radius to affect multiple allies/enemies
@@ -336,8 +367,34 @@ export const NORMAL_SKILLS = [
             impact: SKILL_SOUNDS.healingPulse.id, // Soft healing pulse sound
             end: SKILL_SOUNDS.divineEcho.id // Echoing divine sound as effect fades
         },
-        speedBoostMultiplier: 10, // 10x speed boost (5x the normal 2x boost)
-        speedBoostDuration: 10, // 10 seconds of speed boost
+        speedBoostMultiplier: 0.6, // 10x speed boost (5x the normal 2x boost)
+        speedBoostDuration: 5, // 10 seconds of speed boost
+        isCustomSkill: true,
+    },
+    {
+        name: 'Bul Shadow Clone',
+        description: 'Creates multiple shadow clones of the monk in yellow theme color. These transparent clones automatically seek out enemies, attack them, and can absorb damage.',
+        type: 'summon',
+        damage: 25, // Moderate damage for each clone
+        manaCost: 45, // Higher mana cost for powerful ability
+        cooldown: 0.2, // Standard cooldown
+        range: 0, // Centered on player
+        radius: 5, // Large radius for clones to operate in
+        duration: 20, // Duration in seconds
+        get color() { return SKILL_ICONS["Shadow Allies"]?.color || "#ffdd00"; }, // Yellow theme color
+        get icon() { return SKILL_ICONS["Shadow Allies"]?.emoji || "👥"; }, // Shadow emoji as fallback
+        sounds: {
+            cast: SKILL_SOUNDS.mysticAlly.id, // Mystical summoning sound
+            impact: SKILL_SOUNDS.allySummonComplete.id, // Sound of clone materializing
+            end: SKILL_SOUNDS.allyDismiss.id // Sound of clones disappearing
+        },
+        allyCount: 5, // Number of shadow clones to summon
+        cloneHealth: 50, // Health points for each clone
+        cloneAttackDamage: 15, // Attack damage for each clone
+        cloneSpeed: 8, // Movement speed of clones
+        cloneTransparency: 0.7, // Transparency level (0-1)
+        cloneColor: "#ffdd00", // Yellow theme color
+        autoTargetEnemies: true, // Clones automatically target enemies
         isCustomSkill: true,
     },
     // TODO: Add more skills here

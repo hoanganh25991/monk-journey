@@ -14,7 +14,7 @@ export class BleedingEffect extends SkillEffect {
         // Create a temporary skill object to pass to the parent constructor
         const tempSkill = {
             color: 0xff0000, // Default red color for blood
-            duration: config.duration || 1.5, // Default duration of 1.5 seconds
+            duration: config.duration || 1.0, // Default duration of 1.5 seconds
             position: new THREE.Vector3(),
             damage: config.amount || 0
         };
@@ -117,8 +117,8 @@ export class BleedingEffect extends SkillEffect {
      */
     createParticle(index) {
         // Randomize particle size based on damage
-        const minSize = 0.03 * 3;
-        const maxSize = 0.06 * 3 + (this.amount / 3000); // Reduced max size for better performance
+        const minSize = 0.03 * 5;
+        const maxSize = 0.06 * 5 + (this.amount / 3000); // Reduced max size for better performance
         const size = minSize + Math.random() * (maxSize - minSize);
         
         // Create or reuse geometry
@@ -320,6 +320,67 @@ export class BleedingEffect extends SkillEffect {
         if (BleedingEffect.particleGeometry) {
             BleedingEffect.particleGeometry.dispose();
             BleedingEffect.particleGeometry = null;
+        }
+    }
+    
+    /**
+     * Create a bleeding hit effect when an enemy is hit by a skill
+     * Overrides the parent createHitEffect method
+     * @param {THREE.Vector3} position - Position to create the hit effect at
+     */
+    createHitEffect(position) {
+        if (!position || !this.skill || !this.skill.game || !this.skill.game.scene) {
+            console.warn('Cannot create bleeding hit effect: missing required references');
+            return;
+        }
+        
+        // Create a new bleeding effect with a smaller amount of blood
+        // We use a smaller amount for skill hits to differentiate from direct damage
+        const hitBleedingEffect = new BleedingEffect({
+            amount: this.amount > 0 ? this.amount * 0.7 : 15, // Use 70% of original damage or default to 15
+            duration: 0.8, // Shorter duration for hit effects
+            isPlayerDamage: false // This is enemy damage
+        });
+        
+        // Create the effect at the specified position
+        // Adjust position slightly to avoid exact overlap with the main effect
+        const adjustedPosition = position.clone();
+        adjustedPosition.y += 0.2; // Raise slightly
+        
+        const effectGroup = hitBleedingEffect.create(adjustedPosition, new THREE.Vector3(0, 1, 0));
+        
+        // Add the effect to the scene
+        this.skill.game.scene.add(effectGroup);
+        
+        // Add to the effects array for updates if we have access to the effects manager
+        if (this.skill.game.effectsManager) {
+            this.skill.game.effectsManager.effects.push(hitBleedingEffect);
+        } else {
+            // If we don't have access to the effects manager, we need to manually update and dispose
+            let elapsedTime = 0;
+            const duration = hitBleedingEffect.skill.duration;
+            
+            const updateEffect = (delta) => {
+                elapsedTime += delta;
+                
+                // Update the effect
+                hitBleedingEffect.update(delta);
+                
+                // Remove when animation is complete
+                if (elapsedTime >= duration || !hitBleedingEffect.isActive) {
+                    // Clean up
+                    hitBleedingEffect.dispose();
+                    return;
+                }
+                
+                // Continue animation
+                requestAnimationFrame(() => {
+                    updateEffect(1/60); // Approximate delta if not provided by game loop
+                });
+            };
+            
+            // Start animation
+            updateEffect(1/60);
         }
     }
 }

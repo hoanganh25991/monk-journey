@@ -7,6 +7,28 @@ import { Game } from './game/Game.js';
 import { DEFAULT_CHARACTER_MODEL } from './config/player-models.js';
 import { STORAGE_KEYS } from './config/storage-keys.js';
 
+// Set up console warning filter to suppress specific THREE.js warnings
+(function setupConsoleFilter() {
+    // Store the original console.warn
+    const originalWarn = console.warn;
+    
+    // Override console.warn to filter out specific THREE.js material warnings
+    console.warn = function(...args) {
+        // Check if this is the specific THREE.js material warning we want to suppress
+        if (args[0] && typeof args[0] === 'string' && 
+            (args[0].includes("THREE.Material: 'roughness' is not a property of THREE.MeshLambertMaterial") ||
+             args[0].includes("THREE.Material: 'metalness' is not a property of THREE.MeshLambertMaterial") ||
+             args[0].includes("THREE.Material: 'emissive' is not a property of THREE.MeshBasicMaterial") ||
+             args[0].includes("THREE.Material: 'emissiveIntensity' is not a property of THREE.MeshBasicMaterial"))) {
+            // Suppress this specific warning
+            return;
+        }
+        
+        // Pass other warnings to the original console.warn
+        return originalWarn.apply(console, args);
+    };
+})();
+
 /**
  * Main class responsible for initializing and managing the game startup process
  */
@@ -19,8 +41,8 @@ class Main {
         // Check if logs are enabled, default to false for better performance
         if (localStorage.getItem(STORAGE_KEYS.LOG_ENABLED) !== 'true') {
             console.debug = () => {};
-            console.warn = () => {};
             console.log = () => {};
+            // Note: console.warn is already filtered by the setupConsoleFilter function
         }
         window.selectedModelId = DEFAULT_CHARACTER_MODEL;
         window.selectedSizeMultiplier = 1.0;

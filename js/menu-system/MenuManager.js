@@ -164,7 +164,11 @@ export class MenuManager {
         } else if (state === 'running') {
             // If game is running, hide all menus
             console.debug('Game is running, hiding all menus');
-            this.hideActiveMenu();
+            
+            if (this.activeMenu) {
+                this.activeMenu.hide();
+                this.activeMenu = null;
+            }
         }
     }
     

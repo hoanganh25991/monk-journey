@@ -188,13 +188,13 @@ export class PlayerSkills {
                 // Old format - array of full skill objects
                 // Filter out custom skills if disabled
                 const filteredSkills = this.filterCustomSkills(savedSkills);
-                this.skills = filteredSkills.map(skillConfig => new Skill(skillConfig));
+                this.skills = filteredSkills.map(skillConfig => new Skill(skillConfig, this.game));
             }
         } else {
             // No saved skills, use default battle skills
             // Filter out custom skills if disabled
             const filteredSkills = this.filterCustomSkills(BATTLE_SKILLS);
-            this.skills = filteredSkills.map(skillConfig => new Skill(skillConfig));
+            this.skills = filteredSkills.map(skillConfig => new Skill(skillConfig, this.game));
         }
     }
     
@@ -244,7 +244,7 @@ export class PlayerSkills {
                     }
                 }
                 
-                this.skills.push(new Skill(skillConfigCopy));
+                this.skills.push(new Skill(skillConfigCopy, this.game));
             } else {
                 console.debug(`Skill configuration not found for ID: ${id} (may be a custom skill that is disabled)`);
             }
@@ -254,7 +254,7 @@ export class PlayerSkills {
         if (this.skills.length === 0) {
             console.warn('No valid skills found from IDs, using default battle skills');
             const filteredDefaultSkills = this.filterCustomSkills(BATTLE_SKILLS);
-            this.skills = filteredDefaultSkills.map(skillConfig => new Skill(skillConfig));
+            this.skills = filteredDefaultSkills.map(skillConfig => new Skill(skillConfig, this.game));
         }
     }
     
@@ -379,6 +379,7 @@ export class PlayerSkills {
         let targetDirection = null;
         
         if (this.game && this.game.enemyManager) {
+            // Always try to find the nearest enemy for targeting
             // Use skill range for targeting, or a default range if skill has no range
             const targetRange = skillTemplate.range > 0 ? skillTemplate.range : 15;
             targetEnemy = this.game.enemyManager.findNearestEnemy(this.playerPosition, targetRange);
@@ -394,11 +395,17 @@ export class PlayerSkills {
                 this.playerRotation.y = Math.atan2(targetDirection.x, targetDirection.z);
                 
                 console.debug(`Auto-targeting enemy for skill ${skillTemplate.name}, facing direction: ${this.playerRotation.y}`);
+                
+                // Store target enemy in the skill instance for potential use by the effect
+                skillTemplate.targetEnemy = targetEnemy;
+            } else {
+                console.debug(`No enemy found within range ${targetRange} for auto-targeting`);
+                skillTemplate.targetEnemy = null;
             }
         }
         
         // Broadcast skill cast to other players in multiplayer mode
-        this.broadcastSkillCast(skillTemplate.name);
+        this.broadcastSkillCast(skillTemplate.name, skillTemplate.targetEnemy);
         
         // Create a new instance of the skill using the template from SKILLS config
         // Find the skill configuration by name (ID)
@@ -430,13 +437,18 @@ export class PlayerSkills {
             }
         }
         
-        const newSkillInstance = new Skill(skillConfigCopy);
+        const newSkillInstance = new Skill(skillConfigCopy, this.game);
         
         // Create a new effect handler for the new skill instance
         newSkillInstance.effectHandler = SkillEffectFactory.createEffect(newSkillInstance);
         
         // Pass game reference to the new skill instance
         newSkillInstance.game = this.game;
+        
+        // Pass target enemy to the new skill instance if available
+        if (targetEnemy) {
+            newSkillInstance.targetEnemy = targetEnemy;
+        }
         
         // First priority: If there's a target enemy, face that direction (already handled above)
         if (targetEnemy) {
@@ -519,9 +531,6 @@ export class PlayerSkills {
             return false;
         }
         
-        // Broadcast skill cast to other players in multiplayer mode
-        this.broadcastSkillCast(skillTemplate.name);
-        
         // Find the nearest enemy
         if (this.game && this.game.enemyManager) {
             // Define ranges for different attack behaviors
@@ -534,8 +543,8 @@ export class PlayerSkills {
             
             if (meleeEnemy) {
                 // Enemy is in melee range, use normal attack (no teleport)
-                console.debug('Enemy in melee range, using normal attack without teleport');
-                console.debug({meleeEnemy})
+                console.debug('Enemy in melee range, using normal attack without teleport', {meleeEnemy});
+                this.broadcastSkillCast(skillTemplate.name, meleeEnemy); // No target enemy at this point
                 
                 // Use mana
                 this.playerStats.setMana(this.playerStats.getMana() - skillTemplate.manaCost);
@@ -545,13 +554,16 @@ export class PlayerSkills {
                 
                 // Create a new instance of the skill
                 const skillConfig = SKILLS.find(config => config.name === skillTemplate.name);
-                const newSkillInstance = new Skill(skillConfig);
+                const newSkillInstance = new Skill(skillConfig, this.game);
                 
                 // Create a new effect handler for the new skill instance
                 newSkillInstance.effectHandler = SkillEffectFactory.createEffect(newSkillInstance);
                 
                 // Pass game reference to the new skill instance
                 newSkillInstance.game = this.game;
+                
+                // Store target enemy in the skill instance
+                newSkillInstance.targetEnemy = meleeEnemy;
                 
                 // Get enemy position
                 const enemyPosition = meleeEnemy.getPosition();
@@ -581,6 +593,7 @@ export class PlayerSkills {
                 // No enemy in melee range, check for enemies in teleport range
                 // First look for enemies between min and max teleport range
                 const teleportRangeEnemy = this.game.enemyManager.findNearestEnemy(this.playerPosition, maxTeleportRange);
+                this.broadcastSkillCast(skillTemplate.name, teleportRangeEnemy);
                 
                 if (teleportRangeEnemy) {
                     console.debug({teleportRangeEnemy})
@@ -604,7 +617,7 @@ export class PlayerSkills {
                     
                     // Create a new instance of the skill
                     const skillConfig = SKILLS.find(config => config.name === skillTemplate.name);
-                    const newSkillInstance = new Skill(skillConfig);
+                    const newSkillInstance = new Skill(skillConfig, this.game);
                     
                     // Create a new effect handler for the new skill instance
                     newSkillInstance.effectHandler = SkillEffectFactory.createEffect(newSkillInstance);
@@ -690,6 +703,37 @@ export class PlayerSkills {
     }
     
     /**
+     * Loads skills from saved data
+     * @param {Array<Object>} savedSkills - Array of saved skill data
+     */
+    loadSkills(savedSkills) {
+        if (!Array.isArray(savedSkills)) {
+            console.warn('Invalid saved skills data:', savedSkills);
+            return;
+        }
+        
+        console.debug('Loading skills from saved data:', savedSkills);
+        
+        // Match saved skills with existing skills by name
+        savedSkills.forEach(savedSkill => {
+            const skill = this.skills.find(s => s.name === savedSkill.name);
+            if (skill) {
+                // Update skill properties from saved data
+                if (savedSkill.cooldown !== undefined) {
+                    skill.cooldown = savedSkill.cooldown;
+                }
+                if (savedSkill.currentCooldown !== undefined) {
+                    skill.currentCooldown = savedSkill.currentCooldown;
+                }
+                
+                console.debug(`Updated skill ${skill.name} with saved data`);
+            } else {
+                console.debug(`Skill ${savedSkill.name} from saved data not found in current skills`);
+            }
+        });
+    }
+    
+    /**
      * Adds a skill from a remote player to the active skills list
      * @param {Skill} skill - The skill instance to add
      */
@@ -703,8 +747,9 @@ export class PlayerSkills {
     /**
      * Broadcasts a skill cast to other players in multiplayer mode
      * @param {string} skillName - The name of the skill being cast
+     * @param {Object} [targetEnemy] - The target enemy of the skill (optional)
      */
-    broadcastSkillCast(skillName) {
+    broadcastSkillCast(skillName, targetEnemy) {
         // Check if game and multiplayer manager exist
         if (!this.game || !this.game.multiplayerManager || !this.game.multiplayerManager.connection) {
             return;
@@ -719,22 +764,18 @@ export class PlayerSkills {
             console.debug(`[PlayerSkills] Broadcasting skill cast: ${skillName}`);
         }
 
-        // Get player position and rotation for accurate skill placement
-        const position = this.playerPosition ? {
-            x: this.playerPosition.x,
-            y: this.playerPosition.y,
-            z: this.playerPosition.z
-        } : null;
-        
-        const rotation = this.playerRotation ? {
-            y: this.playerRotation.y
-        } : null;
-        
         // Get the variant information if available
         let variant = null;
         if (this.skillTreeData && this.skillTreeData[skillName] && this.skillTreeData[skillName].activeVariant) {
             variant = this.skillTreeData[skillName].activeVariant;
             console.debug(`[PlayerSkills] Broadcasting skill variant: ${variant} for skill: ${skillName}`);
+        }
+        
+        // Get the target enemy ID if available
+        let targetEnemyId = null;
+        if (targetEnemy) {
+            targetEnemyId = targetEnemy.id;
+            console.debug(`[PlayerSkills] Broadcasting skill with target enemy ID: ${targetEnemyId} for skill: ${skillName}`);
         }
         
         // If player is host, broadcast to all members
@@ -743,9 +784,8 @@ export class PlayerSkills {
                 type: 'skillCast',
                 skillName: skillName,
                 playerId: this.game.multiplayerManager.connection.peer.id,
-                position: position,
-                rotation: rotation,
-                variant: variant // Include the variant information
+                variant: variant, // Include the variant information
+                targetEnemyId: targetEnemyId // Include the target enemy ID
             });
         } 
         // If player is member, send to host
@@ -759,9 +799,8 @@ export class PlayerSkills {
                     type: 'skillCast',
                     playerId: this.game.multiplayerManager.connection.peer.id,
                     skillName: skillName,
-                    position: position,
-                    rotation: rotation,
-                    variant: variant // Include the variant information
+                    variant: variant, // Include the variant information
+                    targetEnemyId: targetEnemyId // Include the target enemy ID
                 });
             }
         }

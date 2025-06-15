@@ -1,6 +1,8 @@
 /**
  * Handles serialization and deserialization of player inventory and equipment
  */
+import { ITEM_TEMPLATES } from '../../config/items.js';
+
 export class InventorySerializer {
     /**
      * Serialize player inventory and equipment data for saving
@@ -19,11 +21,21 @@ export class InventorySerializer {
         // Get equipment items
         const equipment = player.getEquipment() || {};
         
+        // Optimize inventory storage - only store name and amount
+        const optimizedInventory = inventoryItems.map(item => ({
+            name: item.name,
+            amount: item.amount
+        }));
+        
+        // Optimize equipment storage - only store item name
+        const optimizedEquipment = {};
+        Object.entries(equipment).forEach(([slot, item]) => {
+            optimizedEquipment[slot] = item ? item.name : null;
+        });
+        
         return {
-            inventory: inventoryItems.map(item => ({ ...item })), // Create deep copy of each item
-            equipment: Object.fromEntries(
-                Object.entries(equipment).map(([slot, item]) => [slot, item ? { ...item } : null])
-            ),
+            inventory: optimizedInventory,
+            equipment: optimizedEquipment,
             gold: player.getGold() || 0
         };
     }
@@ -49,8 +61,20 @@ export class InventorySerializer {
         // Load inventory items
         if (inventoryData.inventory && Array.isArray(inventoryData.inventory)) {
             console.debug(`Loading ${inventoryData.inventory.length} inventory items`);
-            inventoryData.inventory.forEach(item => {
-                player.addToInventory(item);
+            
+            inventoryData.inventory.forEach(itemData => {
+                // Find the item template by name
+                const itemTemplate = ITEM_TEMPLATES.find(template => template.name === itemData.name);
+                
+                if (itemTemplate) {
+                    // Create a new item from the template
+                    const item = { ...itemTemplate, amount: itemData.amount };
+                    player.addToInventory(item);
+                } else {
+                    console.warn(`Item template not found for: ${itemData.name}`);
+                    // Fallback to just adding the basic item data we have
+                    player.addToInventory(itemData);
+                }
             });
         }
         
@@ -64,9 +88,20 @@ export class InventorySerializer {
         // Load equipment
         if (inventoryData.equipment) {
             console.debug('Loading player equipment');
-            Object.entries(inventoryData.equipment).forEach(([slot, item]) => {
-                if (item && player.inventory.equipment.hasOwnProperty(slot)) {
-                    player.inventory.equipment[slot] = item;
+            
+            Object.entries(inventoryData.equipment).forEach(([slot, itemName]) => {
+                if (itemName && player.inventory.equipment.hasOwnProperty(slot)) {
+                    // Find the item template by name
+                    const itemTemplate = ITEM_TEMPLATES.find(template => template.name === itemName);
+                    
+                    if (itemTemplate) {
+                        // Set the equipment slot with the full item data
+                        player.inventory.equipment[slot] = { ...itemTemplate };
+                    } else {
+                        console.warn(`Equipment template not found for: ${itemName}`);
+                        // Fallback to just setting the name
+                        player.inventory.equipment[slot] = { name: itemName };
+                    }
                 }
             });
         }
@@ -75,6 +110,9 @@ export class InventorySerializer {
         if (inventoryData.gold !== undefined) {
             player.inventory.gold = inventoryData.gold;
         }
+        
+        // Recalculate equipment bonuses
+        player.inventory.calculateEquipmentBonuses();
         
         console.debug('Inventory data loaded successfully');
     }

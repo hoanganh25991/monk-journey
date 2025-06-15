@@ -1,11 +1,12 @@
 /**
  * Color configuration for the game
  * Contains color definitions for various game elements
- * Updated for Monk Journey theme
+ * Updated for Monk Journey theme with extended zone types
  */
 
 // Environment colors by zone type
 export const ZONE_COLORS = {
+    // Original Environments
     // Forest environment
     'Forest': {
         'foliage': '#2F4F4F', // Dark Green
@@ -68,6 +69,195 @@ export const ZONE_COLORS = {
         'accent': '#DAA520', // Golden Rod
         'water': '#1E90FF', // Dodger Blue
         'glow': '#32CD32'  // Lime Green
+    },
+    
+    // Fantasy Realms
+    // Enchanted Grove - Magical forest with bioluminescent elements
+    'Enchanted Grove': {
+        'foliage': '#4B0082', // Indigo
+        'trunk': '#8B4513', // Earth Brown
+        'ground': '#006400', // Dark Green
+        'rock': '#9370DB', // Medium Purple
+        'structure': '#483D8B', // Dark Slate Blue
+        'accent': '#00FFFF', // Cyan - glowing elements
+        'glow': '#7FFFD4', // Aquamarine
+        'water': '#1E90FF' // Dodger Blue
+    },
+    // Crystal Caverns - Underground crystal formations
+    'Crystal Caverns': {
+        'ground': '#2F4F4F', // Dark Slate Gray
+        'rock': '#4B0082', // Indigo
+        'crystal': '#E0FFFF', // Light Cyan
+        'accent': '#FF00FF', // Magenta
+        'glow': '#9400D3', // Dark Violet
+        'water': '#00BFFF', // Deep Sky Blue
+        'structure': '#191970' // Midnight Blue
+    },
+    // Celestial Realm - Heavenly, cloud-like environment
+    'Celestial Realm': {
+        'ground': '#E6E6FA', // Lavender
+        'structure': '#B0C4DE', // Light Steel Blue
+        'accent': '#FFD700', // Gold
+        'glow': '#FFFACD', // Lemon Chiffon
+        'cloud': '#F0F8FF', // Alice Blue
+        'crystal': '#E0FFFF', // Light Cyan
+        'water': '#87CEFA' // Light Sky Blue
+    },
+    // Volcanic Wastes - Fiery, lava-filled landscape
+    'Volcanic Wastes': {
+        'ground': '#8B0000', // Dark Red
+        'rock': '#A52A2A', // Brown
+        'lava': '#FF4500', // Orange Red
+        'ash': '#696969', // Dim Gray
+        'glow': '#FFD700', // Gold
+        'accent': '#FF8C00', // Dark Orange
+        'structure': '#2F4F4F' // Dark Slate Gray
+    },
+    // Twilight Veil - Mysterious shadowy realm
+    'Twilight Veil': {
+        'ground': '#2F4F4F', // Dark Slate Gray
+        'vegetation': '#483D8B', // Dark Slate Blue
+        'accent': '#9932CC', // Dark Orchid
+        'glow': '#9400D3', // Dark Violet
+        'structure': '#191970', // Midnight Blue
+        'water': '#000080', // Navy
+        'mist': '#E6E6FA' // Lavender
+    },
+    
+    // Realistic Biomes
+    // Tundra - Cold, sparse landscape
+    'Tundra': {
+        'ground': '#F5F5F5', // White Smoke
+        'vegetation': '#708090', // Slate Gray
+        'rock': '#A9A9A9', // Dark Gray
+        'ice': '#F0FFFF', // Azure
+        'water': '#4682B4', // Steel Blue
+        'structure': '#D3D3D3', // Light Gray
+        'accent': '#87CEEB' // Sky Blue
+    },
+    // Savanna - Grassy plains with scattered trees
+    'Savanna': {
+        'ground': '#F0E68C', // Khaki
+        'vegetation': '#BDB76B', // Dark Khaki
+        'tree': '#8B4513', // Saddle Brown
+        'rock': '#CD853F', // Peru
+        'water': '#4682B4', // Steel Blue
+        'structure': '#D2B48C', // Tan
+        'accent': '#DAA520' // Goldenrod
+    },
+    // Rainforest - Dense, lush tropical forest
+    'Rainforest': {
+        'ground': '#556B2F', // Dark Olive Green
+        'vegetation': '#006400', // Dark Green
+        'canopy': '#228B22', // Forest Green
+        'water': '#4169E1', // Royal Blue
+        'rock': '#696969', // Dim Gray
+        'structure': '#8FBC8F', // Dark Sea Green
+        'accent': '#32CD32' // Lime Green
+    },
+    // Coral Reef - Underwater environment
+    'Coral Reef': {
+        'water': '#00BFFF', // Deep Sky Blue
+        'coral': '#FF7F50', // Coral
+        'sand': '#FFE4B5', // Moccasin
+        'vegetation': '#20B2AA', // Light Sea Green
+        'rock': '#5F9EA0', // Cadet Blue
+        'accent': '#FF69B4', // Hot Pink
+        'glow': '#00FFFF' // Cyan
+    },
+    // Alpine - High mountain environment
+    'Alpine': {
+        'snow': '#FFFAFA', // Snow
+        'rock': '#708090', // Slate Gray
+        'vegetation': '#2E8B57', // Sea Green
+        'water': '#B0E0E6', // Powder Blue
+        'structure': '#A9A9A9', // Dark Gray
+        'accent': '#4682B4', // Steel Blue
+        'ice': '#E0FFFF' // Light Cyan
+    },
+    
+    // Abstract/Stylized
+    // Neon Grid - Cyberpunk-inspired digital landscape
+    'Neon Grid': {
+        'ground': '#000000', // Black
+        'structure': '#1E90FF', // Dodger Blue
+        'accent': '#FF00FF', // Magenta
+        'glow': '#00FF00', // Lime
+        'grid': '#00FFFF', // Cyan
+        'highlight': '#FF1493', // Deep Pink
+        'shadow': '#4B0082' // Indigo
+    },
+    // Candy Kingdom - Vibrant, colorful sweet-themed world
+    'Candy Kingdom': {
+        'ground': '#FFB6C1', // Light Pink
+        'structure': '#FF69B4', // Hot Pink
+        'accent': '#00FFFF', // Cyan
+        'highlight': '#FFFF00', // Yellow
+        'vegetation': '#32CD32', // Lime Green
+        'water': '#1E90FF', // Dodger Blue
+        'glow': '#FF4500' // Orange Red
+    },
+    // Monochrome - Black and white stylized world
+    'Monochrome': {
+        'ground': '#D3D3D3', // Light Gray
+        'structure': '#000000', // Black
+        'accent': '#FFFFFF', // White
+        'highlight': '#A9A9A9', // Dark Gray
+        'shadow': '#696969', // Dim Gray
+        'water': '#F5F5F5', // White Smoke
+        'vegetation': '#2F4F4F' // Dark Slate Gray
+    },
+    // Pastel Dream - Soft, dreamy color palette
+    'Pastel Dream': {
+        'ground': '#E6E6FA', // Lavender
+        'structure': '#FFB6C1', // Light Pink
+        'accent': '#98FB98', // Pale Green
+        'water': '#AFEEEE', // Pale Turquoise
+        'vegetation': '#DDA0DD', // Plum
+        'highlight': '#FFFACD', // Lemon Chiffon
+        'cloud': '#F0F8FF' // Alice Blue
+    },
+    
+    // Mixed Themes
+    // Corrupted Sanctuary - Once beautiful area now tainted
+    'Corrupted Sanctuary': {
+        'ground': '#2E8B57', // Sea Green
+        'corruption': '#800080', // Purple
+        'structure': '#A9A9A9', // Dark Gray
+        'accent': '#FF00FF', // Magenta
+        'water': '#4682B4', // Steel Blue
+        'glow': '#9400D3', // Dark Violet
+        'vegetation': '#006400' // Dark Green
+    },
+    // Ancient Tech - Blend of ancient ruins and advanced technology
+    'Ancient Tech': {
+        'ground': '#CD853F', // Peru
+        'structure': '#A9A9A9', // Dark Gray
+        'tech': '#4682B4', // Steel Blue
+        'accent': '#00FFFF', // Cyan
+        'glow': '#7FFF00', // Chartreuse
+        'vegetation': '#556B2F', // Dark Olive Green
+        'energy': '#FFD700' // Gold
+    },
+    // Fungal Network - Alien-like fungal ecosystem
+    'Fungal Network': {
+        'ground': '#8B4513', // Saddle Brown
+        'fungi': '#FF69B4', // Hot Pink
+        'spore': '#9370DB', // Medium Purple
+        'vegetation': '#556B2F', // Dark Olive Green
+        'glow': '#00FA9A', // Medium Spring Green
+        'water': '#4682B4', // Steel Blue
+        'structure': '#2F4F4F' // Dark Slate Gray
+    },
+    // Quantum Flux - Reality-bending environment
+    'Quantum Flux': {
+        'ground': '#483D8B', // Dark Slate Blue
+        'energy': '#00FFFF', // Cyan
+        'void': '#000000', // Black
+        'structure': '#9932CC', // Dark Orchid
+        'accent': '#FF00FF', // Magenta
+        'glow': '#FFFF00', // Yellow
+        'distortion': '#FF1493' // Deep Pink
     }
 };
 

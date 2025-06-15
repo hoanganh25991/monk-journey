@@ -1,0 +1,507 @@
+/* Map Selector UI Styles */
+
+.map-selector-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.map-selector-overlay.show {
+    opacity: 1;
+}
+
+.map-selector-modal {
+    background-color: rgba(0, 0, 0); /* Match skill-tree background */
+    border: 2px solid #8a6d3b; /* Match skill-tree border */
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7); /* Match skill-tree shadow */
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.map-selector-overlay.show .map-selector-modal {
+    transform: scale(1);
+}
+
+.map-selector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--padding-medium) var(--padding-large);
+    background-color: rgba(138, 109, 59, 0.3); /* Match skill-tree header background */
+    border-bottom: 1px solid #8a6d3b; /* Match skill-tree header border */
+}
+
+.map-selector-header h2 {
+    margin: 0;
+    color: #ffcc00; /* Match skill-tree title color */
+    font-size: 24px;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(255, 204, 0, 0.5); /* Match skill-tree title shadow */
+}
+
+
+.header-buttons {
+    display: flex;
+    gap: var(--padding-medium);
+}
+
+.map-selector-content {
+    height: calc(100vh - 60px); /* Subtract header height */
+    overflow: hidden;
+}
+
+/* New layout for landscape mode */
+.map-selector-layout {
+    display: flex;
+    height: calc(100vh - 40px - var(--padding-medium));
+    overflow: hidden; /* Prevent layout overflow */
+}
+
+.map-list-container {
+    flex: 0 0 30%;
+    border-right: 1px solid rgba(138, 109, 59, 0.5);
+    height: 100%; /* Take full height */
+    display: flex;
+    flex-direction: column;
+    padding: var(--padding-medium);
+}
+
+.map-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--padding-small);
+    flex: 1; /* Take remaining space */
+    scrollbar-width: thin; /* For Firefox */
+    overflow-y: auto; /* Ensure the list itself is scrollable */
+}
+
+
+
+.map-detail-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* Allow scrolling if content is too tall */
+    height: 100%; /* Take full height */
+    background-color: rgba(0, 0, 0, 0.6); /* Match skill-tree details background */
+}
+
+.map-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--padding-large);
+    padding: var(--padding-small);
+    border-radius: var(--padding-medium);
+    background-color: rgba(0, 0, 0, 0.5); /* Match skill-tree node background */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Match skill-tree node border */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative; /* Ensure position context for z-index */
+    z-index: 1; /* Ensure it's above other elements */
+    user-select: none; /* Prevent text selection which can interfere with clicks */
+    margin-bottom: 8px; /* Add space between items */
+}
+
+.map-list-item:hover {
+    background-color: rgba(30, 30, 30, 0.7); /* Match skill-tree node hover */
+    transform: translateY(-2px); /* Match skill-tree node hover transform */
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3); /* Match skill-tree node hover shadow */
+}
+
+.map-list-item.selected {
+    border: 1px solid #ffcc00; /* Match skill-tree selected item */
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.5); /* Match skill-tree selected item glow */
+    background-color: rgba(50, 40, 0, 0.3); /* Match skill-selection selected item */
+}
+
+/* Make sure child elements don't interfere with clicks */
+.map-list-item * {
+    pointer-events: none; /* This ensures clicks pass through to the parent item */
+}
+
+/* Add a visual indicator to show items are clickable */
+.map-list-item::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: var(--padding-medium);
+    pointer-events: auto; /* Ensure this layer captures clicks */
+    z-index: 0; /* Behind content but above background */
+}
+
+/* Map action buttons container - for Return and Generate buttons */
+.map-action-buttons {
+    display: none; /* Hide the buttons as they're now in the header */
+}
+
+/* Return to Procedural Map button */
+.return-to-map-button {
+    background-color: rgba(255, 204, 0, 0.7); /* Match settings-button */
+    color: #4a3000; /* Match settings-button */
+    border: 2px solid rgba(255, 230, 150, 0.8); /* Match settings-button */
+    padding: 8px 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.return-to-map-button:hover {
+    background-color: rgba(255, 215, 0, 0.8); /* Match settings-button hover */
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+}
+
+.return-to-map-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 -1px 2px rgba(139, 101, 0, 0.2);
+}
+
+/* Generate New Map button styling */
+.generate-new-map-button {
+    background-color: rgba(255, 204, 0, 0.7); /* Match settings-button */
+    color: #4a3000; /* Match settings-button */
+    border: 2px solid rgba(255, 230, 150, 0.8); /* Match settings-button */
+    padding: 8px 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.generate-new-map-button:hover {
+    background-color: rgba(255, 215, 0, 0.8); /* Match settings-button hover */
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+}
+
+.generate-new-map-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 -1px 2px rgba(139, 101, 0, 0.2);
+}
+
+.generate-new-map-button .map-icon,
+.return-to-map-button .map-icon {
+    color: #4a3000;
+    font-size: 1.2rem;
+}
+
+.map-list-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.map-list-name {
+    font-weight: 500;
+    color: #fff; /* Match skill-tree text color */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Current map display */
+.current-map-display {
+    padding: 12px 16px;
+    background-color: rgba(20, 20, 20, 0.7);
+    border-radius: var(--padding-medium);
+    border: 1px solid rgba(138, 109, 59, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.current-map-name {
+    color: #ffcc00;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.current-map-description {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.current-map-stats {
+    margin-top: 4px;
+    color: #aaa;
+    font-size: 0.8rem;
+}
+
+.selected-map-info {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    flex-direction: row;
+    padding: var(--padding-large);
+    gap: var(--padding-large);
+    background-color: rgba(20, 20, 20, 0.7); /* Match skill-tree background */
+}
+
+.selected-map-info h3 {
+    margin: 0 0 8px 0;
+    color: #ffcc00; /* Match skill-tree title color */
+    font-size: 1.1rem;
+}
+
+.map-preview-large {
+    width: 220px;
+    height: 220px;
+}
+
+.map-preview-image {
+    width: 220px;
+    height: 220px;
+}
+
+.map-detail-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.map-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+    margin: 8px 0;
+}
+
+.map-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    background-color: rgba(30, 30, 30, 0.7); /* Match skill-tree background */
+    border-radius: 4px;
+    border: 1px solid rgba(138, 109, 59, 0.3); /* Light border to match theme */
+}
+
+.stat-label {
+    color: #ccc; /* Match skill-tree secondary text */
+    font-size: 0.85rem;
+}
+
+.stat-value {
+    color: #ffcc00; /* Match skill-tree accent color */
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.map-preview-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+}
+
+.map-icon {
+    font-size: 2rem;
+    opacity: 0.6;
+}
+
+.map-name {
+    margin: 0;
+    color: #ffcc00; /* Match skill-tree name color */
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.map-description {
+    margin: 0;
+    color: #ccc; /* Match skill-tree description color */
+    font-size: 0.9rem;
+    line-height: 1.4;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+}
+
+.load-map-button {
+    background-color: rgba(255, 204, 0, 0.7); /* Match settings-button */
+    color: #4a3000; /* Match settings-button */
+    border: 2px solid rgba(255, 230, 150, 0.8); /* Match settings-button */
+    padding: 10px 16px;
+    border-radius: 15px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin-top: 8px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.load-map-button:hover {
+    background-color: rgba(255, 215, 0, 0.8); /* Match settings-button hover */
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+}
+
+.load-map-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 -1px 2px rgba(139, 101, 0, 0.2);
+}
+
+.load-map-button:disabled {
+    border-color: #3D3D3D;
+    color: #666;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+    background-color: rgba(100, 100, 100, 0.3);
+}
+
+.map-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+.action-button {
+    padding: 10px 16px;
+    border-radius: 15px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    flex: 1;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-button.primary {
+    background-color: rgba(255, 204, 0, 0.7); /* Match settings-button */
+    color: #4a3000; /* Match settings-button */
+    border: 2px solid rgba(255, 230, 150, 0.8); /* Match settings-button */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.action-button.primary:hover {
+    background-color: rgba(255, 215, 0, 0.8); /* Match settings-button hover */
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+}
+
+.action-button.primary:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 -1px 2px rgba(139, 101, 0, 0.2);
+}
+
+.action-button.secondary {
+    background-color: rgba(138, 109, 59, 0.5); /* Match skill-tree button */
+    color: #fff;
+    border: 1px solid #8a6d3b;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.action-button.secondary:hover {
+    background-color: rgba(138, 109, 59, 0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.action-button.secondary:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.action-button:disabled {
+    border-color: #3D3D3D;
+    color: #666;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+    background-color: rgba(100, 100, 100, 0.3);
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color, #444);
+    border-top: 4px solid var(--accent-color, #4CAF50);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+.loading-text {
+    color: var(--text-primary, #fff);
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* No maps message */
+.no-maps-message {
+    padding: 16px;
+    background: var(--bg-tertiary, #1a1a1a);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.no-maps-message p {
+    margin: 0 0 16px 0;
+    color: var(--text-secondary, #ccc);
+}

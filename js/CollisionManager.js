@@ -76,25 +76,35 @@ export class CollisionManager {
         
         // Check collision with structures if available
         if (this.world && this.world.structureManager && this.world.structureManager.structures) {
-            this.world.structureManager.structures.forEach(object => {
-                // Get object bounding box
-                const boundingBox = new THREE.Box3().setFromObject(object);
+            this.world.structureManager.structures.forEach(structureData => {
+                // Get the actual THREE.Object3D from the structure data
+                const object = structureData.object;
                 
-                // Create a sphere that encompasses the bounding box
-                const center = new THREE.Vector3();
-                boundingBox.getCenter(center);
-                const size = new THREE.Vector3();
-                boundingBox.getSize(size);
-                const objectRadius = Math.max(size.x, size.z) / 2;
+                // Skip if object is not valid
+                if (!object) return;
                 
-                // Calculate distance between player and object center
-                const distance = new THREE.Vector2(playerPosition.x, playerPosition.z)
-                    .distanceTo(new THREE.Vector2(center.x, center.z));
-                
-                // Check if collision occurred
-                if (distance < playerRadius + objectRadius) {
-                    // Handle collision
-                    this.handlePlayerObjectCollision(object, center);
+                try {
+                    // Get object bounding box
+                    const boundingBox = new THREE.Box3().setFromObject(object);
+                    
+                    // Create a sphere that encompasses the bounding box
+                    const center = new THREE.Vector3();
+                    boundingBox.getCenter(center);
+                    const size = new THREE.Vector3();
+                    boundingBox.getSize(size);
+                    const objectRadius = Math.max(size.x, size.z) / 2;
+                    
+                    // Calculate distance between player and object center
+                    const distance = new THREE.Vector2(playerPosition.x, playerPosition.z)
+                        .distanceTo(new THREE.Vector2(center.x, center.z));
+                    
+                    // Check if collision occurred
+                    if (distance < playerRadius + objectRadius) {
+                        // Handle collision
+                        this.handlePlayerObjectCollision(object, center);
+                    }
+                } catch (error) {
+                    console.warn("Error checking collision with structure:", error);
                 }
             });
         }
@@ -132,75 +142,8 @@ export class CollisionManager {
             } else {
                 // Fallback to legacy method
                 console.warn('Interaction system not available, using legacy method');
-                this.handleLegacyInteraction(closestObject);
             }
         }
-    }
-    
-    // Legacy interaction handler for backward compatibility
-    handleLegacyInteraction(interactiveObject) {
-        // Call the object's interaction handler
-        const result = interactiveObject.onInteract();
-        
-        // Check if result is null or undefined before proceeding
-        if (!result) {
-            // No interaction result, possibly already interacted with
-            if (this.player.game && this.player.game.hudManager) {
-                this.player.game.hudManager.showNotification("Nothing happens.");
-            }
-            // Reset interaction state
-            this.player.setInteracting(false);
-            return;
-        }
-        
-        // Handle different interaction types
-        switch (result.type) {
-            case 'quest':
-                // Handle quest interaction
-                if (this.player.game && this.player.game.questManager) {
-                    this.player.game.questManager.startQuest(result.quest);
-                }
-                break;
-                
-            case 'treasure':
-                // Handle treasure interaction
-                if (this.player.game && this.player.game.hudManager) {
-                    // this.player.game.hudManager.showNotification(`Found ${result.item.name}!`);
-                    this.player.addToInventory(result.item);
-                }
-                break;
-                
-            case 'boss_spawn':
-                // Handle boss spawn interaction
-                if (this.player.game && this.player.game.enemyManager) {
-                    // Show notification
-                    if (this.player.game.hudManager) {
-                        this.player.game.hudManager.showNotification(result.message, 5);
-                    }
-                    
-                    // Spawn the boss
-                    this.player.game.enemyManager.spawnBoss(
-                        result.bossType,
-                        interactiveObject.position
-                    );
-                }
-                break;
-                
-            case 'item':
-                // Handle item interaction
-                if (this.player.game && this.player.game.hudManager) {
-                    // this.player.game.hudManager.showNotification(`Found ${result.item.name}!`);
-                    this.player.addToInventory(result.item);
-                }
-                break;
-                
-            default:
-                console.warn(`Unknown interaction type: ${result.type}`);
-                break;
-        }
-        
-        // Reset interaction state
-        this.player.setInteracting(false);
     }
     
     handlePlayerObjectCollision(object, objectCenter) {
@@ -315,8 +258,11 @@ export class CollisionManager {
         const damage = skill.getDamage();
         enemy.takeDamage(damage);
         
-        // Show damage number
-        this.player.game.hudManager.createBleedingEffect(damage, enemy.getPosition());
+        // Get enemy position for effects
+        const enemyPosition = enemy.getPosition();
+        
+        // Show damage number with bleeding effect
+        this.player.game.hudManager.createBleedingEffect(damage, enemyPosition);
         
         // Check if enemy is defeated
         if (enemy.getHealth() <= 0) {
@@ -331,7 +277,7 @@ export class CollisionManager {
         // This allows skills to create visual effects when they hit an enemy
         if (skill.effect) {
             // All skill effects inherit from SkillEffect which has a createHitEffect method
-            skill.effect.createHitEffect(enemy.getPosition());
+            skill.effect.createHitEffect(enemyPosition);
         }
         
         // Clean up old entries from the hit registry occasionally

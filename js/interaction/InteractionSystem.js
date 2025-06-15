@@ -53,10 +53,19 @@ export class InteractionSystem {
         const playerPosition = this.player.getPosition();
         
         // Get nearby interactive objects
-        this.nearbyInteractiveObjects = this.world.getInteractiveObjectsNear(
+        const rawObjects = this.world.getInteractiveObjectsNear(
             playerPosition,
             INTERACTION_RANGE
         );
+        
+        // Filter to only include valid interactive objects
+        this.nearbyInteractiveObjects = rawObjects.filter(obj => {
+            const isValid = obj && typeof obj.onInteract === 'function';
+            if (!isValid) {
+                console.warn('Filtered out invalid interactive object:', obj);
+            }
+            return isValid;
+        });
         
         // Find the closest object for highlighting
         if (this.nearbyInteractiveObjects.length > 0) {
@@ -223,11 +232,37 @@ export class InteractionSystem {
      * @param {Object} interactiveObject - The object to interact with
      */
     interactWithObject(interactiveObject) {
-        // Call the object's interaction handler
-        const result = interactiveObject.onInteract();
+        // Validate that the object has an interaction handler
+        if (!interactiveObject || typeof interactiveObject.onInteract !== 'function') {
+            console.warn('Invalid interactive object - missing onInteract method:', interactiveObject);
+            
+            // Show notification to user
+            if (this.game.hudManager) {
+                this.game.hudManager.showNotification("Cannot interact with this object");
+            }
+            
+            // Reset interaction state
+            setTimeout(() => {
+                this.player.setInteracting(false);
+            }, 500);
+            
+            return;
+        }
         
-        // Use the interaction result handler
-        this.interactionHandler.handleInteractionResult(result, interactiveObject);
+        try {
+            // Call the object's interaction handler
+            const result = interactiveObject.onInteract();
+            
+            // Use the interaction result handler
+            this.interactionHandler.handleInteractionResult(result, interactiveObject);
+        } catch (error) {
+            console.error('Error during object interaction:', error);
+            
+            // Show error notification to user
+            if (this.game.hudManager) {
+                this.game.hudManager.showNotification("Error interacting with object");
+            }
+        }
         
         // Reset interaction state after a short delay
         setTimeout(() => {

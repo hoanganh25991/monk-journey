@@ -553,7 +553,9 @@ export class RemotePlayer {
                             console.debug(`[RemotePlayer ${this.peerId}] Found target enemy with ID: ${targetEnemyId}`);
                             skill.targetEnemy = targetEnemy;
                         } else {
-                            console.debug(`[RemotePlayer ${this.peerId}] Target enemy with ID: ${targetEnemyId} not found`);
+                            console.debug(`[RemotePlayer ${this.peerId}] Target enemy with ID: ${targetEnemyId} not found - enemy may be dead already`);
+                            // Continue with skill cast even if target enemy is not found
+                            // This prevents skills from not being cast when enemies die during network transmission
                         }
                     }
                     
@@ -568,6 +570,8 @@ export class RemotePlayer {
                         console.debug(`[RemotePlayer ${this.peerId}] Creating skill effect for: ${skillName}`);
                     }
                     
+                    // Create the skill effect - even if target enemy wasn't found
+                    // This ensures skills are still cast visually even if the target is gone
                     const skillEffect = skill.createEffect(position, rotation);
                     
                     // Add the effect to the scene

@@ -48,6 +48,9 @@
 /* Import notifications styles */
 @import 'notifications.css';
 
+/* Import login modal styles */
+@import 'login-modal.css';
+
 /* Import camera info panel styles */
 @import 'skill-preview.css';
 
@@ -83,3 +86,7 @@
 
 /* Import difficulty menu styles */
 @import 'difficulty-menu.css';
+@import 'map-selector.css';
+
+/* Import status effects styles */
+@import 'hud/status-effects.css';

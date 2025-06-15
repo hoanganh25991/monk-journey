@@ -301,7 +301,7 @@ export class MultiplayerConnectionManager {
                 }
                 
                 // Trigger skill cast animation on remote player
-                this.multiplayerManager.remotePlayerManager.handleSkillCast(casterId, data.skillName, data.variant);
+                this.multiplayerManager.remotePlayerManager.handleSkillCast(casterId, data.skillName, data.variant, data.targetEnemyId);
                 break;
             case 'kicked':
                 // Handle being kicked by the host
@@ -400,7 +400,7 @@ export class MultiplayerConnectionManager {
                     }
                     
                     // Trigger skill cast animation on remote player
-                    this.multiplayerManager.remotePlayerManager.handleSkillCast(peerId, data.skillName, data.variant);
+                    this.multiplayerManager.remotePlayerManager.handleSkillCast(peerId, data.skillName, data.variant, data.targetEnemyId);
                     
                     // Forward skill cast to other members
                     this.peers.forEach((conn, id) => {
@@ -411,7 +411,8 @@ export class MultiplayerConnectionManager {
                                 playerId: peerId,
                                 position: data.position,
                                 rotation: data.rotation,
-                                variant: data.variant // Include the variant information
+                                variant: data.variant, // Include the variant information
+                                targetEnemyId: data.targetEnemyId // Include the target enemy ID
                             });
                         }
                     });

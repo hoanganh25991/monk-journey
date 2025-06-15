@@ -200,10 +200,25 @@ export class SkillsPreviewTab extends SettingsTab {
             const selectedVariant = this.variantsSelect.value;
             this.currentVariant = selectedVariant === 'base' ? null : selectedVariant;
             
-            // Save the selected variant
+            // Save the selected variant in a structured way
             if (this.currentSkill) {
-                const variantKey = `${STORAGE_KEYS.SELECTED_SKILL_VARIANT}_${this.currentSkill.name}`;
-                localStorage.setItem(variantKey, selectedVariant);
+                // Get existing variants data or create new object
+                let variantsData = {};
+                try {
+                    const existingData = localStorage.getItem(STORAGE_KEYS.SELECTED_SKILL_VARIANT);
+                    if (existingData) {
+                        variantsData = JSON.parse(existingData);
+                    }
+                } catch (error) {
+                    console.error('Error parsing variants data:', error);
+                    variantsData = {};
+                }
+                
+                // Update the variant for the current skill
+                variantsData[this.currentSkill.name] = selectedVariant;
+                
+                // Save the updated variants data
+                localStorage.setItem(STORAGE_KEYS.SELECTED_SKILL_VARIANT, JSON.stringify(variantsData));
             }
             
             // Update the skill preview with the selected variant
@@ -267,9 +282,19 @@ export class SkillsPreviewTab extends SettingsTab {
                 this.nextVariantButton.style.display = showButtons ? 'inline-block' : 'none';
             }
             
-            // Get the stored selected variant or default to base
-            const variantKey = `${STORAGE_KEYS.SELECTED_SKILL_VARIANT}_${this.currentSkill.name}`;
-            const storedVariant = localStorage.getItem(variantKey) || 'base';
+            // Get the stored selected variant from the structured object or default to base
+            let storedVariant = 'base';
+            try {
+                const variantsData = localStorage.getItem(STORAGE_KEYS.SELECTED_SKILL_VARIANT);
+                if (variantsData) {
+                    const parsedData = JSON.parse(variantsData);
+                    if (parsedData && parsedData[this.currentSkill.name]) {
+                        storedVariant = parsedData[this.currentSkill.name];
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading variant data:', error);
+            }
             
             // Set the selected variant
             if (storedVariant === 'base' || this.variantsSelect.querySelector(`option[value="${storedVariant}"]`)) {
@@ -453,8 +478,23 @@ export class SkillsPreviewTab extends SettingsTab {
         }
         
         if (this.currentSkill && this.variantsSelect) {
-            const variantKey = `${STORAGE_KEYS.SELECTED_SKILL_VARIANT}_${this.currentSkill.name}`;
-            localStorage.setItem(variantKey, this.variantsSelect.value);
+            // Get existing variants data or create new object
+            let variantsData = {};
+            try {
+                const existingData = localStorage.getItem(STORAGE_KEYS.SELECTED_SKILL_VARIANT);
+                if (existingData) {
+                    variantsData = JSON.parse(existingData);
+                }
+            } catch (error) {
+                console.error('Error parsing variants data:', error);
+                variantsData = {};
+            }
+            
+            // Update the variant for the current skill
+            variantsData[this.currentSkill.name] = this.variantsSelect.value;
+            
+            // Save the updated variants data
+            localStorage.setItem(STORAGE_KEYS.SELECTED_SKILL_VARIANT, JSON.stringify(variantsData));
         }
     }
 }

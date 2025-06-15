@@ -28,74 +28,68 @@ export class ControlsDisplay {
         let controlsInfo = keyboardControlsContainer.querySelector('.controls-info');
         if (!controlsInfo) {
             controlsInfo = document.createElement('div');
-            controlsInfo.className = 'controls-info controls-info-two-columns';
+            controlsInfo.className = 'controls-info controls-info-vertical-scroll';
             keyboardControlsContainer.appendChild(controlsInfo);
         } else {
             // Clear existing controls
             controlsInfo.innerHTML = '';
-            // Add two-column class
-            controlsInfo.classList.add('controls-info-two-columns');
+            // Remove two-column class if it exists
+            controlsInfo.classList.remove('controls-info-two-columns');
+            // Add vertical scroll class
+            controlsInfo.classList.add('controls-info-vertical-scroll');
         }
         
-        // Create left and right columns
-        const leftColumn = document.createElement('div');
-        leftColumn.className = 'controls-column';
+        // Create a single column for vertical scrolling
+        const controlsColumn = document.createElement('div');
+        controlsColumn.className = 'controls-column controls-column-full';
         
-        const rightColumn = document.createElement('div');
-        rightColumn.className = 'controls-column';
+        // Add column to the controls info container
+        controlsInfo.appendChild(controlsColumn);
         
-        // Add columns to the controls info container
-        controlsInfo.appendChild(leftColumn);
-        controlsInfo.appendChild(rightColumn);
-        
-        // LEFT COLUMN
-        
-        // Add movement section title to left column
+        // Add movement section title
         const movementTitle = document.createElement('h4');
         movementTitle.textContent = 'Movement';
-        leftColumn.appendChild(movementTitle);
+        controlsColumn.appendChild(movementTitle);
         
-        // Add movement controls to left column
-        this.addControlRow(leftColumn, this.formatKeys(MOVEMENT_KEYS.FORWARD.concat(MOVEMENT_KEYS.BACKWARD, MOVEMENT_KEYS.LEFT, MOVEMENT_KEYS.RIGHT)), 'Movement');
+        // Add movement controls
+        this.addControlRow(controlsColumn, this.formatKeys(MOVEMENT_KEYS.FORWARD.concat(MOVEMENT_KEYS.BACKWARD, MOVEMENT_KEYS.LEFT, MOVEMENT_KEYS.RIGHT)), 'Movement');
         
-        // Add combat section title to left column
+        // Add combat section title
         const combatTitle = document.createElement('h4');
         combatTitle.textContent = 'Combat';
-        leftColumn.appendChild(combatTitle);
+        controlsColumn.appendChild(combatTitle);
         
-        // Add primary attack to left column
-        this.addControlRow(leftColumn, this.formatKey(SKILL_KEYS.PRIMARY_ATTACK), 'Primary Attack');
+        // Add primary attack
+        this.addControlRow(controlsColumn, this.formatKey(SKILL_KEYS.PRIMARY_ATTACK), 'Primary Attack');
         
-        // Add skill keys to left column
+        // Add skill keys
         const skillKeys = [];
         for (let i = 1; i <= 9; i++) {
             const key = SKILL_KEYS[`SKILL_${i}`];
             if (key) skillKeys.push(key);
         }
-        this.addControlRow(leftColumn, this.formatKeys(skillKeys), 'Skills');
+        this.addControlRow(controlsColumn, this.formatKeys(skillKeys), 'Skills');
         
-        // RIGHT COLUMN
-        
-        // Add actions section title to right column
+        // Add actions section title
         const actionsTitle = document.createElement('h4');
         actionsTitle.textContent = 'Actions';
-        rightColumn.appendChild(actionsTitle);
+        controlsColumn.appendChild(actionsTitle);
         
-        // Add action keys to right column
+        // Add action keys
         for (const [action, key] of Object.entries(ACTION_KEYS)) {
             const description = this.formatActionDescription(action);
-            this.addControlRow(rightColumn, this.formatKey(key), description);
+            this.addControlRow(controlsColumn, this.formatKey(key), description);
         }
         
-        // Add UI section title to right column
+        // Add UI section title
         const uiTitle = document.createElement('h4');
         uiTitle.textContent = 'UI Controls';
-        rightColumn.appendChild(uiTitle);
+        controlsColumn.appendChild(uiTitle);
         
-        // Add UI keys to right column
+        // Add UI keys
         for (const [action, key] of Object.entries(UI_KEYS)) {
             const description = this.formatActionDescription(action);
-            this.addControlRow(rightColumn, this.formatKey(key), description);
+            this.addControlRow(controlsColumn, this.formatKey(key), description);
         }
     }
     
@@ -110,51 +104,45 @@ export class ControlsDisplay {
         let controlsInfo = mobileControlsContainer.querySelector('.controls-info');
         if (!controlsInfo) {
             controlsInfo = document.createElement('div');
-            controlsInfo.className = 'controls-info controls-info-two-columns';
+            controlsInfo.className = 'controls-info controls-info-vertical-scroll';
             mobileControlsContainer.appendChild(controlsInfo);
         } else {
             // Clear existing controls
             controlsInfo.innerHTML = '';
-            // Add two-column class
-            controlsInfo.classList.add('controls-info-two-columns');
+            // Remove two-column class if it exists
+            controlsInfo.classList.remove('controls-info-two-columns');
+            // Add vertical scroll class
+            controlsInfo.classList.add('controls-info-vertical-scroll');
         }
         
-        // Create left and right columns
-        const leftColumn = document.createElement('div');
-        leftColumn.className = 'controls-column';
+        // Create a single column for vertical scrolling
+        const controlsColumn = document.createElement('div');
+        controlsColumn.className = 'controls-column controls-column-full';
         
-        const rightColumn = document.createElement('div');
-        rightColumn.className = 'controls-column';
+        // Add column to the controls info container
+        controlsInfo.appendChild(controlsColumn);
         
-        // Add columns to the controls info container
-        controlsInfo.appendChild(leftColumn);
-        controlsInfo.appendChild(rightColumn);
-        
-        // LEFT COLUMN
-        
-        // Add mobile controls section title to left column
+        // Add mobile controls section title
         const touchControlsTitle = document.createElement('h4');
         touchControlsTitle.textContent = 'Touch Controls';
-        leftColumn.appendChild(touchControlsTitle);
+        controlsColumn.appendChild(touchControlsTitle);
         
-        // Add mobile controls to left column
-        this.addControlRow(leftColumn, 'Left Joystick', 'Movement');
-        this.addControlRow(leftColumn, 'Skill Buttons', 'Activate Skills');
-        this.addControlRow(leftColumn, 'Tap Enemy', 'Attack Target');
-        this.addControlRow(leftColumn, 'Tap Object', 'Interact');
+        // Add mobile controls
+        this.addControlRow(controlsColumn, 'Left Joystick', 'Movement');
+        this.addControlRow(controlsColumn, 'Skill Buttons', 'Activate Skills');
+        this.addControlRow(controlsColumn, 'Tap Enemy', 'Attack Target');
+        this.addControlRow(controlsColumn, 'Tap Object', 'Interact');
         
-        // RIGHT COLUMN
-        
-        // Add UI buttons section title to right column
+        // Add UI buttons section title
         const uiButtonsTitle = document.createElement('h4');
         uiButtonsTitle.textContent = 'UI Buttons';
-        rightColumn.appendChild(uiButtonsTitle);
+        controlsColumn.appendChild(uiButtonsTitle);
         
-        // Add UI buttons to right column
-        this.addControlRow(rightColumn, '🌲 Button', 'Open Skill Tree');
-        this.addControlRow(rightColumn, '✨ Button', 'Open Skill Selection');
-        this.addControlRow(rightColumn, 'Map Button', 'Toggle Mini Map');
-        this.addControlRow(rightColumn, '⛩️ Button', 'Open Game Menu');
+        // Add UI buttons
+        this.addControlRow(controlsColumn, '🌲 Button', 'Open Skill Tree');
+        this.addControlRow(controlsColumn, '✨ Button', 'Open Skill Selection');
+        this.addControlRow(controlsColumn, 'Map Button', 'Toggle Mini Map');
+        this.addControlRow(controlsColumn, '⛩️ Button', 'Open Game Menu');
     }
     
     /**

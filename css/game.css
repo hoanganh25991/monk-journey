@@ -12,7 +12,7 @@
     z-index: 10; /* Base layer */
 }
 
-#main-background {
+.main-background {
     position: absolute;
     top: 0;
     left: 0;

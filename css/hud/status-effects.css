@@ -1,0 +1,70 @@
+/**
+ * Status Effects CSS
+ * Styling for player status effect indicators
+ */
+
+.status-effects-container {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.status-effect {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 20px;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.status-effect-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+.status-effect-label {
+    font-size: 14px;
+}
+
+/* Specific effect styles */
+.status-effect.invulnerable {
+    background-color: rgba(51, 153, 255, 0.7);
+    border: 2px solid rgba(51, 153, 255, 1);
+}
+
+.status-effect.slow {
+    background-color: rgba(0, 191, 255, 0.7);
+    border: 2px solid rgba(0, 191, 255, 1);
+}
+
+.status-effect.stun {
+    background-color: rgba(255, 215, 0, 0.7);
+    border: 2px solid rgba(255, 215, 0, 1);
+}
+
+/* Animation for pulsing effects */
+@keyframes pulse {
+    0% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.7;
+    }
+}

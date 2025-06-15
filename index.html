@@ -48,6 +48,16 @@
         <p id="loading-info">Downloading game assets...</p>
     </div>
     
+    <!-- Initial Loading Indicator for Map Generation -->
+    <div id="initial-loading-indicator" class="main-background" style="display: none;">
+        <div class="loading-title">Initializing Map</div>
+        <div class="loading-bar-container">
+            <div class="loading-bar" id="initial-loading-bar"></div>
+        </div>
+        <div class="loading-text" id="initial-loading-text">Generating world...</div>
+        <div class="loading-info" id="initial-loading-info">Please wait while we create your adventure</div>
+    </div>
+    
     <!-- Orientation Message -->
     <div id="orientation-message" style="display: none;">
         <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
@@ -56,25 +66,48 @@
         </svg>
         <p>Please rotate your device to landscape mode for the best experience</p>
     </div>
-
-    <!-- Main Background -->
-    <div id="main-background"></div>
+    
+    <!-- Login Modal -->
+    <div id="login-modal" class="login-modal-overlay">
+        <div class="login-modal-dialog">
+            <h3 class="login-modal-title">Login Required</h3>
+            <p class="login-modal-message" id="login-modal-message">
+                You previously logged in with Google to save your progress. Would you like to login again to load your saved data?
+            </p>
+            <div class="login-modal-loader"></div>
+            <p class="login-modal-status" id="login-modal-status"></p>
+            <div class="login-modal-buttons" id="login-modal-buttons">
+                <button class="login-btn" id="login-modal-login-btn">Login</button>
+                <button class="cancel-btn" id="login-modal-cancel-btn">Start New Game</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Conflict Resolution Modal -->
+    <div id="conflict-modal" class="login-modal-overlay">
+        <div class="login-modal-dialog">
+            <h3 class="login-modal-title">Save Data Conflict</h3>
+            <p class="login-modal-message">
+                We found different save data on your device and in the cloud. Which version would you like to keep?
+            </p>
+            <div class="conflict-data-preview">
+                <div class="conflict-data-label">Local Save:</div>
+                <div id="conflict-local-data"></div>
+            </div>
+            <div class="conflict-data-preview">
+                <div class="conflict-data-label">Cloud Save:</div>
+                <div id="conflict-cloud-data"></div>
+            </div>
+            <div class="login-modal-buttons">
+                <button class="login-btn" id="conflict-use-cloud-btn">Use Cloud Version</button>
+                <button class="cancel-btn" id="conflict-use-local-btn">Use Local Version</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Game Container -->
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
-    </div>
-    
-    <!-- Performance Indicators -->
-    <div id="performance-indicators" style="display: none;">
-        <!-- Stats.js will be appended here by the PerformanceManager -->
-        <div id="memory-display">MEM: 0 MB</div>
-        <div id="gpu-enabled-indicator">GPU Enabled</div>
-        <div id="quality-indicator">
-            <div class="quality-value">QUALITY: ULTRA</div>
-            <div class="target-fps">Target FPS: 60</div>
-        </div>
-        <div id="gpu-info-panel"></div>
     </div>
 
     <!-- HUD Container Elements -->
@@ -129,6 +162,9 @@
             <div id="skills-container"></div>
         </div>
         
+        <!-- Skills Overlay for touch handling -->
+        <div id="skills-overlay"></div>
+        
         <!-- Skill Tree UI Container -->
         <div id="skill-tree">
             <div id="skill-tree-header">
@@ -166,6 +202,7 @@
             <div id="inventory-header">
                 <div id="inventory-title">Character Inventory</div>
                 <div id="inventory-gold">Gold: <span id="gold-value">0</span></div>
+                <button id="inventory-teleport" class="circle-btn" title="Teleport to Origin">𖣐</button>
                 <button id="inventory-save" class="circle-btn" title="Save Inventory">💾</button>
             </div>
             <div id="inventory-container">
@@ -288,15 +325,78 @@
 
         <!-- Top Right UI (Home Button, Full Screen Button and Mini Map) -->
         <div id="top-right-container">
+            <button id="map-selector-button" class="circle-btn" title="Map Selector">🗺️</button>
             <button id="inventory-button" class="circle-btn" title="Inventory">🎒</button>
             <button id="skill-tree-button" class="circle-btn" title="Skill Tree">🌲</button>
             <button id="skill-selection-button" class="circle-btn" title="Skill Selection">✨</button>
-            <button id="mini-map-button" class="circle-btn" title="Mini Map"><i class="fa-map"></i></button>
+
             <button id="home-button" class="circle-btn" title="Game Menu">⛩️</button>
         </div>
 
         <!-- Mini Map -->
         <div id="mini-map"></div>
+
+        <!-- Map Selector UI -->
+        <div id="map-selector-overlay" class="map-selector-overlay">
+            <div class="map-selector-modal">
+                <div class="map-selector-header">
+                    <h2>Select Map</h2>
+                    <div class="header-buttons">
+                        <button class="circle-btn" id="clearCurrentMap" title="Return to Procedural World">🏕️</button>
+                        <button class="circle-btn" id="generateRandomMap" title="Generate New Map">👨‍🎨</button>
+                        <button class="circle-btn" id="closeMapSelector" title="Save & Close">💾</button>
+                    </div>
+                </div>
+                
+                <div class="map-selector-content">
+                    <div class="map-selector-layout">
+                        <div class="map-list-container">
+                            <div class="map-list" id="map-list">
+                                <!-- Map list items will be populated dynamically -->
+                            </div>
+                        </div>
+                        
+                        <div class="map-detail-container">
+                            <div class="selected-map-info" id="selectedMapInfo">
+                                <div class="map-preview-large" id="map-preview-large">
+                                    <div class="map-preview-placeholder">
+                                        <span class="map-icon">🗺️</span>
+                                    </div>
+                                </div>
+                                <div class="map-detail-content">
+                                    <h4 class="map-name" id="selectedMapName">Select a map</h4>
+                                    <p class="map-description" id="selectedMapDescription">Choose a map from the list to view details</p>
+                                    
+                                    <div class="map-stats" id="selectedMapStats">
+                                        <div class="map-stat">
+                                            <span class="stat-label">Size:</span>
+                                            <span class="stat-value" id="mapSizeStat">-</span>
+                                        </div>
+                                        <div class="map-stat">
+                                            <span class="stat-label">Structures:</span>
+                                            <span class="stat-value" id="structuresStat">-</span>
+                                        </div>
+                                        <div class="map-stat">
+                                            <span class="stat-label">Paths:</span>
+                                            <span class="stat-value" id="pathsStat">-</span>
+                                        </div>
+                                        <div class="map-stat">
+                                            <span class="stat-label">Environment:</span>
+                                            <span class="stat-value" id="environmentStat">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="loading-overlay" id="mapLoadingOverlay" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Loading map...</div>
+                </div>
+            </div>
+        </div>
 
         <!-- Enemy UI -->
         <div id="enemy-health-container"></div>
@@ -339,7 +439,7 @@
     </div>
 
     <!-- Game Menu -->
-    <div id="game-menu" class="game-menu" style="display: none;">
+    <div id="game-menu" class="game-menu main-background" style="display: none;">
         <h1>Monk Journey</h1>
         <div class="menu-button-container">
             <button id="load-game-button" class="menu-button">Play Game</button>
@@ -349,7 +449,7 @@
     </div>
 
     <!-- Multiplayer Menu -->
-    <div id="multiplayer-menu" class="game-menu">
+    <div id="multiplayer-menu" class="game-menu main-background">
         <!-- Initial Options Screen -->
         <div class="multiplayer-menu-content" id="multiplayer-initial-screen">
             <div class="modal-header">
@@ -442,7 +542,7 @@
     </div>
 
     <!-- Settings Menu -->
-    <div id="main-options-menu" class="game-menu top-tabs-layout" style="display: none;">
+    <div id="main-options-menu" class="game-menu main-background top-tabs-layout" style="display: none;">
         <!-- Settings Icon in Top-Right -->
         <!-- <div class="settings-header-icon">⚙️</div> -->
         <div class="settings-header-icon">
@@ -474,35 +574,85 @@
                 <div id="game-tab" class="tab-content active">
                     <h2 id="game-title">Game Settings</h2>
                     <div class="settings-section">
+                        <!-- Google Login Section -->
+                        <div id="google-login-section" class="setting-item">
+                            <h3>Account Sync</h3>
+                            <div class="setting-row">
+                                <div class="settings-label">Google Account</div>
+                                <div class="settings-google-login">
+                                    <button id="google-login-button" class="settings-button google-login-button" title="Sign in with Google">
+                                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTcuNiA5LjJsLS4xLTEuOEg5djMuNGg0LjhDMTMuNiAxMiAxMyAxMyAxMiAxMy42djIuMmgzYTguOCA4LjggMCAwIDAgMi42LTYuNnoiIGZpbGw9IiM0Mjg1RjQiIGZpbGwtcnVsZT0ibm9uemVybyIvPjxwYXRoIGQ9Ik05IDE4YzIuNCAwIDQuNS0uOCA2LTIuMmwtMy0yLjJhNS40IDUuNCAwIDAgMS04LTIuOUgxVjEzYTkgOSAwIDAgMCA4IDV6IiBmaWxsPSIjMzRBODUzIiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48cGF0aCBkPSJNNCAxMC43YTUuNCA1LjQgMCAwIDEgMC0zLjRWNUgxYTkgOSAwIDAgMCAwIDhsMy0yLjN6IiBmaWxsPSIjRkJCQzA1IiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48cGF0aCBkPSJNOSAzLjZjMS4zIDAgMi41LjQgMy40IDEuM0wxNSAyLjNBOSA5IDAgMCAwIDEgNWwzIDIuNGE1LjQgNS40IDAgMCAxIDUtMy43eiIgZmlsbD0iI0VBNDMzNSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PHBhdGggZD0iTTAgMGgxOHYxOEgweiIvPjwvZz48L3N2Zz4=" alt="Google">
+                                    </button>
+                                    <div class="google-login-status signed-out" style="display: none;"></div>
+                                </div>
+                            </div>
+                            <div class="setting-row" id="auto-login-container" style="display: none;">
+                                <div class="settings-label">Auto Login</div>
+                                <div class="settings-control">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="auto-login-checkbox">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="settings-description">Sync your game progress across devices</div>
+                        </div>
+                        
+                        <!-- Game Difficulty Setting -->
                         <div id="difficulty-container" class="setting-item">
-                            <label for="difficulty-select" class="settings-label">Difficulty: </label>
-                            <select id="difficulty-select" class="settings-select"></select>
+                            <h3>Game Difficulty</h3>
+                            <div class="setting-row">
+                                <label for="difficulty-select" class="settings-label">Difficulty Level</label>
+                                <select id="difficulty-select" class="settings-select"></select>
+                            </div>
+                            <div class="settings-description">Choose the difficulty level for your game experience</div>
                         </div>
+                        
+                        <!-- Custom Skills Setting -->
                         <div id="custom-skills-container" class="setting-item">
-                            <label for="custom-skills-checkbox" class="settings-label">Enable Custom Skills: </label>
-                            <input type="checkbox" id="custom-skills-checkbox" class="settings-checkbox">
-                            <span class="settings-description">Include in Skill Selection</span>
+                            <h3>Skill Options</h3>
+                            <div class="setting-row">
+                                <label for="custom-skills-checkbox" class="settings-label">Enable Custom Skills</label>
+                                <input type="checkbox" id="custom-skills-checkbox" class="settings-checkbox">
+                            </div>
+                            <div class="settings-description">Include custom skills in the Skill Selection menu</div>
                         </div>
+                        
+                        <!-- Camera Settings -->
                         <div id="camera-settings-container" class="setting-item">
                             <h3>Camera Settings</h3>
-                            <div class="camera-zoom-container">
-                                <label for="camera-zoom-slider" class="settings-label">Camera Zoom: </label>
-                                <input type="range" id="camera-zoom-slider" class="settings-slider" min="10" max="100" step="1" value="20">
-                                <span id="camera-zoom-value" class="settings-value">20</span>
-                                <span class="settings-description">Adjust camera distance (higher values = further away)</span>
+                            <div class="setting-row">
+                                <label for="camera-zoom-slider" class="settings-label">Camera Zoom</label>
+                                <div style="display: flex; align-items: center;">
+                                    <input type="range" id="camera-zoom-slider" class="settings-slider" min="10" max="100" step="1" value="20">
+                                    <span id="camera-zoom-value" class="settings-value">20</span>
+                                </div>
                             </div>
+                            <div class="settings-description">Adjust camera distance (higher values = further away)</div>
                         </div>
+                        
+                        <!-- Game Control -->
                         <div id="new-game-container" class="setting-item">
                             <h3>Game Control</h3>
-                            <button id="new-game-button" class="settings-button">New Game</button>
-                            <span class="settings-description">Start a new game (current progress will be lost)</span>
+                            <div class="setting-row">
+                                <div class="settings-label">Reset Game Progress</div>
+                                <button id="new-game-button" class="settings-button">New Game</button>
+                            </div>
+                            <div class="settings-description">Start a new game (current progress will be lost)</div>
                         </div>
-                        <!-- Release settings moved here from release tab -->
+                        
+                        <!-- Version Control -->
                         <div id="version-container" class="setting-item">
                             <h3>Version Control</h3>
-                            <p>Current version: <span id="current-version">Current Version</span></p>
-                            <button id="update-to-latest-button" class="settings-button">Update to Latest</button>
-                            <span class="settings-description">Clear cache and reload the latest version</span>
+                            <div class="setting-row">
+                                <div class="settings-label">Current Version</div>
+                                <span id="current-version" class="settings-value">Current Version</span>
+                            </div>
+                            <div class="setting-row">
+                                <div class="settings-label">Update Game</div>
+                                <button id="update-to-latest-button" class="settings-button">Update to Latest</button>
+                            </div>
+                            <div class="settings-description">Clear cache and reload the latest version</div>
                         </div>
                     </div>
                 </div>
@@ -511,13 +661,12 @@
                 <div id="controls-tab" class="tab-content">
                     <h2 id="controls-title">Controls Settings</h2>
                     <div class="settings-section">
-                        <div id="keyboard-controls-container" class="setting-item">
-                            <h3>Keyboard Controls</h3>
-                            <!-- Controls will be dynamically generated here -->
-                        </div>
-
                         <div id="mobile-controls-container" class="setting-item">
                             <h3>Mobile Controls</h3>
+                            <!-- Controls will be dynamically generated here -->
+                        </div>
+                        <div id="keyboard-controls-container" class="setting-item">
+                            <h3>Keyboard Controls</h3>
                             <!-- Controls will be dynamically generated here -->
                         </div>
                     </div>
@@ -527,27 +676,51 @@
                 <div id="audio-tab" class="tab-content">
                     <h2 id="audio-title">Audio Settings</h2>
                     <div id="audio-controls-container" class="settings-section">
-                        <div id="mute-container" class="setting-item">
-                            <label for="mute-checkbox" class="settings-label">Mute Audio: </label>
-                            <input type="checkbox" id="mute-checkbox" class="settings-checkbox">
+                        <!-- Main Audio Controls -->
+                        <div id="main-audio-container" class="setting-item">
+                            <h3>Main Audio Controls</h3>
+                            <div class="setting-row">
+                                <label for="mute-checkbox" class="settings-label">Mute All Audio</label>
+                                <input type="checkbox" id="mute-checkbox" class="settings-checkbox">
+                            </div>
+                            <div class="settings-description">Toggle all game audio on or off</div>
                         </div>
-                        <div id="music-volume-container" class="setting-item">
-                            <label for="music-volume-slider" class="settings-label">Music Volume: </label>
-                            <input type="range" id="music-volume-slider" class="settings-slider" min="0" max="100" value="80">
-                            <span id="music-volume-value" class="settings-value">80%</span>
+                        
+                        <!-- Volume Controls -->
+                        <div id="volume-controls-container" class="setting-item">
+                            <h3>Volume Controls</h3>
+                            <div class="setting-row">
+                                <label for="music-volume-slider" class="settings-label">Music Volume</label>
+                                <div style="display: flex; align-items: center;">
+                                    <input type="range" id="music-volume-slider" class="settings-slider" min="0" max="100" value="80">
+                                    <span id="music-volume-value" class="settings-value">80%</span>
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <label for="sfx-volume-slider" class="settings-label">SFX Volume</label>
+                                <div style="display: flex; align-items: center;">
+                                    <input type="range" id="sfx-volume-slider" class="settings-slider" min="0" max="100" value="80">
+                                    <span id="sfx-volume-value" class="settings-value">80%</span>
+                                </div>
+                            </div>
+                            <div class="settings-description">Adjust volume levels for music and sound effects separately</div>
                         </div>
-                        <div id="sfx-volume-container" class="setting-item">
-                            <label for="sfx-volume-slider" class="settings-label">SFX Volume: </label>
-                            <input type="range" id="sfx-volume-slider" class="settings-slider" min="0" max="100" value="80">
-                            <span id="sfx-volume-value" class="settings-value">80%</span>
-                        </div>
+                        
+                        <!-- Test Sound -->
                         <div id="test-sound-container" class="setting-item">
-                            <button id="test-sound-button" class="settings-button">Test Sound</button>
+                            <h3>Sound Test</h3>
+                            <div class="setting-row">
+                                <div class="settings-label">Play Test Sound</div>
+                                <button id="test-sound-button" class="settings-button">Test Sound</button>
+                            </div>
+                            <div class="settings-description">Play a test sound to check your current volume settings</div>
                         </div>
 
-                        <div id="audio-disabled-message" style="display: none;">
-                            Audio is currently disabled. Audio files need to be added to the assets/audio directory.
+                        <div id="audio-disabled-message" style="display: none;" class="setting-item">
+                            <h3>Audio Unavailable</h3>
+                            <div class="settings-description">Audio is currently disabled. Audio files need to be added to the assets/audio directory.</div>
                         </div>
+                    </div>
 
                         <div id="simulated-audio-note" style="display: none;">
                             Using simulated audio. For better audio experience, add audio files to the assets/audio
@@ -844,6 +1017,9 @@
 
     <!-- PeerJS Library for WebRTC connections -->
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+
+    <!-- Google API -->
+    <script src="https://accounts.google.com/gsi/client"></script>
 
     <!-- Main script module -->
     <script type="module" src="js/Main.js"></script>

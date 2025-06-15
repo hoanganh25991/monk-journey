@@ -19,7 +19,7 @@ export class BreathOfHeavenEffect extends SkillEffect {
         
         // Movement speed boost properties
         this.speedBoostDuration = 5; // 5 seconds of speed boost
-        this.speedBoostMultiplier = 2; // Triple speed (original + 2x boost = 3x total)
+        this.speedBoostMultiplier = 0.4; // 40% speed boost (original + 0.4x boost = 1.4x total)
         this.hasAppliedSpeedBoost = false;
     }
 
@@ -297,8 +297,8 @@ export class BreathOfHeavenEffect extends SkillEffect {
     
     /**
      * Apply movement speed boost to the player
-     * Triples the player's movement speed for 5 seconds
-     * Speed is capped at 3x the original value
+     * Increases the player's movement speed by 40% for 5 seconds
+     * Speed is capped at 1.4x the original value
      */
     applyMovementSpeedBoost() {
         if (!this.skill.game || !this.skill.game.player || this.hasAppliedSpeedBoost) return;
@@ -313,7 +313,7 @@ export class BreathOfHeavenEffect extends SkillEffect {
             
             // Show a notification if available
             if (this.skill.game.hudManager && this.skill.game.hudManager.showNotification) {
-                this.skill.game.hudManager.showNotification(`Movement speed tripled for ${this.speedBoostDuration} seconds!`);
+                this.skill.game.hudManager.showNotification(`Movement speed increased by 40% for ${this.speedBoostDuration} seconds!`);
             }
             
             // Create a visual effect for the speed boost

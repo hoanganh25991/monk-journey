@@ -12,6 +12,7 @@ export class BulPalmEffect extends SkillEffect {
     // Palm effect settings
     this.palmHeight = 0.5; // Height above ground
     this.palmScale = 1.5; // Size of the palm
+    this.auraRadius = 0.2; // Radius of the energy aura circle inside the palm
     
     // Explosion settings
     this.explosionInterval = 0.5; // Time between explosions in seconds
@@ -95,12 +96,19 @@ export class BulPalmEffect extends SkillEffect {
    * Create a Bul Palm effect
    * @param {THREE.Vector3} position - Position to place the palm
    * @param {THREE.Vector3} direction - Direction to move
+   * @param {Object} [options] - Optional settings for the effect
+   * @param {number} [options.auraRadius] - Custom radius for the energy aura circle
    * @returns {THREE.Group} - The created effect
    */
-  create(position, direction) {
+  create(position, direction, options = {}) {
     try {
       // Clone position to avoid modifying the original
       position = position.clone();
+      
+      // Apply custom options if provided
+      if (options.auraRadius !== undefined) {
+        this.auraRadius = options.auraRadius;
+      }
       
       // Create a group for the effect
       const effectGroup = new THREE.Group();
@@ -166,12 +174,12 @@ export class BulPalmEffect extends SkillEffect {
       // Add energy aura around the hand
       this.createAura(handGroup);
       
-      // Add energy particles around the hand
+      // Add a few energy particles around the hand (reduced count)
       this.particles = this.createParticleSystem(
         handGroup, 
-        55, // particleCount
-        { min: 1.4, max: 2.2 }, // radius range
-        { min: 0.06, max: 0.16 }, // size range
+        15, // particleCount (reduced from 55)
+        { min: 0.8, max: 1.2 }, // radius range (reduced)
+        { min: 0.04, max: 0.08 }, // size range (reduced)
         false, // no gravity
         true // orbit animation
       );
@@ -308,19 +316,33 @@ export class BulPalmEffect extends SkillEffect {
    * @private
    */
   createAura(handGroup) {
-    const auraGeometry = new THREE.SphereGeometry(1.8, 16, 16);
-    const auraMaterial = this.createMaterial(
-      this.getBrighterColor(), 
-      2.5, 
-      true, 
-      0.6, 
-      true, 
-      true
-    );
+    // Instead of a sphere, create a subtle glow effect using small planes
+    const glowCount = 8;
+    // Use the configurable aura radius
+    const glowRadius = this.auraRadius;
     
-    const aura = new THREE.Mesh(auraGeometry, auraMaterial);
-    aura.scale.set(1.8, 0.9, 2.1);
-    handGroup.add(aura);
+    for (let i = 0; i < glowCount; i++) {
+      const angle = (i / glowCount) * Math.PI * 2;
+      const x = Math.cos(angle) * glowRadius;
+      const z = Math.sin(angle) * glowRadius;
+      
+      // Keep the plane size constant regardless of radius
+      const glowGeometry = new THREE.PlaneGeometry(0.5, 0.5);
+      const glowMaterial = this.createMaterial(
+        this.getBrighterColor(),
+        3.0,
+        true,
+        0.7,
+        false,
+        true
+      );
+      
+      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+      glow.position.set(x, 0.1, z);
+      glow.lookAt(0, 0, 0); // Make the plane face the center
+      
+      handGroup.add(glow);
+    }
   }
 
   /**

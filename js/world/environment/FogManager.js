@@ -27,7 +27,7 @@ export class FogManager {
         
         // Track player's last position for optimization
         this.lastPlayerPosition = new THREE.Vector3(0, 0, 0);
-        this.positionUpdateThreshold = 5; // Only update fog when player moves this far
+        this.positionUpdateThreshold = 50; // Increased threshold to reduce updates (was 5)
         
         // For time-based fog effects
         this.timeOfDay = 'day'; // 'day', 'dawn', 'dusk', 'night'
@@ -158,8 +158,9 @@ export class FogManager {
             return;
         }
         
-        // Calculate transition speed based on delta time
-        const transitionSpeed = FOG_CONFIG.transitionSpeed * (deltaTime * 60); // Normalize for 60fps
+        // Calculate transition speed based on delta time, but much slower
+        // Reduced transition speed to 0.1 of original to make changes more gradual
+        const transitionSpeed = FOG_CONFIG.transitionSpeed * (deltaTime * 60) * 0.1; // Normalize for 60fps
         
         // Smoothly transition fog color
         this.currentFogColor.lerp(this.targetFogColor, transitionSpeed);
@@ -189,25 +190,25 @@ export class FogManager {
     setFogColorForZone(zoneName) {
         switch (zoneName) {
             case 'Forest':
-                this.targetFogColor.set(0x4a5d4c); // Darker greenish fog for forest
+                this.targetFogColor.set(0x7ab07c); // Lighter greenish fog for forest
                 break;
             case 'Desert':
-                this.targetFogColor.set(0x9e8c6e); // Darker tan fog for desert
+                this.targetFogColor.set(0xd8c090); // Lighter tan fog for desert
                 break;
             case 'Mountains':
-                this.targetFogColor.set(0x6a7a8e); // Darker blue fog for mountains
+                this.targetFogColor.set(0x90a0c0); // Lighter blue fog for mountains
                 break;
             case 'Swamp':
-                this.targetFogColor.set(0x3a4a14); // Very dark green fog for swamp
+                this.targetFogColor.set(0x6a8040); // Less dark green fog for swamp
                 break;
             case 'Dark Sanctum':
-                this.targetFogColor.set(0x1a0d20); // Darker purple fog for dark sanctum
+                this.targetFogColor.set(0x483060); // Less dark purple fog for dark sanctum
                 break;
             case 'Ruins':
-                this.targetFogColor.set(0x5a5a5a); // Darker gray fog for ruins
+                this.targetFogColor.set(0x909090); // Lighter gray fog for ruins
                 break;
             default:
-                this.targetFogColor.set(FOG_CONFIG.color); // Default darker blue-gray
+                this.targetFogColor.set(FOG_CONFIG.color); // Default lighter blue-gray
         }
     }
     
@@ -217,28 +218,28 @@ export class FogManager {
     adjustFogForTimeOfDay() {
         switch (this.timeOfDay) {
             case 'dawn':
-                // Darker pinkish tint at dawn
-                this.targetFogColor.lerp(new THREE.Color(0xc08090), 0.3);
+                // Lighter pinkish tint at dawn
+                this.targetFogColor.lerp(new THREE.Color(0xffc0d0), 0.3);
                 // Slightly increase density at dawn
-                this.targetFogDensity *= 1.2;
+                this.targetFogDensity *= 1.1;
                 break;
             case 'dusk':
-                // Darker orange tint at dusk
-                this.targetFogColor.lerp(new THREE.Color(0xb05030), 0.3);
+                // Lighter orange tint at dusk
+                this.targetFogColor.lerp(new THREE.Color(0xffa060), 0.3);
                 // Slightly increase density at dusk
-                this.targetFogDensity *= 1.3;
+                this.targetFogDensity *= 1.2;
                 break;
             case 'night':
-                // Very dark blue at night
-                this.targetFogColor.lerp(new THREE.Color(0x000022), 0.7);
-                // Significantly increase density at night
-                this.targetFogDensity *= 2.0;
+                // Less dark blue at night
+                this.targetFogColor.lerp(new THREE.Color(0x202045), 0.5);
+                // Moderately increase density at night
+                this.targetFogDensity *= 1.5;
                 break;
             default: // day
-                // Even during day, add a slight darkness
-                this.targetFogColor.lerp(new THREE.Color(0x303540), 0.1);
-                // Slightly increase density during day
-                this.targetFogDensity *= 1.1;
+                // During day, add a slight brightness
+                this.targetFogColor.lerp(new THREE.Color(0x90b0e0), 0.2);
+                // Keep density normal during day
+                this.targetFogDensity *= 1.0;
         }
     }
     
@@ -248,28 +249,28 @@ export class FogManager {
     adjustFogForWeather() {
         switch (this.currentWeather) {
             case 'rain':
-                // Darker, more gray fog during rain
-                this.targetFogColor.lerp(new THREE.Color(0x404550), 0.5);
-                // Increase density during rain
-                this.targetFogDensity *= 1.5;
+                // Lighter gray fog during rain
+                this.targetFogColor.lerp(new THREE.Color(0x8090a0), 0.4);
+                // Moderately increase density during rain
+                this.targetFogDensity *= 1.3;
                 break;
             case 'fog':
-                // Darker gray fog during foggy weather
-                this.targetFogColor.lerp(new THREE.Color(0x9a9a9a), 0.7);
-                // Significantly increase density during fog
-                this.targetFogDensity *= 3.5;
-                break;
-            case 'storm':
-                // Very dark gray fog during storms
-                this.targetFogColor.lerp(new THREE.Color(0x252525), 0.6);
-                // Significantly increase density during storms
+                // Lighter gray fog during foggy weather
+                this.targetFogColor.lerp(new THREE.Color(0xc0c0c0), 0.6);
+                // Increase density during fog, but less dramatically
                 this.targetFogDensity *= 2.5;
                 break;
+            case 'storm':
+                // Less dark gray fog during storms
+                this.targetFogColor.lerp(new THREE.Color(0x505050), 0.5);
+                // Increase density during storms, but less dramatically
+                this.targetFogDensity *= 2.0;
+                break;
             default: // clear weather
-                // Even in clear weather, add a slight darkness
-                this.targetFogColor.lerp(new THREE.Color(0x303540), 0.1);
-                // Slightly increase density in clear weather
-                this.targetFogDensity *= 1.1;
+                // In clear weather, add a slight brightness
+                this.targetFogColor.lerp(new THREE.Color(0x90b0e0), 0.2);
+                // Keep normal density in clear weather
+                this.targetFogDensity *= 1.0;
         }
     }
     

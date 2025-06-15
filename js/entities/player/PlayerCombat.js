@@ -85,16 +85,82 @@ export class PlayerCombat {
     // setGame method removed - game is now passed in constructor
     
     /**
-     * Handles player taking damage
-     * @param {number} damage - The amount of damage to take
-     * @returns {number} The actual amount of damage taken after reductions
+     * Handle player taking damage with comprehensive defense calculations
+     * @param {number} damage - The raw damage amount
+     * @param {boolean} ignoreDefense - Whether to ignore defense (for true damage)
+     * @returns {number} - The actual damage taken after reductions
      */
-    takeDamage(damage) {
-        // Apply armor reduction
+    takeDamage(damage, ignoreDefense = false) {
+        // Check for invulnerability
+        if (this.game?.player?.statusEffects?.hasEffect('invulnerable')) {
+            console.debug("Player is invulnerable - no damage taken");
+            return 0;
+        }
+        
+        // Start with the raw damage
         let reducedDamage = damage;
-        const equipment = this.playerInventory.getEquipment();
-        if (equipment.armor) {
-            reducedDamage *= (1 - equipment.armor.damageReduction);
+        
+        // Skip defense calculations if ignoreDefense is true (for true damage effects)
+        if (!ignoreDefense) {
+            // Get all equipment
+            const equipment = this.playerInventory.getEquipment();
+            
+            // Calculate total defense value from all equipped items
+            let totalDefense = 0;
+            let totalDamageReduction = 0;
+            
+            // Process each equipment slot
+            for (const slot in equipment) {
+                const item = equipment[slot];
+                if (!item) continue;
+                
+                // Check if the item has defense stats
+                if (typeof item.getStat === 'function') {
+                    // Add defense value
+                    const defenseValue = item.getStat('defense') || 0;
+                    totalDefense += defenseValue;
+                    
+                    // Add direct damage reduction percentage (if available)
+                    const damageReduction = item.getStat('damageReduction') || 0;
+                    totalDamageReduction += damageReduction;
+                    
+                    // Log the contribution of each item
+                    if (defenseValue > 0 || damageReduction > 0) {
+                        console.debug(`Defense from ${slot}: ${defenseValue}, Damage reduction: ${damageReduction}%`);
+                    }
+                } else if (item.damageReduction) {
+                    // Legacy support for items with direct damageReduction property
+                    totalDamageReduction += item.damageReduction * 100; // Convert to percentage
+                }
+            }
+            
+            // Apply defense formula: damage reduction percentage based on defense
+            // Formula: reduction = defense / (defense + 100)
+            // This gives diminishing returns for high defense values
+            const defenseReductionPercent = totalDefense / (totalDefense + 100);
+            
+            // Cap total direct damage reduction at 75% to prevent invincibility
+            const cappedDamageReduction = Math.min(totalDamageReduction / 100, 0.75);
+            
+            // Apply both types of reduction
+            // First apply defense-based reduction
+            reducedDamage *= (1 - defenseReductionPercent);
+            
+            // Then apply direct damage reduction
+            reducedDamage *= (1 - cappedDamageReduction);
+            
+            // Log the defense calculations
+            console.debug(`Player defense: ${totalDefense}, defense reduction: ${(defenseReductionPercent * 100).toFixed(1)}%`);
+            console.debug(`Direct damage reduction: ${(cappedDamageReduction * 100).toFixed(1)}%`);
+            console.debug(`Raw damage: ${damage}, reduced damage: ${reducedDamage.toFixed(1)}`);
+        }
+        
+        // Round the damage to avoid floating point issues
+        reducedDamage = Math.round(reducedDamage);
+        
+        // Ensure minimum damage of 1 (unless it's a very small amount like 0.5 that got rounded down)
+        if (damage > 0 && reducedDamage < 1) {
+            reducedDamage = 1;
         }
         
         // Apply damage to health
@@ -157,6 +223,12 @@ export class PlayerCombat {
         // Hide death screen
         if (this.game?.hudManager) {
             this.game.hudManager.hideDeathScreen();
+        }
+        
+        // Apply invulnerability for 3 seconds
+        if (this.game?.player?.statusEffects) {
+            this.game.player.statusEffects.applyEffect('invulnerable', 3.0, 1.0);
+            console.debug("Applied 3-second invulnerability after respawn");
         }
     }
 }

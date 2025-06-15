@@ -14,7 +14,25 @@ export class GameMenu extends IMenu {
         super('game-menu', game);
         this.loadGameButton = document.getElementById('load-game-button');
         this.settingsMenuButton = document.getElementById('settings-menu-button');
+        this.googleSignInButton = document.getElementById('google-signin-button');
         this.setupEventListeners();
+        
+        // Listen for Google sign-in/sign-out events
+        window.addEventListener('google-signin-success', () => this.updateGoogleSignInButton(true));
+        window.addEventListener('google-signout', () => this.updateGoogleSignInButton(false));
+    }
+    
+    /**
+     * Update the Google Sign-In button text based on sign-in state
+     * @param {boolean} isSignedIn - Whether the user is signed in
+     */
+    updateGoogleSignInButton(isSignedIn) {
+        if (this.googleSignInButton) {
+            this.googleSignInButton.textContent = isSignedIn 
+                ? "Sign out from Google" 
+                : "Sign in with Google";
+            this.googleSignInButton.disabled = false;
+        }
     }
 
     /**
@@ -32,9 +50,7 @@ export class GameMenu extends IMenu {
                     this.hide();
                     
                     // Hide the main background when resuming the game
-                    if (this.game.hudManager && this.game.hudManager.mainBackground) {
-                        this.game.hudManager.mainBackground.hide();
-                    }
+
 
                     // Resume the game
                     this.game.resume(false);
@@ -46,17 +62,59 @@ export class GameMenu extends IMenu {
                     
                     console.debug("Game resumed - enemies and player are now active");
                 } else  if (this.game.saveManager && this.game.saveManager.hasSaveData()) {
-                    if (await this.game.saveManager.loadGame()) {
-                        console.debug("Game data loaded successfully");
+                    try {
+                        const loadResult = await this.game.saveManager.loadGame();
+                        
+                        if (loadResult) {
+                            console.debug("Game data loaded successfully");
+                            this.hide();
+                            
+                            // Start the game with loaded data - this will set isPaused to false and start the game loop
+                            // Pass true to indicate this is a loaded game, so player position isn't reset
+                            this.game.start(true);
+                            
+                            // Make sure settings button is visible
+                            const homeButton = document.getElementById('home-button');
+                            if (homeButton) {
+                                homeButton.style.display = 'block';
+                            }
+                            
+                            // Show all HUD elements
+                            if (this.game.hudManager) {
+                                this.game.hudManager.showAllUI();
+                            }
+                            
+                            console.debug("Game started with loaded data - enemies and player are now active");
+                        } else {
+                            console.debug("No save data found or failed to load, starting new game instead");
+                            
+                            // Start a new game instead
+                            this.hide();
+                            
+                            // Start the game - this will set isPaused to false and start the game loop
+                            // Pass false to indicate this is a new game, so player position should be reset
+                            this.game.start(false);
+                            
+                            // Make sure settings button is visible
+                            const homeButton = document.getElementById('home-button');
+                            if (homeButton) {
+                                homeButton.style.display = 'block';
+                            }
+                            
+                            // Show all HUD elements
+                            if (this.game.hudManager) {
+                                this.game.hudManager.showAllUI();
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Error loading game data:", error);
+                        alert('An error occurred while loading the game. Starting a new game instead.');
+                        
+                        // Start a new game instead
                         this.hide();
                         
-                        // Hide the main background when loading a game
-                        if (this.game.hudManager && this.game.hudManager.mainBackground) {
-                            this.game.hudManager.mainBackground.hide();
-                        }
-                        
-                        // Start the game with loaded data - this will set isPaused to false and start the game loop
-                        this.game.start();
+                        // Start the game - this will set isPaused to false and start the game loop
+                        this.game.start(false);
                         
                         // Make sure settings button is visible
                         const homeButton = document.getElementById('home-button');
@@ -68,24 +126,17 @@ export class GameMenu extends IMenu {
                         if (this.game.hudManager) {
                             this.game.hudManager.showAllUI();
                         }
-                        
-                        console.debug("Game started with loaded data - enemies and player are now active");
-                    } else {
-                        console.error("Failed to Continue Game data");
-                        alert('Failed to Continue Game data.');
-                    };
+                    }
                 } else {
                     // Game has never been started - start a new game
                     console.debug("New Game button clicked - starting new game...");
                     this.hide();
                     
                     // Hide the main background when starting the game
-                    if (this.game.hudManager && this.game.hudManager.mainBackground) {
-                        this.game.hudManager.mainBackground.hide();
-                    }
                     
                     // Start the game - this will set isPaused to false and start the game loop
-                    this.game.start();
+                    // Pass false to indicate this is a new game, so player position should be reset
+                    this.game.start(false);
                     
                     // Make sure settings button is visible
                     const homeButton = document.getElementById('home-button');
@@ -112,6 +163,40 @@ export class GameMenu extends IMenu {
                 }
             });
         }
+        
+        // Google Sign-In button
+        if (this.googleSignInButton) {
+            this.googleSignInButton.addEventListener('click', async () => {
+                console.debug("Google Sign-In button clicked");
+                
+                if (this.game.saveManager) {
+                    if (this.game.saveManager.isSignedInToGoogle()) {
+                        // Sign out
+                        this.game.saveManager.signOutFromGoogle();
+                        this.googleSignInButton.textContent = "Sign in with Google";
+                    } else {
+                        // Sign in
+                        this.googleSignInButton.textContent = "Signing in...";
+                        this.googleSignInButton.disabled = true;
+                        
+                        const success = await this.game.saveManager.signInToGoogle();
+                        
+                        if (success) {
+                            this.googleSignInButton.textContent = "Sign out from Google";
+                        } else {
+                            this.googleSignInButton.textContent = "Sign in with Google";
+                        }
+                        
+                        this.googleSignInButton.disabled = false;
+                    }
+                }
+            });
+            
+            // Update button text based on current sign-in state
+            if (this.game.saveManager && this.game.saveManager.isSignedInToGoogle()) {
+                this.googleSignInButton.textContent = "Sign out from Google";
+            }
+        }
     }
 
     /**
@@ -130,11 +215,6 @@ export class GameMenu extends IMenu {
             // Hide all HUD UI elements using the HUDManager
             if (this.game.hudManager) {
                 this.game.hudManager.hideAllUI();
-            }
-            
-            // Show the main background when showing the game menu
-            if (this.game.hudManager && this.game.hudManager.mainBackground) {
-                this.game.hudManager.mainBackground.show();
             }
             
             // Make sure the menu is visible

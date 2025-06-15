@@ -1,7 +1,5 @@
 import * as THREE from 'three';
 import { UIComponent } from '../UIComponent.js';
-import { PlayerModel } from '../entities/player/PlayerModel.js';
-import { PlayerState } from '../entities/player/PlayerState.js';
 import { ModelPreview } from '../menu-system/ModelPreview.js';
 import { ItemPreview } from '../menu-system/ItemPreview.js';
 import { updateAnimation } from '../utils/AnimationUtils.js';
@@ -59,10 +57,24 @@ export class InventoryUI extends UIComponent {
         
         // Add click event to save inventory
         const saveButton = document.getElementById('inventory-save');
-        saveButton.addEventListener('click', () => {
-            this.saveInventory();
-            this.toggleInventory();
-        });
+        if (saveButton) {
+            saveButton.addEventListener('click', () => {
+                this.saveInventory();
+                this.toggleInventory();
+            });
+        } else {
+            console.warn('Save inventory button not found');
+        }
+        
+        // Add click event to teleport to origin
+        const teleportButton = document.getElementById('inventory-teleport');
+        if (teleportButton) {
+            teleportButton.addEventListener('click', () => {
+                this.teleportToOrigin();
+            });
+        } else {
+            console.warn('Teleport inventory button not found');
+        }
         
         // Add click event to close popup when clicking outside
         document.addEventListener('click', (event) => {
@@ -145,7 +157,7 @@ export class InventoryUI extends UIComponent {
             const equipButton = this.itemPopup.querySelector('.item-popup-equip');
             equipButton.addEventListener('click', () => {
                 if (this.currentItem && this.currentItem.type) {
-                    this.equipItem(this.currentItem);
+                    this.useItem(this.currentItem);
                     this.hideItemPopup();
                 }
             });
@@ -507,14 +519,46 @@ export class InventoryUI extends UIComponent {
         // Make sure the preview container is visible
         this.itemPreviewContainer.style.display = 'block';
         
-        // Position popup near the clicked item
-        const rect = slotElement.getBoundingClientRect();
-        this.itemPopup.style.left = `${rect.right + 10}px`;
-        // this.itemPopup.style.top = `${rect.top}px`;
-        this.itemPopup.style.top = `10px`;
-        
-        // Show popup
+        // Show popup first with temporary positioning to get its dimensions
         this.itemPopup.style.display = 'block';
+        this.itemPopup.style.left = '0';
+        this.itemPopup.style.top = '0';
+        
+        // Get dimensions
+        const rect = slotElement.getBoundingClientRect();
+        const popupRect = this.itemPopup.getBoundingClientRect();
+        const popupWidth = popupRect.width;
+        const popupHeight = popupRect.height;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        // Calculate optimal position
+        let leftPos, rightPos, topPos;
+        
+        // Check if the popup would go off the right edge of the screen
+        if (rect.right + 10 + popupWidth > windowWidth) {
+            // Position from right edge if close to right border
+            leftPos = 'auto';
+            rightPos = '10px';
+        } else {
+            // Position from left as usual
+            rightPos = 'auto';
+            leftPos = `${rect.right + 10}px`;
+        }
+        
+        // Check vertical positioning
+        if (rect.top + popupHeight > windowHeight) {
+            // If popup would go off bottom of screen, position it higher
+            topPos = `${Math.max(10, windowHeight - popupHeight - 10)}px`;
+        } else {
+            // Align with the top of the item slot
+            topPos = `${rect.top}px`;
+        }
+        
+        // Apply final positioning
+        this.itemPopup.style.left = leftPos;
+        this.itemPopup.style.right = rightPos;
+        this.itemPopup.style.top = topPos;
         
         // Prevent event from bubbling to document
         event.stopPropagation();
@@ -526,6 +570,10 @@ export class InventoryUI extends UIComponent {
     hideItemPopup() {
         if (this.itemPopup) {
             this.itemPopup.style.display = 'none';
+            // Reset positioning properties
+            this.itemPopup.style.left = 'auto';
+            this.itemPopup.style.right = 'auto';
+            
             this.currentItem = null;
             this.activeItemSlot = null;
             
@@ -595,38 +643,26 @@ export class InventoryUI extends UIComponent {
      * @param {Object} item - Item to consume
      */
     useItem(item) {
-        // Check item type and handle accordingly
-        if (!item.type && !item.consumable) {
-            // If item has no type and is not marked as consumable, try to determine type from name
-            if (item.name.includes('Potion')) {
-                item.type = 'consumable';
-            } else {
-                this.game.hudManager.showNotification(`Cannot use ${item.name}: Unknown item type`);
-                return;
-            }
-        }
-        
-        // Handle based on item type
         switch (item.type) {
             case 'weapon':
                 // Weapons should be equipped, not used
                 this.game.hudManager.showNotification(`${item.name} is a weapon. Use 'Equip' instead of 'Use'.`);
                 // Try to equip it automatically
-                this.equipItem(item);
+                this.useEquippableItem(item);
                 break;
                 
             case 'armor':
                 // Armor should be equipped, not used
                 this.game.hudManager.showNotification(`${item.name} is armor. Use 'Equip' instead of 'Use'.`);
                 // Try to equip it automatically
-                this.equipItem(item);
+                this.useEquippableItem(item);
                 break;
                 
             case 'accessory':
                 // Accessories should be equipped, not used
                 this.game.hudManager.showNotification(`${item.name} is an accessory. Use 'Equip' instead of 'Use'.`);
                 // Try to equip it automatically
-                this.equipItem(item);
+                this.useEquippableItem(item);
                 break;
                 
             case 'consumable':
@@ -640,7 +676,7 @@ export class InventoryUI extends UIComponent {
                 } else {
                     // For items with unknown type, try to equip
                     this.game.hudManager.showNotification(`Attempting to use ${item.name}`);
-                    this.equipItem(item);
+                    this.useEquippableItem(item);
                 }
                 break;
         }
@@ -652,49 +688,82 @@ export class InventoryUI extends UIComponent {
      * @private
      */
     useConsumableItem(item) {
-        // Handle specific named potions first
-        if (item.name === 'Health Potion') {
-            // Heal player
-            const healAmount = item.healAmount || 50;
-            const newHealth = this.game.player.getHealth() + healAmount;
-            const maxHealth = this.game.player.getMaxHealth();
-            this.game.player.getStatsObject().setHealth(Math.min(newHealth, maxHealth));
-            
-            // Show notification
-            this.game.hudManager.showNotification(`Consumed Health Potion: +${healAmount} Health`);
-        } else if (item.name === 'Mana Potion') {
-            // Restore mana
-            const manaAmount = item.manaAmount || 50;
-            const newMana = this.game.player.getMana() + manaAmount;
-            const maxMana = this.game.player.getMaxMana();
-            this.game.player.getStatsObject().setMana(Math.min(newMana, maxMana));
-            
-            // Show notification
-            this.game.hudManager.showNotification(`Consumed Mana Potion: +${manaAmount} Mana`);
-        } else if (item.name === 'Stamina Potion') {
-            // Restore stamina if the game has stamina system
-            if (this.game.player.getStamina && this.game.player.getMaxStamina && this.game.player.getStatsObject().setStamina) {
-                const staminaAmount = item.staminaAmount || 50;
-                const newStamina = this.game.player.getStamina() + staminaAmount;
-                const maxStamina = this.game.player.getMaxStamina();
-                this.game.player.getStatsObject().setStamina(Math.min(newStamina, maxStamina));
-                
-                // Show notification
-                this.game.hudManager.showNotification(`Consumed Stamina Potion: +${staminaAmount} Stamina`);
-            } else {
-                this.game.hudManager.showNotification(`Cannot consume ${item.name}: Stamina system not available`);
-                return; // Exit early without consuming the item
+        let effectsApplied = false;
+        let effectsDescription = [];
+        
+        // Check for baseStats properties (from item-templates.js)
+        if (item.baseStats) {
+            // Handle health restoration
+            if (item.baseStats.healthRestore) {
+                const healAmount = item.baseStats.healthRestore;
+                const newHealth = this.game.player.getHealth() + healAmount;
+                const maxHealth = this.game.player.getMaxHealth();
+                this.game.player.stats.setHealth(Math.min(newHealth, maxHealth));
+                effectsApplied = true;
+                effectsDescription.push(`+${healAmount} Health`);
             }
-        } else if (item.effects) {
-            // Handle generic consumable items with effects
-            let effectsApplied = false;
-            let effectsDescription = [];
             
+            // Handle mana/spirit restoration
+            if (item.baseStats.manaRestore) {
+                const manaAmount = item.baseStats.manaRestore;
+                const newMana = this.game.player.getMana() + manaAmount;
+                const maxMana = this.game.player.getMaxMana();
+                this.game.player.stats.setMana(Math.min(newMana, maxMana));
+                effectsApplied = true;
+                effectsDescription.push(`+${manaAmount} Mana/Spirit`);
+            }
+            
+            // Handle stamina restoration if the system exists
+            if (item.baseStats.staminaRestore) {
+                if (this.game.player.getStamina && this.game.player.getMaxStamina && this.game.player.stats.setStamina) {
+                    const staminaAmount = item.baseStats.staminaRestore;
+                    const newStamina = this.game.player.getStamina() + staminaAmount;
+                    const maxStamina = this.game.player.getMaxStamina();
+                    this.game.player.stats.setStamina(Math.min(newStamina, maxStamina));
+                    effectsApplied = true;
+                    effectsDescription.push(`+${staminaAmount} Stamina`);
+                } else {
+                    this.game.hudManager.showNotification(`Cannot use stamina effect: Stamina system not available`);
+                }
+            }
+            
+            // Handle buff effects based on effectType
+            if (item.baseStats.effectType === 'buff' || item.baseStats.effectType === 'over_time') {
+                const duration = item.baseStats.duration || 30; // Default 30 seconds
+                
+                // Apply buff stats if they exist
+                if (item.baseStats.buffStats) {
+                    const buffStats = item.baseStats.buffStats;
+                    
+                    // Process each buff stat
+                    for (const [stat, value] of Object.entries(buffStats)) {
+                        if (value) {
+                            this.game.player.addTemporaryStatBoost(stat, value, duration);
+                            effectsApplied = true;
+                            effectsDescription.push(`+${value} ${stat} for ${duration}s`);
+                        }
+                    }
+                }
+                
+                // Handle health bonus (temporary max health increase)
+                if (item.baseStats.healthBonus || item.baseStats.maxHealth) {
+                    const healthBonus = item.baseStats.healthBonus || item.baseStats.maxHealth || 0;
+                    if (healthBonus > 0) {
+                        this.game.player.addTemporaryStatBoost('maxHealth', healthBonus, duration);
+                        effectsApplied = true;
+                        effectsDescription.push(`+${healthBonus} Max Health for ${duration}s`);
+                    }
+                }
+            }
+        }
+        
+        // Fall back to the old effects system if needed
+        if (!effectsApplied && item.effects) {
             // Apply effects
             if (item.effects.health) {
                 const newHealth = this.game.player.getHealth() + item.effects.health;
                 const maxHealth = this.game.player.getMaxHealth();
-                this.game.player.getStatsObject().setHealth(Math.min(newHealth, maxHealth));
+                this.game.player.stats.setHealth(Math.min(newHealth, maxHealth));
                 effectsApplied = true;
                 effectsDescription.push(`+${item.effects.health} Health`);
             }
@@ -702,7 +771,7 @@ export class InventoryUI extends UIComponent {
             if (item.effects.mana) {
                 const newMana = this.game.player.getMana() + item.effects.mana;
                 const maxMana = this.game.player.getMaxMana();
-                this.game.player.getStatsObject().setMana(Math.min(newMana, maxMana));
+                this.game.player.stats.setMana(Math.min(newMana, maxMana));
                 effectsApplied = true;
                 effectsDescription.push(`+${item.effects.mana} Mana`);
             }
@@ -731,16 +800,47 @@ export class InventoryUI extends UIComponent {
                 effectsApplied = true;
                 effectsDescription.push(`+${item.effects.speed} Speed for ${duration}s`);
             }
-            
-            if (effectsApplied) {
-                // Show notification with effects details
-                const effectsText = effectsDescription.length > 0 ? `: ${effectsDescription.join(', ')}` : '';
-                this.game.hudManager.showNotification(`Consumed ${item.name}${effectsText}`);
-            } else {
-                this.game.hudManager.showNotification(`Consumed ${item.name}, but no effects were applied`);
+        }
+        
+        // Handle legacy named potions as a fallback
+        if (!effectsApplied) {
+            if (item.name === 'Health Potion') {
+                // Heal player
+                const healAmount = item.healAmount || 50;
+                const newHealth = this.game.player.getHealth() + healAmount;
+                const maxHealth = this.game.player.getMaxHealth();
+                this.game.player.stats.setHealth(Math.min(newHealth, maxHealth));
+                effectsApplied = true;
+                effectsDescription.push(`+${healAmount} Health`);
+            } else if (item.name === 'Mana Potion') {
+                // Restore mana
+                const manaAmount = item.manaAmount || 50;
+                const newMana = this.game.player.getMana() + manaAmount;
+                const maxMana = this.game.player.getMaxMana();
+                this.game.player.stats.setMana(Math.min(newMana, maxMana));
+                effectsApplied = true;
+                effectsDescription.push(`+${manaAmount} Mana`);
+            } else if (item.name === 'Stamina Potion') {
+                // Restore stamina if the game has stamina system
+                if (this.game.player.getStamina && this.game.player.getMaxStamina && this.game.player.stats.setStamina) {
+                    const staminaAmount = item.staminaAmount || 50;
+                    const newStamina = this.game.player.getStamina() + staminaAmount;
+                    const maxStamina = this.game.player.getMaxStamina();
+                    this.game.player.stats.setStamina(Math.min(newStamina, maxStamina));
+                    effectsApplied = true;
+                    effectsDescription.push(`+${staminaAmount} Stamina`);
+                } else {
+                    this.game.hudManager.showNotification(`Cannot consume ${item.name}: Stamina system not available`);
+                    return; // Exit early without consuming the item
+                }
             }
+        }
+        
+        // Show notification with effects details or generic message
+        if (effectsApplied) {
+            const effectsText = effectsDescription.length > 0 ? `: ${effectsDescription.join(', ')}` : '';
+            this.game.hudManager.showNotification(`Consumed ${item.name}${effectsText}`);
         } else {
-            // Generic consumable with no specific effects
             this.game.hudManager.showNotification(`Consumed ${item.name}`);
         }
         
@@ -757,7 +857,7 @@ export class InventoryUI extends UIComponent {
      * Equip an item from the inventory
      * @param {Object} item - Item to equip
      */
-    equipItem(item) {
+    useEquippableItem(item) {
         // Check if item has a type
         if (!item.type) {
             this.game.hudManager.showNotification(`Cannot equip ${item.name}: Not an equippable item`);
@@ -817,9 +917,22 @@ export class InventoryUI extends UIComponent {
         // Get player equipment
         const equipment = this.game.player.getEquipment();
         
+        // Get all equipment slots
+        const equipmentSlots = document.querySelectorAll('.equipment-slot');
+        
+        // Create a map to store slots by their data-slot attribute
+        const slotMap = {};
+        equipmentSlots.forEach(slot => {
+            const slotType = slot.getAttribute('data-slot');
+            if (slotType) {
+                slotMap[slotType] = slot;
+            }
+        });
+        
         // Update each equipment slot
         Object.entries(equipment).forEach(([slot, item]) => {
-            const slotElement = document.getElementById(`equipment-slot-${slot}`);
+            // Find the slot element using the map
+            const slotElement = slotMap[slot];
             
             if (slotElement) {
                 // Clear previous content
@@ -855,8 +968,10 @@ export class InventoryUI extends UIComponent {
                     // Add tooltip with slot name
                     slotElement.title = this.getSlotName(slot);
                     
-                    // Remove any click events
-                    slotElement.replaceWith(slotElement.cloneNode(true));
+                    // Remove any click events by replacing with clone
+                    const newSlotElement = slotElement.cloneNode(true);
+                    slotElement.parentNode.replaceChild(newSlotElement, slotElement);
+                    slotMap[slot] = newSlotElement; // Update the reference in the map
                 }
             }
         });
@@ -962,6 +1077,31 @@ export class InventoryUI extends UIComponent {
     }
     
     /**
+     * Teleport player to origin position (0,0,0)
+     */
+    teleportToOrigin() {
+        if (this.game && this.game.player) {
+            // Set player position to origin
+            this.game.player.setPosition(0, 0, 0);
+            
+            // Show notification
+            if (this.game.hudManager) {
+                this.game.hudManager.showNotification('Teleported to origin!');
+            }
+            
+            // Close inventory after teleporting
+            this.toggleInventory();
+            
+            console.debug('Player teleported to origin (0,0,0)');
+        } else {
+            console.error('Cannot teleport: Game or player not available');
+            if (this.game.hudManager) {
+                this.game.hudManager.showNotification('Failed to teleport!', 'error');
+            }
+        }
+    }
+    
+    /**
      * Show the inventory UI
      * Override the parent method to handle 3D model animation
      */
@@ -1028,7 +1168,7 @@ export class InventoryUI extends UIComponent {
         }
         
         // Remove event listeners
-        window.removeEventListener('resize', this.onModelContainerResize);
+        // window.removeEventListener('resize', this.onModelContainerResize);
         
         // Note: Since we're using anonymous functions for event listeners,
         // we can't directly remove them. In a production app, you would

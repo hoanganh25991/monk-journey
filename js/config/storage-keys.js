@@ -45,4 +45,8 @@ export const STORAGE_KEYS = {
     SAVE_DATA: 'monk_journey_save',
     CHUNK_PREFIX: 'monk_journey_chunk_',
     CHUNK_INDEX: 'monk_journey_chunk_index',
+    
+    // Google authentication keys
+    GOOGLE_AUTO_LOGIN: 'monk_journey_google_auto_login',
+    GOOGLE_LAST_LOGIN: 'monk_journey_google_last_login',
 };

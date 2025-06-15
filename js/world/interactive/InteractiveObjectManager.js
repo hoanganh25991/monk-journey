@@ -6,8 +6,8 @@ import { BossSpawnPoint } from './BossSpawnPoint.js';
 /**
  * Manages interactive objects in the world
  * 
- * This class is responsible for creating, positioning, and managing interactive objects.
- * Interaction handling has been moved to the centralized InteractionSystem.
+ * This class is responsible for loading, positioning, and managing interactive objects.
+ * Simplified to focus only on loading interactive objects from map data.
  */
 export class InteractiveObjectManager {
     constructor(scene, worldManager, game = null) {
@@ -29,9 +29,12 @@ export class InteractiveObjectManager {
     
     /**
      * Initialize the interactive object system
+     * @param {boolean} createDefaultObjects - Whether to create default objects (default: false)
      */
-    init() {
-        this.createInteractiveObjects();
+    init(createDefaultObjects = false) {
+        if (createDefaultObjects) {
+            this.createDefaultInteractiveObjects();
+        }
         console.debug('Interactive objects initialized');
     }
     
@@ -49,9 +52,57 @@ export class InteractiveObjectManager {
     }
     
     /**
-     * Create initial interactive objects
+     * Load interactive objects from map data
+     * @param {Array} interactiveData - Array of interactive object data from map
      */
-    createInteractiveObjects() {
+    loadFromMapData(interactiveData) {
+        if (!interactiveData || !Array.isArray(interactiveData)) {
+            console.warn('No interactive object data provided to load');
+            return;
+        }
+        
+        console.debug(`Loading ${interactiveData.length} interactive objects from map data`);
+        
+        // Clear existing interactive objects
+        this.clear();
+        
+        interactiveData.forEach(objData => {
+            if (objData.position && objData.type) {
+                switch (objData.type) {
+                    case 'chest':
+                        this.createTreasureChest(
+                            objData.position.x, 
+                            objData.position.z,
+                            objData.isOpen
+                        );
+                        break;
+                    case 'quest':
+                        this.createQuestMarker(
+                            objData.position.x, 
+                            objData.position.z, 
+                            objData.name || 'Quest'
+                        );
+                        break;
+                    case 'boss_spawn':
+                        this.createBossSpawnPoint(
+                            objData.position.x, 
+                            objData.position.z, 
+                            objData.bossType || 'generic_boss'
+                        );
+                        break;
+                    default:
+                        console.warn(`Unknown interactive object type: ${objData.type}`);
+                }
+            }
+        });
+        
+        console.debug(`Successfully loaded ${this.interactiveObjects.length} interactive objects`);
+    }
+    
+    /**
+     * Create default interactive objects (for backward compatibility)
+     */
+    createDefaultInteractiveObjects() {
         // Create treasure chests
         this.createTreasureChest(10, 10);
         this.createTreasureChest(-15, 5);
@@ -67,30 +118,43 @@ export class InteractiveObjectManager {
      * Create a treasure chest at the specified position
      * @param {number} x - X coordinate
      * @param {number} z - Z coordinate
+     * @param {boolean} isOpen - Whether the chest is already open
      * @returns {THREE.Group} - The treasure chest group
      */
-    createTreasureChest(x, z) {
+    createTreasureChest(x, z, isOpen = false) {
         const chest = new TreasureChest();
         const chestGroup = chest.createMesh();
         
         // Position chest on terrain
-        chestGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+        const y = this.worldManager.getTerrainHeight(x, z);
+        chestGroup.position.set(x, y, z);
         
         // Add to scene
         this.scene.add(chestGroup);
+        
+        // If the chest should be open, call open() method
+        if (isOpen) {
+            chest.open();
+        }
         
         // Add to interactive objects
         this.interactiveObjects.push({
             type: 'chest',
             mesh: chestGroup,
-            position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z),
+            position: new THREE.Vector3(x, y, z),
             interactionRadius: 2,
-            isOpen: false,
+            isOpen: isOpen,
             onInteract: () => {
                 // Open chest animation and give reward
                 if (!chest.isOpen) {
                     // Open the chest
                     chest.open();
+                    
+                    // Mark as open in our tracking object
+                    const interactiveObj = this.interactiveObjects.find(obj => obj.mesh === chestGroup);
+                    if (interactiveObj) {
+                        interactiveObj.isOpen = true;
+                    }
                     
                     // Return some reward
                     return {

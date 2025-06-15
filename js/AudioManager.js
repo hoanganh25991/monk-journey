@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ALL_SOUNDS, ALL_MUSIC } from './config/sounds.js';
 import { STORAGE_KEYS } from './config/storage-keys.js';
+import storageService from './save-manager/StorageService.js';
 
 export class AudioManager {
     constructor(game) {
@@ -25,14 +26,17 @@ export class AudioManager {
         console.debug('Audio system initialized');
     }
     
-    init() {
+    async init() {
         try {
             // Create audio listener
             this.listener = new THREE.AudioListener();
             this.game.camera.add(this.listener);
             
-            // Load user settings from localStorage
-            this.loadSettingsFromLocalStorage();
+            // Initialize storage service if not already initialized
+            await storageService.init();
+            
+            // Load user settings from storage service
+            await this.loadSettings();
             
             // Check if audio files exist
             this.checkAudioFilesExist().then(available => {
@@ -51,6 +55,9 @@ export class AudioManager {
                 }
             });
             
+            // Listen for storage updates
+            window.addEventListener('storage-service-update', this.handleStorageUpdate.bind(this));
+            
             return true;
         } catch (error) {
             console.error('Error initializing audio system:', error);
@@ -59,22 +66,39 @@ export class AudioManager {
         }
     }
     
-    // Load settings directly from localStorage using the same keys as AudioTab.js
-    loadSettingsFromLocalStorage() {
+    /**
+     * Handle storage update events
+     * @param {CustomEvent} event - Storage update event
+     */
+    handleStorageUpdate(event) {
+        const { key, newValue } = event.detail;
+        
+        // Update settings if they change in storage
+        if (key === STORAGE_KEYS.MUTED) {
+            this.isMuted = newValue === 'true';
+        } else if (key === STORAGE_KEYS.MUSIC_VOLUME) {
+            this.setMusicVolume(parseFloat(newValue) || 0.5);
+        } else if (key === STORAGE_KEYS.SFX_VOLUME) {
+            this.setSFXVolume(parseFloat(newValue) || 0.8);
+        }
+    }
+    
+    // Load settings from storage service
+    async loadSettings() {
         try {
             // Load mute setting
-            const muted = localStorage.getItem(STORAGE_KEYS.MUTED) === 'true';
-            this.isMuted = muted;
+            const muted = await storageService.loadData(STORAGE_KEYS.MUTED);
+            this.isMuted = muted === 'true';
             
             // Load music volume
-            const musicVolume = parseFloat(localStorage.getItem(STORAGE_KEYS.MUSIC_VOLUME)) || 0.5;
-            this.setMusicVolume(musicVolume);
+            const musicVolume = await storageService.loadData(STORAGE_KEYS.MUSIC_VOLUME);
+            this.setMusicVolume(musicVolume ? parseFloat(musicVolume) : 0.5);
             
             // Load SFX volume
-            const sfxVolume = parseFloat(localStorage.getItem(STORAGE_KEYS.SFX_VOLUME)) || 0.8;
-            this.setSFXVolume(sfxVolume);
+            const sfxVolume = await storageService.loadData(STORAGE_KEYS.SFX_VOLUME);
+            this.setSFXVolume(sfxVolume ? parseFloat(sfxVolume) : 0.8);
             
-            console.debug('Audio settings loaded from localStorage:', { 
+            console.debug('Audio settings loaded from storage service:', { 
                 muted: this.isMuted, 
                 musicVolume: this.musicVolume, 
                 sfxVolume: this.sfxVolume 
@@ -82,7 +106,7 @@ export class AudioManager {
             
             return true;
         } catch (error) {
-            console.error('Error loading audio settings from localStorage:', error);
+            console.error('Error loading audio settings from storage service:', error);
             return false;
         }
     }
@@ -620,13 +644,13 @@ export class AudioManager {
         return false;
     }
     
-    // Save audio settings to localStorage
-    saveSettings() {
+    // Save audio settings to storage service
+    async saveSettings() {
         try {
-            // Save individual settings using the same keys as AudioTab.js
-            localStorage.setItem(STORAGE_KEYS.MUTED, this.isMuted.toString());
-            localStorage.setItem(STORAGE_KEYS.MUSIC_VOLUME, this.musicVolume.toString());
-            localStorage.setItem(STORAGE_KEYS.SFX_VOLUME, this.sfxVolume.toString());
+            // Save individual settings
+            await storageService.saveData(STORAGE_KEYS.MUTED, this.isMuted.toString());
+            await storageService.saveData(STORAGE_KEYS.MUSIC_VOLUME, this.musicVolume.toString());
+            await storageService.saveData(STORAGE_KEYS.SFX_VOLUME, this.sfxVolume.toString());
             
             // Also save as a combined object for backward compatibility
             const settings = {
@@ -635,9 +659,9 @@ export class AudioManager {
                 sfxVolume: this.sfxVolume
             };
             
-            localStorage.setItem(STORAGE_KEYS.AUDIO_SETTINGS, JSON.stringify(settings));
+            await storageService.saveData(STORAGE_KEYS.AUDIO_SETTINGS, JSON.stringify(settings));
             
-            console.debug('Audio settings saved to localStorage');
+            console.debug('Audio settings saved to storage service');
             return true;
         } catch (error) {
             console.error('Error saving audio settings:', error);
@@ -645,17 +669,12 @@ export class AudioManager {
         }
     }
     
-    // Load audio settings from localStorage (legacy method)
-    loadSettings() {
+    // This method is now handled by the loadSettings method defined earlier
+    // Kept for backward compatibility
+    async loadLegacySettings() {
         try {
-            // First try to load settings using the new method
-            const result = this.loadSettingsFromLocalStorage();
-            if (result) {
-                return true;
-            }
-            
-            // If that fails, try the legacy method
-            const settingsJson = localStorage.getItem(STORAGE_KEYS.AUDIO_SETTINGS);
+            // Try to load combined settings
+            const settingsJson = await storageService.loadData(STORAGE_KEYS.AUDIO_SETTINGS);
             if (settingsJson) {
                 const settings = JSON.parse(settingsJson);
                 
@@ -668,7 +687,7 @@ export class AudioManager {
                 return true;
             }
         } catch (error) {
-            console.error('Error loading audio settings:', error);
+            console.error('Error loading legacy audio settings:', error);
         }
         return false;
     }

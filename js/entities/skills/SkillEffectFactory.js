@@ -15,6 +15,7 @@ import { DeadlyReachEffect } from './DeadlyReachEffect.js';
 import { ImprisonedFistsEffect } from './ImprisonedFistsEffect.js';
 import { BulPalmEffect } from './BulPalmEffect.js';
 import { BulBreathOfHeavenEffect } from './BulBreathOfHeavenEffect.js';
+import { BulShadowCloneEffect } from './BulShadowCloneEffect.js';
 
 // Import Breath of Heaven variant effects
 import { CircleOfLifeEffect } from './variants/BreathOfHeaven/CircleOfLifeEffect.js';
@@ -91,6 +92,11 @@ import { ExplosiveLightEffect } from './variants/WaveOfLight/ExplosiveLightEffec
 import { LightningBellEffect } from './variants/WaveOfLight/LightningBellEffect.js';
 import { PillarOfTheLightEffect } from './variants/WaveOfLight/PillarOfTheLightEffect.js';
 import { WallOfLightEffect } from './variants/WaveOfLight/WallOfLightEffect.js';
+
+// Import Bul Palm variant effects
+import { BulPalmRainEffect } from './variants/BulPalm/BulPalmRainEffect.js';
+import { BulPalmCrossEffect } from './variants/BulPalm/BulPalmCrossEffect.js';
+import { StormOfPalmsEffect } from './variants/BulPalm/StormOfPalmsEffect.js';
 
 /**
  * Factory class for creating skill effects
@@ -218,6 +224,10 @@ export class SkillEffectFactory {
             case 'Bul Breath Of Heaven':
                 console.debug(`Creating BulBreathOfHeavnEffect for ${skill.name}`);
                 effect = new BulBreathOfHeavenEffect(skill);
+                break;
+            case 'Bul Shadow Clone':
+                console.debug(`Creating BulShadowCloneEffect for ${skill.name}`);
+                effect = new BulShadowCloneEffect(skill);
                 break;
             default:
                 console.debug(`Creating default SkillEffect for ${skill.name}`);
@@ -488,6 +498,21 @@ export class SkillEffectFactory {
                 case 'Wall of Light':
                     // Creates a wall of light that blocks and damages enemies
                     return new WallOfLightEffect(skill);
+            }
+        }
+        
+        // Handle Bul Palm variants
+        else if (skillName === 'Bul Palm') {
+            switch (variantName) {
+                case 'Palm Rain':
+                    // Summons multiple palms from the sky that crash down on enemies
+                    return new BulPalmRainEffect(skill);
+                case 'Palm Cross':
+                    // Summons 4 giant palms in a cross pattern that fall and cause a massive explosion
+                    return new BulPalmCrossEffect(skill);
+                case 'Storm of Palms':
+                    // Summons multiple palms that follow the hero and crash down on enemies
+                    return new StormOfPalmsEffect(skill);
             }
         }
         

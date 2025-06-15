@@ -110,25 +110,38 @@ export class SettingsMenu extends UIComponent {
      */
     setupSaveButton() {
         if (this.saveButton) {
-            this.saveButton.addEventListener('click', () => {
-                // Save settings
-                this.saveSettings();
+            this.saveButton.addEventListener('click', async () => {
+                // Disable the button during save
+                this.saveButton.disabled = true;
                 
-                // Use SaveOperationProgress to show a simple "Settings saved!" message
-                const saveProgress = new SaveOperationProgress(this.game, 'save');
-                saveProgress.start('Settings saved!');
-                saveProgress.update('Settings saved!', 100);
+                // Create progress indicator
+                // const saveProgress = new SaveOperationProgress(this.game, 'save');
+                // saveProgress.start('Saving settings...');
                 
-                // Show main menu and resume game after a delay
-                setTimeout(() => {
-                    // Hide the progress indicator
-                    saveProgress.hide();
-                    // Show main menu if available
-                    window.location.reload();
-                    // this.game.start();
-                    // this.game.pause(false);
-                    // this.game.menuManager.showMenu('gameMenu');
-                }, 300);
+                try {
+                    // Save settings (async)
+                    await this.saveSettings();
+                    
+                    // Update progress
+                    // saveProgress.update('Settings saved!', 100);
+                    
+                    // Show main menu and resume game after a delay
+                    setTimeout(() => {
+                        // Hide the progress indicator
+                        // saveProgress.hide();
+                        // Show main menu if available
+                        // window.location.reload();
+                        // this.game.start();
+                        // this.game.pause(false);
+                    }, 300);
+                    this.game.menuManager.showMenu('gameMenu');
+                } catch (error) {
+                    console.error('Error saving settings:', error);
+                    saveProgress.error('Error saving settings');
+                } finally {
+                    // Re-enable the button
+                    this.saveButton.disabled = false;
+                }
             });
         }
     }
@@ -136,14 +149,20 @@ export class SettingsMenu extends UIComponent {
     /**
      * Save all settings
      * @private
+     * @returns {Promise<void>}
      */
-    saveSettings() {
-        // Save settings for all tabs
-        Object.values(this.tabs).forEach(tab => {
+    async saveSettings() {
+        // Save settings for all tabs (sequentially to avoid conflicts)
+        for (const tab of Object.values(this.tabs)) {
             if (tab && typeof tab.saveSettings === 'function') {
-                tab.saveSettings();
+                try {
+                    await tab.saveSettings();
+                } catch (error) {
+                    console.error(`Error saving settings for tab ${tab.tabId}:`, error);
+                    // Continue with other tabs even if one fails
+                }
             }
-        });
+        }
     }
     
     /**

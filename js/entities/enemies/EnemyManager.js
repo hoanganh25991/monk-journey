@@ -64,7 +64,7 @@ export class EnemyManager {
         this.enemies = new Map(); // Changed to Map for easier lookup by ID
         this.enemyMeshes = [];
         this.maxEnemies = 30; // Increased max enemies for world exploration
-        this.spawnRadius = 30;
+        this.spawnRadius = 90; // 3x increased spawn radius (was 30)
         this.spawnTimer = 0;
         this.spawnInterval = 5; // Spawn enemy every 5 seconds
         this.game = game; // Game reference passed in constructor
@@ -73,8 +73,12 @@ export class EnemyManager {
         // For chunk-based enemy spawning
         this.enemyChunks = {}; // Track enemies per chunk
         this.enemiesPerChunk = 5; // Number of enemies to spawn per chunk
-        this.chunkSpawnRadius = 80; // Radius within chunk to spawn enemies
-        this.enemyGroupSize = { min: 2, max: 5 }; // Enemies spawn in groups
+        this.chunkSpawnRadius = 240; // 3x increased chunk spawn radius (was 80)
+        // Increased group size for more dangerous encounters
+        this.enemyGroupSize = { min: 3, max: 20 }; // Enemies can now spawn in much larger groups
+        
+        // Simplified enemy spawning configuration
+        this.dangerousGroupChance = 0.3; // 30% chance to spawn a dangerous large group
         
         // Import enemy configuration from config/enemies.js
         this.zoneEnemies = ZONE_ENEMIES;
@@ -93,11 +97,14 @@ export class EnemyManager {
         // Multiplayer support
         this.isMultiplayer = false;
         this.isHost = false;
+        this.lastSyncTime = Date.now(); // Track last time enemies were synced
+        this.enemyLastUpdated = new Map(); // Track when each enemy was last updated
+        this.multiplayerCleanupInterval = 5000; // Clean up stale enemies every 5 seconds
+        this.staleEnemyThreshold = 10000; // Consider enemies stale after 10 seconds without updates
         
-        // Boss spawning configuration
-        this.bossSpawnTimer = 0;
-        this.bossSpawnInterval = 120; // Spawn boss every 120 seconds (2 minutes)
-        this.bossSpawnChance = 0.2; // 20% chance to spawn a boss when timer is up
+        // Simplified boss spawning configuration
+        this.enemyKillCount = 0;
+        this.killsPerBossSpawn = 100; // Spawn a boss after every 100 enemy kills
         
         // Item generation
         this.itemGenerator = new ItemGenerator(game);
@@ -167,29 +174,28 @@ export class EnemyManager {
             // Update regular enemy spawn timer
             this.spawnTimer += delta;
             
-            // Spawn new enemies if needed
+            // Regular enemy spawning
             if (this.spawnTimer >= this.spawnInterval && this.enemies.size < this.maxEnemies) {
-                this.spawnEnemy();
+                // Chance to spawn a dangerous large group instead of a single enemy
+                if (Math.random() < this.dangerousGroupChance) {
+                    console.debug('Spawning a dangerous large group of enemies!');
+                    this.spawnDangerousGroup();
+                } else {
+                    // Regular single enemy spawn
+                    this.spawnEnemy();
+                }
                 this.spawnTimer = 0;
             }
             
-            // Update boss spawn timer
-            this.bossSpawnTimer += delta;
-            
-            // Check if it's time to potentially spawn a boss
-            if (this.bossSpawnTimer >= this.bossSpawnInterval) {
-                // Reset timer regardless of whether a boss is spawned
-                this.bossSpawnTimer = 0;
+            // Simplified boss spawning - spawn boss based on kill count only
+            if (this.enemyKillCount >= this.killsPerBossSpawn) {
+                console.debug(`Spawning boss after ${this.enemyKillCount} enemy kills.`);
+                this.enemyKillCount = 0; // Reset kill counter
+                this.spawnRandomBoss();
                 
-                // Random chance to spawn a boss
-                if (Math.random() < this.bossSpawnChance) {
-                    console.log('Spawning random boss...');
-                    this.spawnRandomBoss();
-                    
-                    // Play boss theme if available
-                    if (this.game && this.game.audioManager) {
-                        this.game.audioManager.playMusic('bossTheme');
-                    }
+                // Play boss theme if available
+                if (this.game && this.game.audioManager) {
+                    this.game.audioManager.playMusic('bossTheme');
                 }
             }
         }
@@ -218,6 +224,12 @@ export class EnemyManager {
                     
                     // Check for item drops
                     this.handleEnemyDrop(enemy);
+                    
+                    // Increment kill counter for boss spawning (only for non-boss enemies)
+                    if (!enemy.isBoss) {
+                        this.enemyKillCount++;
+                        console.debug(`Enemy killed. Kill count: ${this.enemyKillCount}/${this.killsPerBossSpawn}`);
+                    }
                 }
                 
                 // Check if death animation is still in progress
@@ -228,6 +240,9 @@ export class EnemyManager {
                     
                     // Clean up processed drops entry for this enemy
                     this.processedDrops.delete(id);
+                    
+                    // Clean up last updated timestamp
+                    this.enemyLastUpdated.delete(id);
                 }
             }
         }
@@ -242,7 +257,13 @@ export class EnemyManager {
         // Periodically clean up distant enemies (approximately every 10 seconds)
         // This ensures enemies are cleaned up even if the player moves slowly
         if (Math.random() < 0.01) { // ~1% chance per frame, assuming 60fps = ~once per 10 seconds
-            this.cleanupDistantEnemies();
+            // In multiplayer mode as a non-host, use the multiplayer cleanup
+            if (this.isMultiplayer && !this.isHost) {
+                this.cleanupStaleEnemies();
+            } else {
+                // Normal cleanup for host or single player
+                this.cleanupDistantEnemies();
+            }
             
             // Also clean up any stale entries in the processedDrops map
             // (enemies that might have been removed without proper cleanup)
@@ -297,12 +318,23 @@ export class EnemyManager {
         // Add to enemies map
         this.enemies.set(id, enemy);
         
+        // Track when this enemy was last updated
+        this.enemyLastUpdated.set(id, Date.now());
+        
         return enemy;
     }
     
     /**
-     * Get serializable enemy data for network transmission
-     * Optimized to reduce bandwidth usage
+     * Get an enemy by its ID
+     * @param {string} id - The ID of the enemy to retrieve
+     * @returns {Enemy|undefined} The enemy with the specified ID, or undefined if not found
+     */
+    getEnemyById(id) {
+        return this.enemies.get(id);
+    }
+    
+    /**
+     * Get serializable enemy data for network transmission (simplified)
      * @returns {Object} Object containing serialized enemy data
      */
     getSerializableEnemyData() {
@@ -316,219 +348,124 @@ export class EnemyManager {
                 return;
             }
             
-            // Only get y rotation (yaw) to save bandwidth
-            const yRotation = enemy.mesh ? enemy.mesh.rotation.y : 0;
-            
-            // Create minimal enemy data object
+            // Simplified enemy data
             enemyData[id] = {
                 id: id,
-                p: { // Shortened property name to save bandwidth
-                    x: Math.round(position.x * 100) / 100, // Round to 2 decimal places to save bandwidth
-                    y: Math.round(position.y * 100) / 100,
-                    z: Math.round(position.z * 100) / 100
-                },
-                r: Math.round(yRotation * 100) / 100, // Only send y rotation as a number
-                h: enemy.health, // Shortened property name
-                t: enemy.type, // Shortened property name
-                s: typeof enemy.state === 'string' ? enemy.state : 
-                   (enemy.state && enemy.state.isAttacking ? 'attacking' : 
-                    enemy.state && enemy.state.isMoving ? 'moving' : 'idle'),
-                b: enemy.isBoss || false // Shortened property name
+                position: position,
+                health: enemy.health,
+                type: enemy.type,
+                isBoss: enemy.isBoss || false
             };
-            
-            // Only include maxHealth for new enemies or when health changes
-            if (enemy.health === enemy.maxHealth) {
-                enemyData[id].mh = enemy.maxHealth; // Include maxHealth when it's needed
-            }
         });
         
         return enemyData;
     }
     
     /**
-     * Update enemies from host data (member only)
+     * Update enemies from host data (member only) - simplified
      * @param {Object} enemiesData - Enemy data received from host
      */
     updateEnemiesFromHost(enemiesData) {
         if (!enemiesData) return;
         
+        // Update the last sync time
+        this.lastSyncTime = Date.now();
+        
         // Process enemy updates
         Object.values(enemiesData).forEach(enemyData => {
             const id = enemyData.id;
             
-            // Handle optimized property names
-            const position = enemyData.p || enemyData.position;
-            const health = enemyData.h !== undefined ? enemyData.h : enemyData.health;
-            const maxHealth = enemyData.mh !== undefined ? enemyData.mh : enemyData.maxHealth;
-            const type = enemyData.t || enemyData.type;
-            const state = enemyData.s || enemyData.state;
-            const isBoss = enemyData.b !== undefined ? enemyData.b : enemyData.isBoss;
-            
             // Skip if we don't have valid position data
-            if (!position || isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) {
+            if (!enemyData.position || 
+                isNaN(enemyData.position.x) || 
+                isNaN(enemyData.position.y) || 
+                isNaN(enemyData.position.z)) {
                 return;
             }
+            
+            // Update the last updated timestamp for this enemy
+            this.enemyLastUpdated.set(id, Date.now());
             
             // Check if enemy exists
             if (this.enemies.has(id)) {
                 // Update existing enemy
                 const enemy = this.enemies.get(id);
+                enemy.setPosition(enemyData.position.x, enemyData.position.y, enemyData.position.z);
                 
-                // Update position
-                enemy.setPosition(position.x, position.y, position.z);
-                
-                // Update rotation - handle both full rotation object and optimized y-only rotation
-                if (enemy.mesh) {
-                    if (enemyData.r !== undefined) {
-                        // Optimized format - just y rotation
-                        enemy.mesh.rotation.y = enemyData.r;
-                    } else if (enemyData.rotation) {
-                        // Full rotation object
-                        enemy.mesh.rotation.set(
-                            enemyData.rotation.x,
-                            enemyData.rotation.y,
-                            enemyData.rotation.z
-                        );
-                    }
-                }
-                
-                // Update health
-                if (health !== undefined) {
-                    enemy.health = health;
-                    
-                    // Update maxHealth if provided
-                    if (maxHealth !== undefined) {
-                        enemy.maxHealth = maxHealth;
-                    }
-                    
+                if (enemyData.health !== undefined) {
+                    enemy.health = enemyData.health;
                     enemy.updateHealthBar();
                 }
-                
-                // Update state
-                if (state && enemy.state !== state) {
-                    // Handle string state or object state
-                    if (typeof enemy.state === 'string') {
-                        enemy.state = state;
-                    } else {
-                        // Convert string state to object state
-                        enemy.state.isAttacking = state === 'attacking';
-                        enemy.state.isMoving = state === 'moving';
-                    }
-                    
-                    // Update animation based on state
-                    if (state === 'attacking' || (typeof enemy.state !== 'string' && enemy.state.isAttacking)) {
-                        enemy.playAttackAnimation();
-                    } else if (state === 'idle') {
-                        enemy.playIdleAnimation();
-                    } else if (state === 'moving' || (typeof enemy.state !== 'string' && enemy.state.isMoving)) {
-                        enemy.playWalkAnimation();
-                    }
-                }
             } else {
-                // Create new enemy with the optimized data
-                const fullEnemyData = {
-                    id: id,
-                    position: position,
-                    health: health,
-                    maxHealth: maxHealth || health, // Use health as maxHealth if not provided
-                    type: type,
-                    state: state,
-                    isBoss: isBoss
-                };
-                this.createEnemyFromData(fullEnemyData);
+                // Create new enemy
+                this.createEnemyFromData(enemyData);
             }
         });
         
         // Remove enemies that no longer exist in the host data
         const hostEnemyIds = new Set(Object.keys(enemiesData));
+        const enemiesToRemove = [];
         
         for (const [id, enemy] of this.enemies.entries()) {
             if (!hostEnemyIds.has(id)) {
-                enemy.remove();
-                this.enemies.delete(id);
+                enemiesToRemove.push(id);
+            }
+        }
+        
+        // Remove enemies that are no longer in the host data
+        if (enemiesToRemove.length > 0) {
+            for (const id of enemiesToRemove) {
+                const enemy = this.enemies.get(id);
+                if (enemy) {
+                    enemy.remove();
+                    this.enemies.delete(id);
+                    this.processedDrops.delete(id);
+                    this.enemyLastUpdated.delete(id);
+                }
             }
         }
     }
     
     /**
-     * Create enemy from network data
+     * Create enemy from network data - simplified
      * @param {Object} enemyData - Enemy data received from host
      * @returns {Enemy} The created enemy
      */
     createEnemyFromData(enemyData) {
-        // Handle optimized property names
-        const position = enemyData.p || enemyData.position;
-        const health = enemyData.h !== undefined ? enemyData.h : enemyData.health;
-        const maxHealth = enemyData.mh !== undefined ? enemyData.mh : enemyData.maxHealth;
-        const type = enemyData.t || enemyData.type;
-        const state = enemyData.s || enemyData.state;
-        const isBoss = enemyData.b !== undefined ? enemyData.b : enemyData.isBoss;
-        
         // Find enemy type
-        let enemyType = this.enemyTypes.find(t => t.type === type);
+        let enemyType = this.enemyTypes.find(t => t.type === enemyData.type);
         
         // If not found, use a default type
         if (!enemyType) {
-            console.warn(`Enemy type ${type} not found, using default`);
+            console.warn(`Enemy type ${enemyData.type} not found, using default`);
             enemyType = this.enemyTypes[0];
         }
         
         // Validate position data
+        let position = enemyData.position;
         if (!position || isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) {
             console.warn(`Invalid position data for enemy ${enemyData.id}, using default position`);
             position = { x: 0, y: 0, z: 0 };
         }
         
         // Create position vector
-        const positionVector = new THREE.Vector3(
-            position.x,
-            position.y,
-            position.z
-        );
+        const positionVector = new THREE.Vector3(position.x, position.y, position.z);
         
         // Spawn enemy with the specified ID
         const enemy = this.spawnEnemy(enemyType.type, positionVector, enemyData.id);
         
         // Update enemy properties
-        if (health !== undefined) {
-            enemy.health = health;
+        if (enemyData.health !== undefined) {
+            enemy.health = enemyData.health;
+            enemy.maxHealth = enemyData.health; // Simplified - just use health as maxHealth
         }
         
-        if (maxHealth !== undefined) {
-            enemy.maxHealth = maxHealth;
-        } else if (health !== undefined) {
-            enemy.maxHealth = health; // Use health as maxHealth if not provided
-        }
-        
-        // Handle state (string or object)
-        if (state) {
-            if (typeof enemy.state === 'string') {
-                enemy.state = state;
-            } else {
-                // Convert string state to object state
-                enemy.state.isAttacking = state === 'attacking';
-                enemy.state.isMoving = state === 'moving';
-                enemy.state.isDead = false;
-            }
-        }
-        
-        if (isBoss !== undefined) {
-            enemy.isBoss = isBoss;
+        if (enemyData.isBoss !== undefined) {
+            enemy.isBoss = enemyData.isBoss;
         }
         
         // Update health bar
         enemy.updateHealthBar();
-        
-        // Set rotation if provided
-        if (enemyData.r !== undefined && enemy.mesh) {
-            enemy.mesh.rotation.y = enemyData.r;
-        } else if (enemyData.rotation && enemy.mesh) {
-            enemy.mesh.rotation.set(
-                enemyData.rotation.x || 0,
-                enemyData.rotation.y || 0,
-                enemyData.rotation.z || 0
-            );
-        }
         
         return enemy;
     }
@@ -584,6 +521,77 @@ export class EnemyManager {
     }
 
     // Removed duplicate spawnEnemy method that was causing conflicts
+    
+
+    
+    /**
+     * Spawns a dangerous large group of enemies (10-20) in a single location
+     * Creates a concentrated threat that feels dangerous
+     */
+    spawnDangerousGroup() {
+        // Get player position
+        const playerPosition = this.player.getPosition().clone();
+        
+        // Determine group size (20-50 enemies with 30% chance, otherwise 10-20)
+        let groupSize;
+        if (Math.random() < 0.3) {
+            // 30% chance for a large group (20-50 enemies)
+            groupSize = 20 + Math.floor(Math.random() * 31);
+            console.debug(`Spawning a LARGE dangerous group of ${groupSize} enemies!`);
+        } else {
+            // 70% chance for a regular group (10-20 enemies)
+            groupSize = 10 + Math.floor(Math.random() * 11);
+        }
+        
+        // Get available zones
+        const availableZones = Object.keys(this.zoneEnemies);
+        const randomZone = availableZones[Math.floor(Math.random() * availableZones.length)];
+        const zoneEnemyTypes = this.zoneEnemies[randomZone];
+        
+        // Select a random enemy type from the zone for this group
+        const groupEnemyType = zoneEnemyTypes[Math.floor(Math.random() * zoneEnemyTypes.length)];
+        
+        // Calculate group position (in front of the player)
+        // Calculate direction from player's rotation
+        const playerRotation = this.game.player.getRotation();
+        const playerDirection = {
+            x: Math.sin(playerRotation.y),
+            z: Math.cos(playerRotation.y)
+        };
+        const groupDistance = 60 + Math.random() * 30; // 60-90 units away (3x increased)
+        
+        const groupX = playerPosition.x + playerDirection.x * groupDistance;
+        const groupZ = playerPosition.z + playerDirection.z * groupDistance;
+        
+        console.debug(`Spawning dangerous group of ${groupSize} enemies`);
+        
+        // Spawn the group of enemies
+        for (let i = 0; i < groupSize; i++) {
+            // Skip if we've reached max enemies
+            if (this.enemies.size >= this.maxEnemies) {
+                break;
+            }
+            
+            // Calculate position within group (tight formation)
+            const spreadRadius = 8; // Tight formation
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * spreadRadius;
+            const x = groupX + Math.cos(angle) * distance;
+            const z = groupZ + Math.sin(angle) * distance;
+            
+            // Get terrain height at position
+            const y = this.game.world.getTerrainHeight(x, z);
+            
+            // Spawn enemy
+            const position = new THREE.Vector3(x, y, z);
+            this.spawnEnemy(groupEnemyType, position);
+        }
+        
+        // Play a warning sound if available
+        if (this.game && this.game.audioManager) {
+            this.game.audioManager.playSound('dangerWarning', 0.7);
+        }
+    }
 
     applyDifficultyScaling(enemy, difficultySettings) {
         // Scale health
@@ -958,23 +966,40 @@ export class EnemyManager {
         // Apply difficulty scaling
         const scaledBossConfig = this.applyDifficultyScaling(bossConfig);
         
-        // Create boss
-        const boss = new Enemy(this.scene, this.player, scaledBossConfig);
-        boss.init();
-        
-        // Position boss
+        // Determine spawn position
+        let spawnPosition;
         if (position) {
-            boss.setPosition(position.x, position.y + 1, position.z); // Raise slightly above ground
+            spawnPosition = position.clone();
         } else {
             // Use player position as reference
             const playerPos = this.player.getPosition();
-            boss.setPosition(playerPos.x, playerPos.y + 1, playerPos.z + 5); // 5 units in front of player
+            spawnPosition = new THREE.Vector3(playerPos.x, playerPos.y, playerPos.z + 5); // 5 units in front of player
         }
         
-        // Add to enemies map
-        const id = `boss_${this.nextEnemyId++}`;
-        boss.id = id;
-        this.enemies.set(id, boss);
+        // Adjust position to terrain height if world is available
+        // if (this.game && this.game.world) {
+        //     const terrainHeight = this.game.world.getTerrainHeight(spawnPosition.x, spawnPosition.z);
+        //     if (terrainHeight !== null) {
+        //         // Use the boss's height offset for proper positioning
+        //         const bossHeightOffset = (scaledBossConfig.scale || 1) * 0.4; // Same calculation as in Enemy constructor
+        //         spawnPosition.y = terrainHeight + bossHeightOffset;
+        //     }
+        // }
+        
+        // Use the existing spawnEnemy method to ensure consistent positioning
+        const boss = this.spawnEnemy(bossType, spawnPosition, `boss_${this.nextEnemyId++}`);
+        
+        if (!boss) {
+            console.warn(`Failed to spawn boss ${bossType}`);
+            return null;
+        }
+        
+        // Mark as boss
+        boss.isBoss = true;
+        
+        // Disable terrain height updates for bosses to prevent underground issues
+        // This ensures the boss stays at the carefully calculated spawn position
+        boss.disableTerrainHeightUpdates();
         
         // Play boss spawn effect
         if (this.game && this.game.audioManager) {
@@ -1014,16 +1039,12 @@ export class EnemyManager {
         let spawnPosition = position;
         if (!spawnPosition) {
             spawnPosition = this.getRandomSpawnPosition();
-            
-            // Adjust height if world is available
-            if (this.game && this.game.world) {
-                const terrainHeight = this.game.world.getTerrainHeight(spawnPosition.x, spawnPosition.z);
-                spawnPosition.y = terrainHeight + 1; // Add offset for boss height
-            }
         }
         
         // Spawn the boss using the existing spawnBoss method
-        return this.spawnBoss(randomBossType.type, spawnPosition);
+        const boss = this.spawnBoss(randomBossType.type, spawnPosition);
+        
+        return boss;
     }
     
     getClosestEnemy(position, maxDistance = Infinity) {
@@ -1062,9 +1083,9 @@ export class EnemyManager {
     cleanupDistantEnemies() {
         const playerPos = this.player.getPosition();
         
-        // Increased distances to keep enemies around longer
-        const maxDistance = 80; // Maximum distance to keep enemies (in world units)
-        const bossMaxDistance = 120; // Maximum distance to keep bosses (larger than regular enemies)
+        // Increased distances to keep enemies around longer (3x increased)
+        const maxDistance = 240; // Maximum distance to keep enemies (in world units) - 3x increased
+        const bossMaxDistance = 360; // Maximum distance to keep bosses (larger than regular enemies) - 3x increased
         
         // Check if we're in a multiplier zone (higher enemy density)
         let inMultiplierZone = false;
@@ -1206,10 +1227,10 @@ export class EnemyManager {
                 groupAngle = Math.random() * Math.PI * 2;
             }
             
-            // Adjust distance based on multiplier - closer in multiplier zones
+            // Adjust distance based on multiplier - closer in multiplier zones (3x increased)
             const groupDistance = inMultiplierZone ?
-                20 + Math.random() * 10 : // Closer in multiplier zones (20-30 units)
-                25 + Math.random() * 10;  // Normal distance (25-35 units)
+                60 + Math.random() * 30 : // Closer in multiplier zones (60-90 units) - 3x increased
+                75 + Math.random() * 30;  // Normal distance (75-105 units) - 3x increased
                 
             const groupX = playerPosition.x + Math.cos(groupAngle) * groupDistance;
             const groupZ = playerPosition.z + Math.sin(groupAngle) * groupDistance;
@@ -1272,6 +1293,58 @@ export class EnemyManager {
             // If this enemy no longer exists in the enemies map, remove the entry
             if (!this.enemies.has(id)) {
                 this.processedDrops.delete(id);
+            }
+        }
+    }
+    
+    /**
+     * Clean up stale enemies in multiplayer mode
+     * This is specifically for non-host players to remove enemies that haven't been updated recently
+     */
+    cleanupStaleEnemies() {
+        // Only run this in multiplayer mode as a non-host
+        if (!this.isMultiplayer || this.isHost) {
+            return;
+        }
+        
+        const now = Date.now();
+        const staleThreshold = this.staleEnemyThreshold;
+        const enemiesToRemove = [];
+        
+        // Check if we haven't received any updates for a long time
+        const timeSinceLastSync = now - this.lastSyncTime;
+        
+        // If we haven't received any updates for a long time (30 seconds),
+        // consider removing all enemies as we might have lost connection to the host
+        if (timeSinceLastSync > 30000) {
+            console.warn(`No enemy updates received for ${timeSinceLastSync/1000} seconds. Clearing all enemies.`);
+            this.removeAllEnemies();
+            return;
+        }
+        
+        // Check each enemy's last update time
+        for (const [id, enemy] of this.enemies.entries()) {
+            const lastUpdated = this.enemyLastUpdated.get(id) || 0;
+            const timeSinceUpdate = now - lastUpdated;
+            
+            // If this enemy hasn't been updated recently, mark it for removal
+            if (timeSinceUpdate > staleThreshold) {
+                enemiesToRemove.push(id);
+            }
+        }
+        
+        // Remove stale enemies
+        if (enemiesToRemove.length > 0) {
+            console.debug(`Removing ${enemiesToRemove.length} stale enemies that haven't been updated in ${staleThreshold/1000} seconds`);
+            
+            for (const id of enemiesToRemove) {
+                const enemy = this.enemies.get(id);
+                if (enemy) {
+                    enemy.remove();
+                    this.enemies.delete(id);
+                    this.processedDrops.delete(id);
+                    this.enemyLastUpdated.delete(id);
+                }
             }
         }
     }

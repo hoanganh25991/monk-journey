@@ -1,5 +1,5 @@
 import { Item } from './Item.js';
-import { ITEM_TEMPLATES } from '../../config/item-templates.js';
+import { ITEM_TEMPLATES } from '../../config/items.js';
 import { COMBAT_BALANCE } from '../../config/game-balance.js';
 
 export class ItemGenerator {

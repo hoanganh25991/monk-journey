@@ -51,7 +51,7 @@ export class PlayerUI extends UIComponent {
         
         // Get health values
         const currentHealth = Math.round(this.game.player.getHealth());
-        const maxHealth = this.game.player.getMaxHealth();
+        const maxHealth = Math.round(this.game.player.getMaxHealth());
         const healthPercent = (currentHealth / maxHealth) * 100;
         
         // Update health bar
@@ -62,7 +62,7 @@ export class PlayerUI extends UIComponent {
         
         // Get mana values
         const currentMana = Math.round(this.game.player.getMana());
-        const maxMana = this.game.player.getMaxMana();
+        const maxMana = Math.round(this.game.player.getMaxMana());
         const manaPercent = (currentMana / maxMana) * 100;
         
         // Update mana bar
@@ -73,7 +73,7 @@ export class PlayerUI extends UIComponent {
         
         // Get experience values
         const currentExperience = Math.round(this.game.player.getExperience());
-        const experienceToNextLevel = this.game.player.getExperienceToNextLevel();
+        const experienceToNextLevel = Math.round(this.game.player.getExperienceToNextLevel());
         const experiencePercent = (currentExperience / experienceToNextLevel) * 100;
         
         // Update experience bar

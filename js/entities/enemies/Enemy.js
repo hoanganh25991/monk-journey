@@ -70,6 +70,16 @@ export class Enemy {
         
         // Reference to game world for terrain height
         this.world = null;
+        
+        // Flag to control terrain height updates (useful for bosses with fixed positions)
+        // Disable terrain height updates for bosses to prevent sinking
+        this.allowTerrainHeightUpdates = !this.isBoss;
+        
+        // Flag to track if initial position has been set (for bosses)
+        this.initialPositionSet = false;
+        
+        // Store the initial Y position for bosses to prevent sinking
+        this.initialYPosition = null;
     }
     
     init() {
@@ -161,6 +171,19 @@ export class Enemy {
             return;
         }
         
+        // For bosses, ensure Y position is maintained at all times
+        if (this.isBoss && this.initialPositionSet && this.initialYPosition !== null) {
+            // Force Y position to always be the initial value
+            if (this.position.y !== this.initialYPosition) {
+                this.position.y = this.initialYPosition;
+                
+                // Also force the model's Y position
+                if (this.modelGroup) {
+                    this.modelGroup.position.y = this.initialYPosition;
+                }
+            }
+        }
+        
         // Handle knockback
         if (this.state.isKnockedBack) {
             if (Date.now() < this.state.knockbackEndTime) {
@@ -212,6 +235,12 @@ export class Enemy {
             Math.pow(playerPosition.z - this.position.z, 2)
         );
         
+        // Debug log for targeting - log every 2 seconds to avoid spam
+        if (Math.random() < 0.01) { // ~1% chance each frame to log
+            const targetType = this.targetPlayer === this.player ? "player" : "remote player";
+            console.debug(`Enemy ${this.id} targeting ${targetType}, distance: ${distanceToPlayer.toFixed(2)}, attack range: ${this.attackRange.toFixed(2)}`);
+        }
+        
         // Special abilities for certain enemy types
         if (this.type === 'frost_titan') {
             // Initialize special ability cooldowns if not already
@@ -246,19 +275,27 @@ export class Enemy {
             }
         }
         
-        // Check if player is in attack range
+        // Check if target (player or remote player) is in attack range
         if (distanceToPlayer <= this.attackRange) {
-            // Attack player if cooldown is ready
+            console.debug(`Enemy ${this.id} in attack range of target, distance: ${distanceToPlayer.toFixed(2)}, attack range: ${this.attackRange.toFixed(2)}, cooldown: ${this.state.attackCooldown.toFixed(2)}`);
+            
+            // Stop moving when in attack range
+            this.state.isMoving = false;
+            
+            // Attack target if cooldown is ready
             if (this.state.attackCooldown <= 0) {
-                this.attackPlayer();
+                console.debug(`Enemy ${this.id} attacking target, cooldown ready`);
+                this.attackPlayer(); // This will attack whatever is set as targetPlayer
                 this.state.attackCooldown = 1 / this.attackSpeed;
+            } else {
+                console.debug(`Enemy ${this.id} waiting for attack cooldown: ${this.state.attackCooldown.toFixed(2)}`);
             }
             
-            // Set aggressive state when player is in attack range
+            // Set aggressive state when target is in attack range
             this.state.isAggressive = true;
             this.state.aggressionEndTime = Date.now() + (this.aggressionTimeout * 1000);
         } else if (distanceToPlayer <= this.detectionRange || this.state.isAggressive) {
-            // Move towards player if within detection range or if enemy is in aggressive state
+            // Move towards target if within detection range or if enemy is in aggressive state
             
             // Check if aggression should end
             if (this.state.isAggressive && Date.now() > this.state.aggressionEndTime && !this.persistentAggression) {
@@ -269,7 +306,7 @@ export class Enemy {
             if (distanceToPlayer <= this.detectionRange || this.state.isAggressive) {
                 this.state.isMoving = true;
                 
-                // Calculate direction to player
+                // Calculate direction to target
                 const directionX = playerPosition.x - this.position.x;
                 const directionZ = playerPosition.z - this.position.z;
                 
@@ -278,7 +315,7 @@ export class Enemy {
                 const normalizedDirectionX = directionX / length;
                 const normalizedDirectionZ = directionZ / length;
                 
-                // Update rotation to face player
+                // Update rotation to face target
                 this.rotation.y = Math.atan2(normalizedDirectionX, normalizedDirectionZ);
                 
                 // Calculate new position
@@ -291,8 +328,9 @@ export class Enemy {
                 
                 // Update position
                 this.setPosition(newPosition.x, newPosition.y, newPosition.z);
+                console.debug(`Enemy ${this.id} moving toward player, distance: ${distanceToPlayer.toFixed(2)}`);
                 
-                // If player is within detection range, refresh aggression timer
+                // If target is within detection range, refresh aggression timer
                 if (distanceToPlayer <= this.detectionRange) {
                     this.state.isAggressive = true;
                     this.state.aggressionEndTime = Date.now() + (this.aggressionTimeout * 1000);
@@ -365,12 +403,31 @@ export class Enemy {
     attackPlayer() {
         // Set attack state
         this.state.isAttacking = true;
+        console.debug(`ENEMY ATTACK: Enemy ${this.id} executing attack`);
         
-        // Create attack effect
-        // (This could be expanded with different attack types based on enemy type)
+        // Play attack animation
+        this.playAttackAnimation();
         
-        // Deal damage to target player (local or remote)
-        this.targetPlayer.takeDamage(this.damage);
+        // Deal damage to target (player or remote player)
+        if (this.targetPlayer) {
+            const isRemotePlayer = this.targetPlayer !== this.player;
+            console.debug(`ENEMY TARGET: Enemy ${this.id} has target: ${isRemotePlayer ? 'REMOTE PLAYER' : 'PLAYER'}`);
+            
+            if (typeof this.targetPlayer.takeDamage === 'function') {
+                try {
+                    console.debug(`ENEMY DAMAGE: Enemy ${this.id} dealing ${this.damage} damage to player`);
+                    
+                    // Apply damage to the target
+                    this.targetPlayer.takeDamage(this.damage);
+                } catch (error) {
+                    console.error(`Error in enemy attack: ${error.message}`);
+                }
+            } else {
+                console.error(`Enemy ${this.id} target doesn't have takeDamage function`);
+            }
+        } else {
+            console.error(`Enemy ${this.id} has no target to attack`);
+        }
         
         // Reset attack state after a short delay
         setTimeout(() => {
@@ -430,14 +487,62 @@ export class Enemy {
         }, 800);
     }
     
-    takeDamage(amount, knockback = false, knockbackDirection = null) {
-        // Reduce health
-        this.health -= amount;
+    /**
+     * Handle enemy taking damage with defense calculations
+     * @param {number} amount - The raw damage amount
+     * @param {boolean} knockback - Whether to apply knockback
+     * @param {THREE.Vector3} knockbackDirection - Direction of knockback
+     * @param {boolean} ignoreDefense - Whether to ignore defense (for true damage)
+     * @returns {number} - The actual damage taken after reductions
+     */
+    takeDamage(amount, knockback = false, knockbackDirection = null, ignoreDefense = false) {
+        // Calculate actual damage after defense
+        let actualDamage = amount;
+        
+        // Apply defense reduction if not ignoring defense
+        if (!ignoreDefense) {
+            // Base defense value - can be customized per enemy type
+            let defenseValue = 0;
+            
+            // Get defense based on enemy type
+            if (this.type === 'skeleton_king' || this.type === 'necromancer_lord' || 
+                this.type === 'demon_lord' || this.type === 'frost_titan') {
+                // Boss enemies have higher defense
+                defenseValue = 25;
+            } else if (this.type.includes('golem') || this.type === 'mountain_troll' || 
+                       this.type === 'corrupted_treant' || this.type === 'ancient_guardian') {
+                // Tank enemies have medium-high defense
+                defenseValue = 15;
+            } else if (this.type.includes('skeleton') || this.type.includes('zombie')) {
+                // Undead enemies have low defense
+                defenseValue = 5;
+            } else {
+                // Default defense for other enemies
+                defenseValue = 10;
+            }
+            
+            // Apply defense formula: damage reduction percentage based on defense
+            // Formula: reduction = defense / (defense + 100)
+            // This gives diminishing returns for high defense values
+            const reductionPercent = defenseValue / (defenseValue + 100);
+            actualDamage = amount * (1 - reductionPercent);
+            
+            console.debug(`Enemy ${this.name} defense: ${defenseValue}, damage reduction: ${(reductionPercent * 100).toFixed(1)}%, raw damage: ${amount}, actual damage: ${actualDamage.toFixed(1)}`);
+        }
+        
+        // Round the damage to avoid floating point issues
+        actualDamage = Math.round(actualDamage);
+        
+        // Ensure minimum damage of 1
+        actualDamage = Math.max(1, actualDamage);
+        
+        // Reduce health by the actual damage
+        this.health -= actualDamage;
         
         // Check if dead
         if (this.health <= 0) {
             this.die();
-            return amount;
+            return actualDamage;
         }
         
         // Apply knockback if specified
@@ -448,7 +553,7 @@ export class Enemy {
         // Update health bar
         this.updateHealthBar();
         
-        return amount;
+        return actualDamage;
     }
     
     /**
@@ -517,8 +622,8 @@ export class Enemy {
         this.state.isKnockedBack = true;
         this.state.knockbackEndTime = Date.now() + 300; // 300ms knockback duration
         
-        // Apply knockback movement
-        if (direction) {
+        // Apply knockback movement only for non-boss enemies
+        if (direction && !this.isBoss) {
             const knockbackDistance = 1.0; // Knockback distance in units
             const newPosition = {
                 x: this.position.x + direction.x * knockbackDistance,
@@ -600,10 +705,18 @@ export class Enemy {
             const startTime = Date.now();
             const duration = 1000; // 1 second animation
             
+            // Store animation frame ID so we can cancel it if needed
+            this.deathAnimationFrameId = null;
+            
+            // Store a reference to the model group that we'll use throughout the animation
+            // This prevents issues if the main modelGroup reference is set to null
+            const animationModelGroup = this.modelGroup;
+            
             const animateDeath = () => {
-                // Check if modelGroup still exists
-                if (!this.modelGroup) {
-                    console.warn('Enemy model group is null during death animation');
+                // Check if we should stop the animation
+                if (this.state.isDead === false || !animationModelGroup.parent) {
+                    this.deathAnimationInProgress = false;
+                    this.deathAnimationFrameId = null;
                     return;
                 }
                 
@@ -619,37 +732,45 @@ export class Enemy {
                 this.position.z = startPosition.z + (targetPosition.z - startPosition.z) * easeOut;
                 
                 // Safely update rotation
-                if (this.modelGroup && this.modelGroup.rotation) {
-                    this.modelGroup.rotation.x = startRotation.x + (targetRotation.x - startRotation.x) * easeOut;
+                if (animationModelGroup.rotation) {
+                    animationModelGroup.rotation.x = startRotation.x + (targetRotation.x - startRotation.x) * easeOut;
                 }
                 
                 // Continue animation if not complete
-                if (progress < 1 && this.modelGroup) {
-                    requestAnimationFrame(animateDeath);
-                } else if (this.modelGroup) {
+                if (progress < 1) {
+                    this.deathAnimationFrameId = requestAnimationFrame(animateDeath);
+                } else {
                     // Final position and rotation
                     this.position.x = targetPosition.x;
                     this.position.y = targetPosition.y;
                     this.position.z = targetPosition.z;
                     
-                    if (this.modelGroup.rotation) {
-                        this.modelGroup.rotation.x = targetRotation.x;
+                    if (animationModelGroup.rotation) {
+                        animationModelGroup.rotation.x = targetRotation.x;
                     }
                     
                     // Mark animation as complete
                     this.deathAnimationInProgress = false;
-                } else {
-                    // If modelGroup is null, also mark animation as complete
-                    this.deathAnimationInProgress = false;
+                    this.deathAnimationFrameId = null;
                 }
             };
             
             // Start animation
-            animateDeath();
+            this.deathAnimationFrameId = requestAnimationFrame(animateDeath);
+        } else {
+            // No model to animate, mark as complete immediately
+            this.deathAnimationInProgress = false;
         }
     }
 
     removeFromScene() {
+        // Cancel any ongoing death animation
+        if (this.deathAnimationFrameId) {
+            cancelAnimationFrame(this.deathAnimationFrameId);
+            this.deathAnimationFrameId = null;
+            this.deathAnimationInProgress = false;
+        }
+        
         // Remove model from scene
         if (this.modelGroup) {
             this.scene.remove(this.modelGroup);
@@ -674,8 +795,41 @@ export class Enemy {
     }
 
     updateTerrainHeight() {
-        // Update position based on terrain height if world is available
-        if (this.world) {
+        // For bosses, we NEVER update Y position after initial setup
+        if (this.isBoss) {
+            if (this.modelGroup) {
+                // For bosses, only update rotation
+                this.modelGroup.rotation.y = this.rotation.y;
+                
+                // Set initial Y position only once
+                if (!this.initialPositionSet && this.world) {
+                    const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
+                    if (terrainHeight !== null) {
+                        // Store the initial Y position for bosses
+                        this.initialYPosition = terrainHeight + this.heightOffset;
+                        this.position.y = this.initialYPosition;
+                        
+                        // Update model position with this Y value
+                        this.modelGroup.position.copy(this.position);
+                        
+                        // Mark as initialized
+                        this.initialPositionSet = true;
+                        console.debug(`Boss ${this.name} initial Y position set to ${this.initialYPosition}`);
+                    }
+                } else if (this.initialPositionSet) {
+                    // Always restore the Y position to the initial value for bosses
+                    // This ensures they never sink regardless of what other code might do
+                    this.position.y = this.initialYPosition;
+                    
+                    // Force the model's Y position to match
+                    this.modelGroup.position.y = this.initialYPosition;
+                }
+            }
+            return;
+        }
+        
+        // For non-boss enemies, update position based on terrain height if world is available and terrain updates are allowed
+        if (this.world && this.allowTerrainHeightUpdates) {
             const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
             if (terrainHeight !== null) {
                 this.position.y = terrainHeight + this.heightOffset;
@@ -686,20 +840,90 @@ export class Enemy {
                 }
             }
         } else if (this.modelGroup) {
-            // If no world, just update model position and rotation
+            // If no world or terrain updates disabled, just update model position and rotation
             this.modelGroup.position.copy(this.position);
             this.modelGroup.rotation.y = this.rotation.y;
         }
     }
 
     setPosition(x, y, z) {
-        // Update position
+        // Special handling for bosses
+        if (this.isBoss) {
+            if (this.initialPositionSet && this.initialYPosition !== null) {
+                // For bosses with established position, only update X and Z
+                this.position.x = x;
+                this.position.z = z;
+                
+                // ALWAYS use the stored initial Y position to prevent sinking
+                this.position.y = this.initialYPosition;
+                
+                // Update model position, ensuring Y is correct
+                if (this.modelGroup) {
+                    this.modelGroup.position.x = this.position.x;
+                    this.modelGroup.position.z = this.position.z;
+                    this.modelGroup.position.y = this.initialYPosition;
+                }
+                
+                // Debug log to track boss position
+                if (Math.random() < 0.01) { // Log occasionally to avoid spam
+                    console.debug(`Boss ${this.name} position maintained at Y=${this.initialYPosition}`);
+                }
+                return;
+            } else if (!this.initialPositionSet) {
+                // For initial boss positioning, we'll set all coordinates
+                // but we'll also store the Y position for future reference
+                this.position.set(x, y, z);
+                
+                // If we have a world reference, get the terrain height
+                if (this.world) {
+                    const terrainHeight = this.world.getTerrainHeight(x, z);
+                    if (terrainHeight !== null) {
+                        // Use terrain height + offset for Y position
+                        this.initialYPosition = terrainHeight + this.heightOffset;
+                        this.position.y = this.initialYPosition;
+                    } else {
+                        // If terrain height is not available, use provided Y
+                        this.initialYPosition = y;
+                    }
+                } else {
+                    // No world reference, use provided Y
+                    this.initialYPosition = y;
+                }
+                
+                // Update model position
+                if (this.modelGroup) {
+                    this.modelGroup.position.copy(this.position);
+                }
+                
+                // Mark as initialized
+                this.initialPositionSet = true;
+                console.debug(`Boss ${this.name} initial position set at Y=${this.initialYPosition}`);
+                return;
+            }
+        }
+        
+        // For non-boss enemies, update all coordinates normally
         this.position.set(x, y, z);
         
         // Update model position
         if (this.modelGroup) {
             this.modelGroup.position.copy(this.position);
         }
+    }
+    
+    /**
+     * Disable terrain height updates for this enemy
+     * Useful for bosses or enemies that need fixed positioning
+     */
+    disableTerrainHeightUpdates() {
+        this.allowTerrainHeightUpdates = false;
+    }
+    
+    /**
+     * Enable terrain height updates for this enemy
+     */
+    enableTerrainHeightUpdates() {
+        this.allowTerrainHeightUpdates = true;
     }
 
     getPosition() {

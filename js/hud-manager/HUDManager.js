@@ -11,11 +11,10 @@ import { DeathScreenUI } from './DeathScreenUI.js';
 import { NotificationsUI } from './NotificationsUI.js';
 import { QuestLogUI } from './QuestLogUI.js';
 import { MiniMapUI } from './MiniMapUI.js';
-import { MainBackground } from '../menu-system/MainBackground.js';
 import { HomeButton } from './HomeUI.js';
 import { FullscreenButton } from './SkillSelectionButton.js';
 import { SkillTreeButton } from './SkillTreeButton.js';
-import { MiniMapButton } from './MiniMapButton.js';
+
 import { InventoryButton } from './InventoryButton.js';
 
 /**
@@ -45,9 +44,6 @@ export class HUDManager {
         // Validate UI container exists
         this.validateUIContainer();
         
-        // Create main background
-        this.createMainBackground();
-        
         // Create UI components
         this.createUIComponents();
         
@@ -68,17 +64,6 @@ export class HUDManager {
         if (!this.uiContainer) {
             console.error('UI container not found in DOM. Creating it dynamically.');
         }
-    }
-    
-    /**
-     * Create the main background
-     */
-    createMainBackground() {
-        // Initialize the main background
-        this.mainBackground = new MainBackground(this.game);
-        
-        // Show the background
-        this.mainBackground.show();
     }
     
     /**
@@ -142,8 +127,6 @@ export class HUDManager {
         this.components.fullscreenButton = new FullscreenButton(this.game);
         this.components.skillTreeButton = new SkillTreeButton(this.game);
         this.components.inventoryButton = new InventoryButton(this.game);
-        this.components.miniMapButton = new MiniMapButton(this.game);
-        // Note: These buttons initialize themselves in their constructors
     }
     
     /**
@@ -173,17 +156,6 @@ export class HUDManager {
         this.components.homeButton.update(delta);
         this.components.skillTreeButton.update(delta);
         this.components.inventoryButton.update(delta);
-        this.components.miniMapButton.update(delta);
-    }
-    
-    /**
-     * Set a new background image
-     * @param {string} imagePath - Path to the new background image
-     */
-    setBackgroundImage(imagePath) {
-        if (this.mainBackground) {
-            this.mainBackground.setBackgroundImage(imagePath);
-        }
     }
     
     /**
@@ -365,7 +337,7 @@ export class HUDManager {
         const fullscreenButton = document.getElementById('skill-selection-button');
         const skillTreeButton = document.getElementById('skill-tree-button');
         const inventoryButton = document.getElementById('inventory-button');
-        const miniMapButton = document.getElementById('mini-map-button');
+        const mapSelectorButton = document.getElementById('map-selector-button');
         
         if (homeButton && (!settingsMenu || settingsMenu.style.display === 'none')) {
             homeButton.style.display = 'none';
@@ -383,8 +355,8 @@ export class HUDManager {
             inventoryButton.style.display = 'none';
         }
         
-        if (miniMapButton && (!settingsMenu || settingsMenu.style.display === 'none')) {
-            miniMapButton.style.display = 'none';
+        if (mapSelectorButton && (!settingsMenu || settingsMenu.style.display === 'none')) {
+            mapSelectorButton.style.display = 'none';
         }
     }
     
@@ -417,9 +389,95 @@ export class HUDManager {
             inventoryButton.style.display = 'block';
         }
         
-        const miniMapButton = document.getElementById('mini-map-button');
-        if (miniMapButton) {
-            miniMapButton.style.display = 'block';
+        const mapSelectorButton = document.getElementById('map-selector-button');
+        if (mapSelectorButton) {
+            mapSelectorButton.style.display = 'block';
+        }
+    }
+    
+    /**
+     * Show a status effect icon/indicator
+     * @param {string} effectType - Type of status effect (e.g., 'slow', 'stun', 'poison', 'invulnerable')
+     */
+    showStatusEffect(effectType) {
+        // Create or update status effect indicator
+        let statusContainer = document.getElementById('status-effects-container');
+        if (!statusContainer) {
+            // Create container if it doesn't exist
+            statusContainer = document.createElement('div');
+            statusContainer.id = 'status-effects-container';
+            statusContainer.className = 'status-effects-container';
+            document.body.appendChild(statusContainer);
+        }
+        
+        // Check if this effect already has an indicator
+        let effectElement = document.getElementById(`status-effect-${effectType}`);
+        if (!effectElement) {
+            // Create new effect indicator
+            effectElement = document.createElement('div');
+            effectElement.id = `status-effect-${effectType}`;
+            effectElement.className = `status-effect ${effectType}`;
+            
+            // Set icon and text based on effect type
+            let iconClass = 'fa-shield-alt'; // Default icon
+            let effectName = effectType.charAt(0).toUpperCase() + effectType.slice(1);
+            
+            // Customize based on effect type
+            switch (effectType) {
+                case 'invulnerable':
+                    iconClass = 'fa-shield-alt';
+                    effectName = 'Invulnerable';
+                    effectElement.style.backgroundColor = 'rgba(51, 153, 255, 0.7)';
+                    effectElement.style.animation = 'pulse 1s infinite';
+                    break;
+                case 'slow':
+                    iconClass = 'fa-snowflake';
+                    effectName = 'Slowed';
+                    effectElement.style.backgroundColor = 'rgba(0, 191, 255, 0.7)';
+                    break;
+                case 'stun':
+                    iconClass = 'fa-dizzy';
+                    effectName = 'Stunned';
+                    effectElement.style.backgroundColor = 'rgba(255, 215, 0, 0.7)';
+                    break;
+                // Add more cases as needed
+            }
+            
+            // Create icon (using a simple div with text for now)
+            const iconElement = document.createElement('div');
+            iconElement.className = 'status-effect-icon';
+            iconElement.textContent = effectName.charAt(0);
+            effectElement.appendChild(iconElement);
+            
+            // Create label
+            const labelElement = document.createElement('div');
+            labelElement.className = 'status-effect-label';
+            labelElement.textContent = effectName;
+            effectElement.appendChild(labelElement);
+            
+            // Add to container
+            statusContainer.appendChild(effectElement);
+            
+            // Also show a notification
+            this.showNotification(`Status Effect: ${effectName}`);
+        }
+    }
+    
+    /**
+     * Hide a status effect icon/indicator
+     * @param {string} effectType - Type of status effect (e.g., 'slow', 'stun', 'poison', 'invulnerable')
+     */
+    hideStatusEffect(effectType) {
+        // Find and remove the effect indicator
+        const effectElement = document.getElementById(`status-effect-${effectType}`);
+        if (effectElement) {
+            effectElement.remove();
+        }
+        
+        // Check if container is empty and remove it if so
+        const statusContainer = document.getElementById('status-effects-container');
+        if (statusContainer && statusContainer.children.length === 0) {
+            statusContainer.remove();
         }
     }
     

@@ -5,6 +5,45 @@ import { ZONE_COLORS } from '../../config/colors.js';
  * Creates a bridge structure
  */
 export class Bridge {
+    // Static predefined bridge templates for consistency
+    static bridgeTemplates = {
+        'wooden': {
+            length: 15,
+            width: 4,
+            height: 1.5,
+            archHeight: 3,
+            hasRailing: true
+        },
+        'stone': {
+            length: 18,
+            width: 5,
+            height: 2,
+            archHeight: 2.5,
+            hasRailing: true
+        },
+        'sandstone': {
+            length: 12,
+            width: 3.5,
+            height: 1.2,
+            archHeight: 2,
+            hasRailing: false
+        },
+        'ancient': {
+            length: 20,
+            width: 6,
+            height: 2.5,
+            archHeight: 4,
+            hasRailing: true
+        },
+        'obsidian': {
+            length: 16,
+            width: 4.5,
+            height: 1.8,
+            archHeight: 3.5,
+            hasRailing: true
+        }
+    };
+
     /**
      * Create a new bridge
      * @param {string} zoneType - The type of zone (Forest, Desert, etc.)
@@ -13,14 +52,20 @@ export class Bridge {
     constructor(zoneType = 'Forest', options = {}) {
         this.zoneType = zoneType;
         
-        // Default options
+        // Get bridge style based on zone type
+        const style = options.style || this.getBridgeStyle(zoneType);
+        
+        // Use predefined template for the style
+        const template = Bridge.bridgeTemplates[style] || Bridge.bridgeTemplates['wooden'];
+        
+        // Default options with consistent values from templates
         this.options = {
-            length: options.length || 10 + Math.random() * 10,
-            width: options.width || 3 + Math.random() * 2,
-            height: options.height || 1 + Math.random() * 2,
-            archHeight: options.archHeight || 2 + Math.random() * 3,
-            hasRailing: options.hasRailing !== undefined ? options.hasRailing : Math.random() > 0.3,
-            style: options.style || this.getBridgeStyle(zoneType)
+            length: options.length || template.length,
+            width: options.width || template.width,
+            height: options.height || template.height,
+            archHeight: options.archHeight || template.archHeight,
+            hasRailing: options.hasRailing !== undefined ? options.hasRailing : template.hasRailing,
+            style: style
         };
     }
     
@@ -97,6 +142,7 @@ export class Bridge {
         switch(style) {
             case 'wooden':
                 deckColor = 0x8B4513; // Brown
+                roughness = 0.9; // More rough for wood
                 break;
             case 'stone':
                 deckColor = zoneColors.rock || 0x808080; // Gray
@@ -142,20 +188,109 @@ export class Bridge {
             deckGeometry.computeVertexNormals();
         }
         
-        // Create bridge deck material
-        const deckMaterial = new THREE.MeshStandardMaterial({
-            color: deckColor,
-            roughness: roughness,
-            metalness: metalness
+        // Create bridge deck material with enhanced properties for wooden style
+        let deckMaterial;
+        
+        if (style === 'wooden') {
+            // Create a more detailed wooden material
+            deckMaterial = new THREE.MeshStandardMaterial({
+                color: deckColor,
+                roughness: roughness,
+                metalness: metalness,
+                flatShading: false, // Smooth shading for wood
+                // Add wood grain effect through normal map simulation
+                bumpScale: 0.05
+            });
+            
+            // Simulate wood planks by adding multiple smaller deck pieces
+            this.createWoodenPlanks(bridgeGroup, length, width, height, archHeight);
+        } else {
+            // Standard material for other bridge types
+            deckMaterial = new THREE.MeshStandardMaterial({
+                color: deckColor,
+                roughness: roughness,
+                metalness: metalness
+            });
+            
+            // Create bridge deck mesh
+            const deckMesh = new THREE.Mesh(deckGeometry, deckMaterial);
+            deckMesh.castShadow = true;
+            deckMesh.receiveShadow = true;
+            
+            // Add to bridge group
+            bridgeGroup.add(deckMesh);
+        }
+    }
+    
+    /**
+     * Create wooden planks for a more realistic wooden bridge
+     * @param {THREE.Group} bridgeGroup - The bridge group
+     * @param {number} length - Bridge length
+     * @param {number} width - Bridge width
+     * @param {number} height - Bridge height
+     * @param {number} archHeight - Bridge arch height
+     */
+    createWoodenPlanks(bridgeGroup, length, width, height, archHeight) {
+        // Number of planks along the bridge length
+        const plankCount = Math.max(8, Math.floor(length / 1.5));
+        const plankWidth = length / plankCount;
+        const plankGap = 0.05; // Small gap between planks
+        
+        // Create a slightly darker material for some planks to add variation
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8B4513, // Brown
+            roughness: 0.9,
+            metalness: 0.1
         });
         
-        // Create bridge deck mesh
-        const deckMesh = new THREE.Mesh(deckGeometry, deckMaterial);
-        deckMesh.castShadow = true;
-        deckMesh.receiveShadow = true;
+        const darkerMaterial = new THREE.MeshStandardMaterial({
+            color: 0x654321, // Darker Brown
+            roughness: 0.9,
+            metalness: 0.1
+        });
         
-        // Add to bridge group
-        bridgeGroup.add(deckMesh);
+        // Create planks along the bridge
+        for (let i = 0; i < plankCount; i++) {
+            // Position along bridge length
+            const x = (i / plankCount - 0.5) * length + plankWidth / 2;
+            
+            // Create plank geometry (slightly smaller than full width to create gaps)
+            const plankGeometry = new THREE.BoxGeometry(
+                plankWidth - plankGap, 
+                height, 
+                width
+            );
+            
+            // Apply arch to the plank if needed
+            if (archHeight > 0) {
+                const positions = plankGeometry.attributes.position.array;
+                
+                for (let j = 0; j < positions.length; j += 3) {
+                    // Calculate normalized position along bridge
+                    const localX = positions[j] + x;
+                    const normalizedX = localX / (length / 2); // -1 to 1
+                    const archOffset = archHeight * (1 - normalizedX * normalizedX);
+                    
+                    // Apply arch offset to y position
+                    positions[j + 1] += archOffset;
+                }
+                
+                // Update normals
+                plankGeometry.computeVertexNormals();
+            }
+            
+            // Alternate between materials for visual variety
+            const plankMaterial = i % 2 === 0 ? baseMaterial : darkerMaterial;
+            
+            // Create plank mesh
+            const plankMesh = new THREE.Mesh(plankGeometry, plankMaterial);
+            plankMesh.position.set(x, 0, 0);
+            plankMesh.castShadow = true;
+            plankMesh.receiveShadow = true;
+            
+            // Add to bridge group
+            bridgeGroup.add(plankMesh);
+        }
     }
     
     /**

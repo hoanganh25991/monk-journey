@@ -58,7 +58,7 @@ export const PLAYER_SOUNDS = {
 export const SKILL_SOUNDS = {
     // Wave Strike
     waveStrike: {
-        id: 'skillWaveStrike',
+        id: 'waveStrike',
         file: 'wave_strike.mp3',
         volume: 0.8,
         simulated: {
@@ -150,7 +150,7 @@ export const SKILL_SOUNDS = {
     
     // Seven-Sided Strike
     sevenSidedStrike: {
-        id: 'skillSevenSidedStrike',
+        id: 'sevenSidedStrike',
         file: 'seven_sided_strike.mp3',
         volume: 0.8,
         simulated: {
@@ -320,7 +320,7 @@ export const SKILL_SOUNDS = {
     
     // Wave of Light
     waveOfLight: {
-        id: 'skillWaveOfLight',
+        id: 'waveOfLight',
         file: 'wave_of_light.mp3',
         volume: 0.9,
         simulated: {
@@ -361,7 +361,7 @@ export const SKILL_SOUNDS = {
     
     // Exploding Palm
     explodingPalm: {
-        id: 'skillExplodingPalm',
+        id: 'explodingPalm',
         file: 'exploding_palm.mp3',
         volume: 0.8,
         simulated: {
@@ -409,7 +409,7 @@ export const SKILL_SOUNDS = {
     
     // Breath of Heaven
     breathOfHeaven: {
-        id: 'skillBreathOfHeaven',
+        id: 'breathOfHeaven',
         file: 'breath_of_heaven.mp3',
         volume: 0.8,
         simulated: {
@@ -489,7 +489,7 @@ export const SKILL_SOUNDS = {
     
     // Flying Dragon
     flyingDragon: {
-        id: 'skillFlyingDragon',
+        id: 'flyingDragon',
         file: 'flying_dragon.mp3',
         volume: 0.9,
         simulated: {
@@ -534,7 +534,7 @@ export const SKILL_SOUNDS = {
     
     // Flying Kick
     flyingKick: {
-        id: 'skillFlyingKick',
+        id: 'flyingKick',
         file: 'flying_kick.mp3',
         volume: 0.8,
         simulated: {
@@ -576,7 +576,7 @@ export const SKILL_SOUNDS = {
     
     // Imprisoned Fists
     imprisonedFists: {
-        id: 'skillImprisonedFists',
+        id: 'imprisonedFists',
         file: 'imprisoned_fists.mp3',
         volume: 0.8,
         simulated: {

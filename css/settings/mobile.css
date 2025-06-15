@@ -1,0 +1,181 @@
+/* 
+ * mobile.css - Mobile-specific settings menu styles
+ * Part of the Diablo Immortal CSS optimization
+ */
+
+/* Option 1: Sidebar Layout */
+.settings-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.5);
+    padding: var(--padding-medium) 0;
+    z-index: 50; /* UI Controls - Settings Sidebar */
+}
+
+.settings-title {
+    font-size: 24px;
+    margin: 0;
+    text-align: center;
+    color: white;
+}
+
+.settings-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: var(--padding-medium) 0;
+}
+
+.sidebar-layout .settings-container {
+    margin-left: 50px;
+    width: calc(100% - 50px);
+}
+
+/* Option 5: Icon-based Tabs */
+.icon-only {
+    display: flex;
+    justify-content: center;
+    padding: var(--padding-small);
+}
+
+.settings-tabs.icon-only {
+    flex-direction: row;
+    width: 100%;
+    height: 50px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    justify-content: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.tab-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin: 0 5px;
+    font-size: 18px;
+    background-color: rgba(255, 204, 0, 0.7);
+    color: #4a3000;
+    border: 2px solid rgba(255, 230, 150, 0.8);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tab-icon:hover {
+    background-color: rgba(255, 215, 0, 0.8);
+    transform: translateY(-2px);
+}
+
+.tab-icon.active {
+    background-color: rgba(255, 215, 0, 0.9);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.icon-tabs-layout .settings-content {
+    height: calc(100% - 50px);
+}
+
+/* Option 4: Top Tabs with Right Actions Layout */
+.top-tabs-layout {
+    position: relative;
+}
+
+.settings-header-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 50;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    color: white;
+}
+
+.top-tabs-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.top-tabs-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--padding-small) var(--padding-medium);
+    background: rgba(0, 0, 0, 0.5);
+    height: 50px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.top-tabs {
+    display: flex;
+    flex-direction: row;
+    width: calc(100% - 60px); /* Account for settings icon */
+    border-right: none;
+    background: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.top-tabs .tab-icon {
+    margin: 0 10px;
+}
+
+.right-actions-column {
+    position: absolute;
+    top: 60px; /* Below the tabs row */
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center buttons horizontally */
+    gap: 10px;
+    z-index: 50;
+    width: 40px; /* Set a fixed width to ensure proper centering */
+}
+
+.top-tabs-layout
+.settings-content {
+    height: 100%;
+    width: 100%;
+    padding: var(--padding-large);
+}
+
+/* Tooltips for icon buttons */
+.tab-icon[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: var(--padding-small) var(--padding-medium);
+    border-radius: 5px;
+    font-size: 14px;
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.tab-icon[title]:hover::after {
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+}

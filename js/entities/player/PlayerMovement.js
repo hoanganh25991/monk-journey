@@ -77,7 +77,9 @@ export class PlayerMovement {
         
         // Update the world based on player position
         if (this.game && this.game.world) {
-            this.game.world.updateWorldForPlayer(this.position);
+            // Get delta time from game if available, otherwise use a default value
+            const delta = this.game.delta || 0.016;
+            this.game.world.updateWorldForPlayer(this.position, undefined, delta);
         }
     }
     

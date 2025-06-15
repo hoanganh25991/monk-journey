@@ -144,6 +144,119 @@ export class EffectsManager {
     }
     
     /**
+     * Create a shield effect around the player to indicate invulnerability
+     * @param {Object} position - 3D position {x, y, z}
+     * @returns {Object|null} - The created shield effect or null if creation failed
+     */
+    createShieldEffect(position) {
+        // Check if shield effect already exists
+        const existingShield = this.effects.find(effect => effect.type === 'shield');
+        if (existingShield) {
+            // Update position of existing shield
+            if (existingShield.group) {
+                existingShield.group.position.copy(position);
+            }
+            return existingShield;
+        }
+        
+        // Create a shield effect using a simple sphere with transparent material
+        const geometry = new THREE.SphereGeometry(1.2, 16, 16);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x3399ff,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide
+        });
+        
+        const sphere = new THREE.Mesh(geometry, material);
+        const group = new THREE.Group();
+        group.add(sphere);
+        
+        // Position the shield
+        group.position.copy(position);
+        
+        // Create a custom effect object
+        const shieldEffect = {
+            type: 'shield',
+            group: group,
+            isActive: true,
+            isPaused: false,
+            duration: 3.0, // 3 seconds duration
+            elapsedTime: 0,
+            
+            // Update method for the shield effect
+            update: function(delta) {
+                // Update elapsed time
+                this.elapsedTime += delta;
+                
+                // Pulse the shield
+                const scale = 1.0 + 0.1 * Math.sin(this.elapsedTime * 5);
+                sphere.scale.set(scale, scale, scale);
+                
+                // Rotate the shield
+                sphere.rotation.y += delta * 0.5;
+                sphere.rotation.x += delta * 0.3;
+                
+                // Pulse opacity
+                material.opacity = 0.3 + 0.1 * Math.sin(this.elapsedTime * 3);
+                
+                // Check if effect has expired
+                if (this.elapsedTime >= this.duration) {
+                    this.isActive = false;
+                }
+            },
+            
+            // Dispose method to clean up resources
+            dispose: function() {
+                if (this.group && this.group.parent) {
+                    this.group.parent.remove(this.group);
+                }
+                geometry.dispose();
+                material.dispose();
+            }
+        };
+        
+        // Add the shield to the scene
+        if (this.game && this.game.scene) {
+            this.game.scene.add(group);
+            
+            // Add to the effects array for updates
+            this.effects.push(shieldEffect);
+            
+            return shieldEffect;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Remove the shield effect
+     */
+    removeShieldEffect() {
+        // Find the shield effect
+        const shieldIndex = this.effects.findIndex(effect => effect.type === 'shield');
+        
+        if (shieldIndex >= 0) {
+            // Get the shield effect
+            const shieldEffect = this.effects[shieldIndex];
+            
+            // Dispose the effect
+            shieldEffect.dispose();
+            
+            // Remove from the effects array
+            this.effects.splice(shieldIndex, 1);
+        }
+    }
+    
+    /**
+     * Get all active effects
+     * @returns {Array} - Array of active effects
+     */
+    getActiveEffects() {
+        return this.effects;
+    }
+    
+    /**
      * Clean up all effects
      * Should be called when changing scenes or shutting down the game
      */

@@ -18,12 +18,12 @@ import { SceneOptimizer } from './SceneOptimizer.js';
 import { LoadingManager } from './LoadingManager.js';
 import { RENDER_CONFIG } from '../config/render.js';
 import { MenuManager } from '../menu-system/MenuManager.js';
-import { isDebugMode } from '../utils/FlagUtils.js';
 import { InteractionSystem } from '../interaction/InteractionSystem.js';
 import { MultiplayerManager } from '../multiplayer/MultiplayerManager.js';
 import { ItemGenerator } from '../entities/items/ItemGenerator.js';
 import { ItemDropManager } from '../entities/items/ItemDropManager.js';
 import { STORAGE_KEYS } from '../config/storage-keys.js';
+import storageService from '../save-manager/StorageService.js';
 
 /**
  * Main Game class that serves as a facade to the underlying game systems
@@ -72,9 +72,51 @@ export class Game {
         this.loadingManager = new LoadingManager().getManager();
         this.itemGenerator = new ItemGenerator(this);
         
-        // Load difficulty from localStorage or use 'medium' as default
-        this.difficulty = localStorage.getItem(STORAGE_KEYS.DIFFICULTY) || 'medium';
-        console.debug(`Game initialized with difficulty: ${this.difficulty}`);
+        // Default difficulty (will be updated in init)
+        this.difficulty = 'medium';
+    }
+    
+    /**
+     * Load initial settings from storage service
+     * @returns {Promise<void>}
+     */
+    async loadInitialSettings() {
+        try {
+            // Load difficulty from storage service
+            const difficulty = await storageService.loadData(STORAGE_KEYS.DIFFICULTY);
+            this.difficulty = difficulty || 'medium';
+            console.debug(`Game initialized with difficulty: ${this.difficulty}`);
+        } catch (error) {
+            console.error('Error loading initial settings:', error);
+        }
+    }
+    
+    /**
+     * Initialize storage service with timeout to prevent hanging on mobile devices
+     * @returns {Promise<void>}
+     */
+    async initStorageServiceWithTimeout() {
+        const STORAGE_INIT_TIMEOUT = 10000; // 10 seconds timeout
+        
+        return new Promise(async (resolve, reject) => {
+            // Set up timeout
+            const timeoutId = setTimeout(() => {
+                console.warn('Storage service initialization timed out after 10 seconds');
+                reject(new Error('Storage service initialization timeout'));
+            }, STORAGE_INIT_TIMEOUT);
+            
+            try {
+                // Try to initialize storage service
+                await storageService.init();
+                clearTimeout(timeoutId);
+                console.debug('Storage service initialized successfully');
+                resolve();
+            } catch (error) {
+                clearTimeout(timeoutId);
+                console.error('Storage service initialization failed:', error);
+                reject(error);
+            }
+        });
     }
     
     /**
@@ -129,7 +171,22 @@ export class Game {
             this.loadingScreen = document.getElementById('loading-screen');
             
             // Update loading progress
-            this.updateLoadingProgress(5, 'Initializing renderer...', 'Setting up WebGL');
+            this.updateLoadingProgress(5, 'Initializing storage...', 'Setting up cloud sync');
+            
+            // Initialize storage service with timeout to prevent hanging on mobile
+            try {
+                await this.initStorageServiceWithTimeout();
+                this.updateLoadingProgress(8, 'Storage initialized', 'Cloud sync ready');
+            } catch (error) {
+                console.warn('Storage service initialization failed or timed out, continuing with local storage only:', error);
+                this.updateLoadingProgress(8, 'Using local storage', 'Cloud sync unavailable - you can enable it later in settings');
+                // Continue with game initialization even if cloud sync fails
+            }
+            
+            // Update loading progress
+            this.updateLoadingProgress(10, 'Loading settings...', 'Retrieving game configuration');
+            await this.loadInitialSettings();
+
             
             // Initialize renderer with quality settings from localStorage or use 'ultra' as default
             const qualityLevel = localStorage.getItem('monk_journey_quality_level') || 'ultra';
@@ -139,7 +196,7 @@ export class Game {
             
             // Initialize scene
             this.scene = new THREE.Scene();
-            this.scene.background = new THREE.Color(0x5a6d7e); // Darker blue-gray sky color
+            this.scene.background = new THREE.Color(0x87ceeb); // Light sky blue color
             // Fog will be managed by FogManager
             
             // Initialize item drop manager
@@ -164,13 +221,27 @@ export class Game {
             
             // Initialize performance manager (before other systems)
             this.performanceManager = new PerformanceManager(this);
-            this.performanceManager.init();
+            await this.performanceManager.init();
             
             this.updateLoadingProgress(20, 'Building world...', 'Generating terrain and environment');
             
-            // Initialize world
+            // Initialize world with loading state
+            this.isWorldLoading = true;
             this.world = new WorldManager(this.scene, this.loadingManager, this);
+            
+            // Show a more detailed loading message for terrain generation
+            this.updateLoadingProgress(25, 'Generating terrain...', 'This may take a moment');
+            
+            // Initialize the world (includes terrain generation)
             await this.world.init();
+            
+            // Terrain is already pre-generated during world initialization
+            this.updateLoadingProgress(30, 'Terrain generation complete', 'World chunks created');
+            
+            // TODO: Add functionality to save generated terrain to localStorage
+            // for faster loading in the future once we're satisfied with generation
+            
+            this.isWorldLoading = false;
             
             this.updateLoadingProgress(40, 'Loading character...', 'Preparing player model and animations');
             
@@ -289,32 +360,17 @@ export class Game {
      * Set up event listeners for window and document events
      */
     setupEventListeners() {
-        if (isDebugMode()) {
-            console.debug('Event listeners for PWA features are disabled in debug mode.');
-            return;
-        }
-        // Handle window resize
-        window.addEventListener('resize', () => this.onWindowResize());
-        
-        // Handle visibility change events
-        document.addEventListener('visibilitychange', () => this.onVisibilityChange());
-        
-        // Handle mobile-specific events
-        window.addEventListener('pagehide', () => this.onPageHide());
-        window.addEventListener('pageshow', () => this.onPageShow());
-        
-        // Handle blur/focus events (additional fallback for some browsers)
-        window.addEventListener('blur', () => this.onBlur());
-        window.addEventListener('focus', () => this.onFocus());
+        window.addEventListener('pagehide', () => this.pause(true));
+        window.addEventListener('blur', () => this.pause(true));
     }
-    
+
     /**
      * Request fullscreen mode for the game canvas
      * @returns {Promise} A promise that resolves when fullscreen is entered or rejects if there's an error
      */
-    requestFullscreen() {
-        if (isDebugMode()) {
-            console.debug('Fullscreen request is ignored in debug mode.');
+    async requestFullscreen() {
+        if (await storageService.loadData(STORAGE_KEYS.DEBUG_MODE)) {
+            console.warn('Fullscreen request is ignored in debug mode.');
             return Promise.resolve();
         }
         console.debug("Requesting fullscreen mode...");
@@ -491,8 +547,10 @@ export class Game {
     
     /**
      * Start the game
+     * @param {boolean} isLoadedGame - Whether this is a loaded game or a new game
+     * @param {boolean} requestFullscreenMode - Whether to request fullscreen mode (default: true)
      */
-    start() {
+    start(isLoadedGame = false, requestFullscreenMode = true) {
         console.debug("Game starting...");
         
         // Make sure the canvas is visible
@@ -508,8 +566,13 @@ export class Game {
         // Disable orbit controls when game starts
         // this.controls.enabled = false;
         
-        // Reset player position
-        this.player.setPosition(0, 2, 0);
+        // Only reset player position if this is a new game, not a loaded game
+        if (!isLoadedGame) {
+            console.debug("Starting new game - resetting player position to default");
+            this.player.setPosition(0, 1, -13);
+        } else {
+            console.debug("Starting loaded game - keeping saved player position");
+        }
         
         // Start the game loop
         this.state.setRunning();
@@ -521,12 +584,19 @@ export class Game {
         // Start background music
         this.audioManager.playMusic();
         
-        // Request fullscreen mode after game is started
-        this.requestFullscreen().catch(error => {
-            console.warn("Could not enter fullscreen mode:", error);
-            // Even if fullscreen fails, make sure the renderer is properly sized
+        // Request fullscreen mode after game is started (if enabled)
+        if (requestFullscreenMode) {
+            console.debug("Requesting fullscreen mode as part of game start");
+            this.requestFullscreen().catch(error => {
+                console.warn("Could not enter fullscreen mode:", error);
+                // Even if fullscreen fails, make sure the renderer is properly sized
+                this.adjustRendererSize();
+            });
+        } else {
+            console.debug("Skipping fullscreen request as it was disabled");
+            // Make sure the renderer is properly sized even without fullscreen
             this.adjustRendererSize();
-        });
+        }
         
         // Dispatch event that game has started
         this.events.dispatch('gameStateChanged', 'running');
@@ -654,8 +724,7 @@ export class Game {
         
         // Update world based on player position
         // Use performance-based draw distance
-        const drawDistance = this.performanceManager.getDrawDistanceMultiplier();
-        this.world.updateWorldForPlayer(this.player.getPosition(), drawDistance);
+        this.world.updateWorldForPlayer(this.player.getPosition(), 1.0, delta);
         
         // Update enemies
         this.enemyManager.update(delta);
@@ -700,76 +769,6 @@ export class Game {
         
         // For normal window resizing, adjust the renderer size
         this.adjustRendererSize();
-    }
-
-    /**
-     * Handle visibility change event
-     */
-    onVisibilityChange() {
-        // Check if this is triggered by a fullscreen change
-        if (window.isFullscreenChange) {
-            console.debug('Ignoring visibility change due to fullscreen toggle');
-            return;
-        }
-        
-        this.pause();
-        // if (document.visibilityState === 'hidden') {
-        //     console.debug('The page is now hidden.');
-        //     this.pause();
-        // } else if (document.visibilityState === 'visible') {
-        //     console.debug('The page is now visible.');
-        //     this.resume();
-        // }
-    }
-
-    /**
-     * Handle page hide event (for mobile browsers)
-     */
-    onPageHide() {
-        // Check if this is triggered by a fullscreen change
-        if (window.isFullscreenChange) {
-            console.debug('Ignoring page hide event due to fullscreen toggle');
-            return;
-        }
-        this.pause();
-    }
-    
-    /**
-     * Handle page show event (for mobile browsers)
-     */
-    onPageShow() {
-        // Check if this is triggered by a fullscreen change
-        if (window.isFullscreenChange) {
-            console.debug('Ignoring page show event due to fullscreen toggle');
-            return;
-        }
-        this.pause();
-        // this.resume();
-    }
-    
-    /**
-     * Handle window blur event
-     */
-    onBlur() {
-        // Check if this is triggered by a fullscreen change
-        if (window.isFullscreenChange) {
-            console.debug('Ignoring blur event due to fullscreen toggle');
-            return;
-        }
-        this.pause();
-    }
-    
-    /**
-     * Handle window focus event
-     */
-    onFocus() {
-        // Check if this is triggered by a fullscreen change
-        if (window.isFullscreenChange) {
-            console.debug('Ignoring focus event due to fullscreen toggle');
-            return;
-        }
-        this.pause();
-        // this.resume();
     }
     
     /**

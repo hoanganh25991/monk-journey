@@ -899,8 +899,79 @@ const BASE_SKILL_TREES = {
   "Bul Palm": {
     baseDescription:
       "Giant palm moving, damaging all enemies on the path.",
-    variants: {},
-    buffs: {},
+    variants: {
+      "Palm Rain": {
+        description: "Summons 10 giant palms from the sky that crash down on enemies in an area.",
+        effects: ["Multiple palms", "Area of effect", "Increased damage"],
+        unlockedBy: "Legendary gloves Hand of the Heavens",
+        cost: 5,
+        requiredPoints: 0,
+      },
+      "Palm Cross": {
+        description: "Summons 4 giant palms in a cross pattern that fall simultaneously and cause a massive explosion.",
+        effects: ["Cross pattern", "Giant palms", "Massive explosion"],
+        unlockedBy: "Legendary bracers Cross of the Heavens",
+        cost: 5,
+        requiredPoints: 0,
+      },
+      "Storm of Palms": {
+        description: "Summons a storm of giant palms that follow you and crash down on enemies in your path.",
+        effects: ["Follows hero", "Increased palm count", "Extended duration"],
+        unlockedBy: "Legendary amulet Storm Caller's Pendant",
+        cost: 5,
+        requiredPoints: 0,
+      }
+    },
+    buffs: {
+      "Palm Mastery": {
+        description: "Increases the damage of Bul Palm by 15%.",
+        effects: ["Increased damage"],
+        cost: 5,
+        maxLevel: 3,
+        levelBonuses: [
+          "Increases damage by 15%",
+          "Increases damage by 30%",
+          "Increases damage by 45%",
+        ],
+        requiredVariant: "any",
+      },
+      "Swift Palms": {
+        description: "Reduces the cooldown of Bul Palm by 0.5 seconds.",
+        effects: ["Cooldown reduction"],
+        cost: 5,
+        maxLevel: 3,
+        levelBonuses: [
+          "Reduces cooldown by 0.5 seconds",
+          "Reduces cooldown by 1.0 seconds",
+          "Reduces cooldown by 1.5 seconds",
+        ],
+        requiredVariant: "any",
+      },
+      "Widened Impact": {
+        description: "Increases the explosion radius by 20%.",
+        effects: ["Extended radius"],
+        cost: 5,
+        maxLevel: 3,
+        levelBonuses: [
+          "Increases explosion radius by 20%",
+          "Increases explosion radius by 40%",
+          "Increases explosion radius by 60%",
+        ],
+        requiredVariant: "any",
+      },
+      "Empowered Palms": {
+        description: "Palm Rain variant summons 2 additional palms.",
+        effects: ["Additional palms"],
+        cost: 5,
+        maxLevel: 3,
+        levelBonuses: [
+          "Summons 2 additional palms",
+          "Summons 4 additional palms",
+          "Summons 6 additional palms",
+        ],
+        requiredVariant: "Palm Rain",
+      },
+    },
   },
   "Bul Breath Of Heaven": {
     baseDescription:
@@ -908,6 +979,11 @@ const BASE_SKILL_TREES = {
     variants: {},
     buffs: {},
   },
+  "Bul Shadow Clone": {
+    baseDescription: "Creates multiple shadow clones of the monk in yellow theme color. These transparent clones automatically seek out enemies, attack them, and can absorb damage.",
+    variants: {},
+    buffs: {},
+  }
 };
 
 // Apply buffs to variants by reference

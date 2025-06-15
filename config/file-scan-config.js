@@ -44,7 +44,8 @@ const excludeFiles = [
   'fuctional-requirement',
   'README.md',
   'LICENSE',
-  '.gitignore'
+  '.gitignore',
+  "assets/maps",
 ];
 
 // Helper function to categorize files by extension

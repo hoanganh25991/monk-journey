@@ -13,6 +13,12 @@ import { CorruptedTreantModel } from './CorruptedTreantModel.js';
 import { SwampWitchModel } from './SwampWitchModel.js';
 import { MountainTrollModel } from './MountainTrollModel.js';
 import { VoidWraithModel } from './VoidWraithModel.js';
+import { SwampHorrorModel } from './SwampHorrorModel.js';
+import { InfernoLordModel } from './InfernoLordModel.js';
+import { SpiderQueenModel } from './SpiderQueenModel.js';
+import { FrostMonarchModel } from './FrostMonarchModel.js';
+import { AncientConstructModel } from './AncientConstructModel.js';
+import { AncientYetiModel } from './AncientYetiModel.js';
 import { SimpleEnemyModel } from './SimpleEnemyModel.js';
 import { DefaultModel } from './DefaultModel.js';
 
@@ -55,6 +61,9 @@ export class EnemyModelFactory {
             case 'frost_titan':
                 return new FrostTitanModel(enemy, modelGroup);
                 
+            case 'frost_monarch':
+                return new FrostMonarchModel(enemy, modelGroup);
+                
             // Caster types
             case 'necromancer':
             case 'necromancer_lord':
@@ -82,6 +91,9 @@ export class EnemyModelFactory {
             case 'ice_golem':        // Added ice golem
                 return new InfernalGolemModel(enemy, modelGroup);
                 
+            case 'ancient_construct':
+                return new AncientConstructModel(enemy, modelGroup);
+                
             // Plant types
             case 'corrupted_treant':
                 return new CorruptedTreantModel(enemy, modelGroup);
@@ -91,11 +103,27 @@ export class EnemyModelFactory {
             case 'snow_troll':       // Added snow troll
                 return new MountainTrollModel(enemy, modelGroup);
                 
+            case 'ancient_yeti':
+                return new AncientYetiModel(enemy, modelGroup);
+                
             // Dark Sanctum creatures
             case 'void_wraith':
+            case 'void_harbinger':   // Added void harbinger
             case 'frozen_revenant':  // Added frozen revenant
             case 'cursed_spirit':    // Added cursed spirit
                 return new VoidWraithModel(enemy, modelGroup);
+                
+            // Swamp creatures
+            case 'swamp_horror':
+                return new SwampHorrorModel(enemy, modelGroup);
+                
+            // Fire bosses
+            case 'inferno_lord':
+                return new InfernoLordModel(enemy, modelGroup);
+                
+            // Spider creatures
+            case 'spider_queen':
+                return new SpiderQueenModel(enemy, modelGroup);
                 
             // Use SimpleEnemyModel for these animal-like enemy types
             case 'forest_spider':

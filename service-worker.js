@@ -4,13 +4,13 @@
  */
 
 const CACHE_NAME = 'monk-journey-cache';
-const CACHE_VERSION = '39';
+const CACHE_VERSION = '41';
 const CACHE_KEY = CACHE_NAME + '-v' + CACHE_VERSION;
 
 
 // Total cache size in bytes and MB
-const TOTAL_CACHE_SIZE_BYTES = 6739452;
-const TOTAL_CACHE_SIZE_MB = 6.43;
+const TOTAL_CACHE_SIZE_BYTES = 6826065;
+const TOTAL_CACHE_SIZE_MB = 6.51;
 
 // Assets to cache
 const ASSETS_TO_CACHE = [
@@ -53,7 +53,6 @@ const ASSETS_TO_CACHE = [
   'css/variables.css',
   'js/AudioManager.js',
   'js/CollisionManager.js',
-  'js/DifficultyManager.js',
   'js/EffectsManager.js',
   'js/InputHandler.js',
   'js/InteractionResultHandler.js',
@@ -84,7 +83,17 @@ const ASSETS_TO_CACHE = [
   'js/entities/enemies/models/ZombieBruteModel.js',
   'js/entities/enemies/models/ZombieModel.js',
   'js/entities/items/Item.js',
+  'js/entities/items/ItemDropManager.js',
   'js/entities/items/ItemGenerator.js',
+  'js/entities/items/models/ItemModel.js',
+  'js/entities/items/models/ItemModelFactory.js',
+  'js/entities/items/models/accessory/AmuletModel.js',
+  'js/entities/items/models/armor/HelmetModel.js',
+  'js/entities/items/models/armor/RobeModel.js',
+  'js/entities/items/models/consumable/PotionModel.js',
+  'js/entities/items/models/weapons/DaggerModel.js',
+  'js/entities/items/models/weapons/FistModel.js',
+  'js/entities/items/models/weapons/StaffModel.js',
   'js/entities/player/Player.js',
   'js/entities/player/PlayerAttackEffect.js',
   'js/entities/player/PlayerCombat.js',
@@ -241,6 +250,7 @@ const ASSETS_TO_CACHE = [
   'js/save-manager/IStorageAdapter.js',
   'js/save-manager/LocalStorageAdapter.js',
   'js/save-manager/SaveManager.js',
+  'js/save-manager/serializers/InventorySerializer.js',
   'js/save-manager/serializers/PlayerSerializer.js',
   'js/save-manager/serializers/QuestSerializer.js',
   'js/save-manager/serializers/SettingsSerializer.js',
@@ -292,7 +302,7 @@ const ASSETS_TO_CACHE = [
   'assets/audio/bell_fade.mp3',
   'assets/audio/bell_ring.mp3',
   'assets/audio/boss_death.mp3',
-  'assets/audio/boss_theme.MP3',
+  'assets/audio/boss_theme.mp3',
   'assets/audio/breath_of_heaven.mp3',
   'assets/audio/button_click.mp3',
   'assets/audio/chain_impact.mp3',
@@ -341,18 +351,6 @@ const ASSETS_TO_CACHE = [
   'assets/effects/buddha.glb',
   'assets/effects/flying-dragon.glb',
   'assets/images/background.jpg',
-  'assets/models/items/accessory/basic_accessory.glb',
-  'assets/models/items/accessory/basic_ring.glb',
-  'assets/models/items/armor/basic_armor.glb',
-  'assets/models/items/armor/helmet/basic_helmet.glb',
-  'assets/models/items/armor/robe/basic_robe.glb',
-  'assets/models/items/basic_item.glb',
-  'assets/models/items/consumable/basic_consumable.glb',
-  'assets/models/items/consumable/basic_potion.glb',
-  'assets/models/items/weapons/basic_weapon.glb',
-  'assets/models/items/weapons/dagger/basic_dagger.glb',
-  'assets/models/items/weapons/fist/basic_fist.glb',
-  'assets/models/items/weapons/staff/basic_staff.glb',
   'assets/models/monk-v3.glb',
   'assets/models/monk.glb'
 ];

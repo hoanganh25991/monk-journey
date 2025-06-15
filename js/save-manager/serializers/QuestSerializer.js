@@ -13,18 +13,21 @@ export class QuestSerializer {
             return {};
         }
         
+        // For active quests, we need to save progress information
+        const activeQuestsData = questManager.activeQuests.map(quest => ({
+            id: quest.id,
+            objective: {
+                progress: quest.objective.progress,
+                discovered: quest.objective.discovered || []
+            }
+        }));
+        
+        // For completed quests, only save the IDs
+        const completedQuestIds = questManager.completedQuests.map(quest => quest.id);
+        
         return {
-            activeQuests: questManager.activeQuests.map(quest => ({
-                ...quest,
-                // Ensure objective progress is saved
-                objective: {
-                    ...quest.objective,
-                    progress: quest.objective.progress,
-                    discovered: quest.objective.discovered || []
-                }
-            })),
-            completedQuests: [...questManager.completedQuests]
-            // Removed availableQuests to reduce save size
+            activeQuests: activeQuestsData,
+            completedQuestIds: completedQuestIds
         };
     }
     
@@ -48,33 +51,73 @@ export class QuestSerializer {
         // Load active quests with their progress
         if (questData.activeQuests && Array.isArray(questData.activeQuests)) {
             console.debug(`Loading ${questData.activeQuests.length} active quests`);
-            questManager.activeQuests = questData.activeQuests.map(quest => {
+            
+            questData.activeQuests.forEach(savedQuest => {
                 try {
                     // Find the original quest template
-                    const originalQuest = questManager.quests.find(q => q.id === quest.id);
+                    const originalQuest = questManager.quests.find(q => q.id === savedQuest.id);
+                    
                     if (originalQuest) {
                         // Create a new quest object with progress from saved data
-                        return {
+                        const questWithProgress = {
                             ...originalQuest,
                             objective: {
                                 ...originalQuest.objective,
-                                progress: quest.objective && quest.objective.progress ? quest.objective.progress : 0,
-                                discovered: quest.objective && quest.objective.discovered ? quest.objective.discovered : []
+                                progress: savedQuest.objective && savedQuest.objective.progress ? 
+                                    savedQuest.objective.progress : 0,
+                                discovered: savedQuest.objective && savedQuest.objective.discovered ? 
+                                    savedQuest.objective.discovered : []
                             }
                         };
+                        
+                        questManager.activeQuests.push(questWithProgress);
+                        
+                        // Remove from available quests
+                        questManager.quests = questManager.quests.filter(q => q.id !== savedQuest.id);
+                    } else {
+                        console.warn(`Original quest template not found for ID: ${savedQuest.id}`);
                     }
-                    return quest;
                 } catch (questError) {
-                    console.error('Error processing quest:', questError, quest);
-                    return quest;
+                    console.error('Error processing quest:', questError, savedQuest);
                 }
             });
         }
         
-        // Load completed quests
-        if (questData.completedQuests && Array.isArray(questData.completedQuests)) {
-            console.debug(`Loading ${questData.completedQuests.length} completed quests`);
-            questManager.completedQuests = [...questData.completedQuests];
+        // Load completed quests (using only IDs)
+        if (questData.completedQuestIds && Array.isArray(questData.completedQuestIds)) {
+            console.debug(`Loading ${questData.completedQuestIds.length} completed quest IDs`);
+            
+            questData.completedQuestIds.forEach(questId => {
+                // Find the original quest template
+                const originalQuest = questManager.quests.find(q => q.id === questId);
+                
+                if (originalQuest) {
+                    // Add to completed quests
+                    questManager.completedQuests.push(originalQuest);
+                    
+                    // Remove from available quests
+                    questManager.quests = questManager.quests.filter(q => q.id !== questId);
+                } else {
+                    console.warn(`Original quest template not found for completed quest ID: ${questId}`);
+                    // Add a minimal quest object with just the ID to maintain completion status
+                    questManager.completedQuests.push({ id: questId });
+                }
+            });
+        } else if (questData.completedQuests && Array.isArray(questData.completedQuests)) {
+            // Backward compatibility with old save format
+            console.debug(`Loading ${questData.completedQuests.length} completed quests (legacy format)`);
+            
+            questData.completedQuests.forEach(quest => {
+                // Find the original quest template
+                const originalQuest = questManager.quests.find(q => q.id === quest.id);
+                
+                if (originalQuest) {
+                    questManager.completedQuests.push(originalQuest);
+                    questManager.quests = questManager.quests.filter(q => q.id !== quest.id);
+                } else {
+                    questManager.completedQuests.push(quest);
+                }
+            });
         }
         
         // Filter available quests to remove active and completed ones

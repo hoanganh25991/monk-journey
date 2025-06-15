@@ -5,27 +5,27 @@
  */
 
 /* Import common HUD components */
-@import 'hud-common.css';
+@import 'hud/common.css';
 
 /* Import HUD layout */
-@import 'hud-layout.css';
+@import 'hud/layout.css';
 
 /* Import player stats */
-@import 'hud-player-stats.css';
+@import 'hud/player-stats.css';
 
 /* Import enemy health */
-@import 'hud-enemy-health.css';
+@import 'hud/enemy-health.css';
 
 /* Import skills */
-@import 'hud-skills.css';
+@import 'hud/skills.css';
 
 /* Import joystick */
-@import 'hud-joystick.css';
+@import 'hud/joystick.css';
 
 /* Import mini map */
-@import 'hud-minimap.css';
+@import 'hud/minimap.css';
 
 /* Import quest log */
-@import 'hud-quest-log.css';
+@import 'hud/quest-log.css';
 
 

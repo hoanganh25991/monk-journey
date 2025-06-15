@@ -58,7 +58,7 @@ export class PlayerInventory {
             if (this.inventory[itemIndex].amount <= 0) {
                 this.inventory.splice(itemIndex, 1);
             }
-            
+
             return true;
         }
         
