@@ -66,7 +66,7 @@ export class WorldManager {
         
         // Dynamic world generation settings
         this.dynamicWorldEnabled = true;
-        this.environmentDensity = 2.0; // Reduced from 3.0 to 2.0 for better performance
+        this.environmentDensity = 0.4; // Reduced by 5x to make objects 5x farther apart
         
         // Procedural generation settings
         this.generatedChunks = new Set(); // Track which chunks have been generated
@@ -77,35 +77,35 @@ export class WorldManager {
         // Flag to track initial terrain creation
         this.initialTerrainCreated = false;
         
-        // Generation densities per zone type - significantly increased for more objects
+        // Generation densities per zone type - reduced by 5x to make objects 5x farther apart
         this.zoneDensities = {
             'Forest': { 
-                environment: 2.5, // Increased density
-                structures: 0.4, // Increased structure probability
+                environment: 0.5, // Reduced by 5x for 5x farther spacing
+                structures: 0.08, // Reduced by 5x for 5x farther spacing
                 environmentTypes: ['tree', 'bush', 'flower', 'tall_grass', 'fern', 'berry_bush', 'ancient_tree', 'mushroom', 'fallen_log', 'tree_cluster', 'forest_flower', 'forest_debris', 'small_mushroom'],
                 structureTypes: ['ruins', 'village', 'house', 'tower', 'temple', 'altar']
             },
             'Desert': { 
-                environment: 1.8, // Increased density
-                structures: 0.35, // Increased structure probability
+                environment: 0.36, // Reduced by 5x for 5x farther spacing
+                structures: 0.07, // Reduced by 5x for 5x farther spacing
                 environmentTypes: ['desert_plant', 'cactus', 'oasis', 'sand_dune', 'desert_shrine', 'ash_pile', 'rock', 'rock_formation', 'small_peak'],
                 structureTypes: ['ruins', 'temple', 'altar', 'house', 'tower']
             },
             'Mountain': { 
-                environment: 2.0, // Increased density
-                structures: 0.3, // Increased structure probability
+                environment: 0.4, // Reduced by 5x for 5x farther spacing
+                structures: 0.06, // Reduced by 5x for 5x farther spacing
                 environmentTypes: ['pine_tree', 'mountain_rock', 'ice_shard', 'alpine_flower', 'small_peak', 'snow_patch', 'rock', 'rock_formation', 'tree'],
                 structureTypes: ['ruins', 'fortress', 'tower', 'mountain', 'house', 'altar']
             },
             'Swamp': { 
-                environment: 3.0, // Increased density
-                structures: 0.4, // Increased structure probability
+                environment: 0.6, // Reduced by 5x for 5x farther spacing
+                structures: 0.08, // Reduced by 5x for 5x farther spacing
                 environmentTypes: ['swamp_tree', 'lily_pad', 'swamp_plant', 'glowing_mushroom', 'moss', 'swamp_debris', 'tree', 'bush', 'fallen_log', 'mushroom'],
                 structureTypes: ['ruins', 'dark_sanctum', 'altar', 'house', 'tower']
             },
             'Magical': { 
-                environment: 2.5, // Increased density
-                structures: 0.45, // Increased structure probability
+                environment: 0.5, // Reduced by 5x for 5x farther spacing
+                structures: 0.09, // Reduced by 5x for 5x farther spacing
                 environmentTypes: ['glowing_flowers', 'crystal_formation', 'fairy_circle', 'magical_stone', 'ancient_artifact', 'mysterious_portal', 'ancient_tree', 'glowing_mushroom', 'crystal_formation'],
                 structureTypes: ['ruins', 'temple', 'altar', 'tower', 'dark_sanctum']
             }
@@ -113,8 +113,8 @@ export class WorldManager {
         
         // Dynamic generation settings
         this.dynamicGenerationSettings = {
-            environmentDensity: 1.2,
-            structureDensity: 0.8,
+            environmentDensity: 0.24, // Reduced by 5x for 5x farther spacing
+            structureDensity: 0.16, // Reduced by 5x for 5x farther spacing
             enableClusters: true,
             enableSpecialFeatures: true,
             useThematicAreas: true
@@ -158,8 +158,8 @@ export class WorldManager {
                 
                 // Set conservative default settings to prevent freezes
                 this.dynamicGenerationSettings = {
-                    environmentDensity: 0.3,     // Much lower density
-                    structureDensity: 0.1,       // Much lower structure density
+                    environmentDensity: 0.06,    // Reduced by 5x for 5x farther spacing
+                    structureDensity: 0.02,      // Reduced by 5x for 5x farther spacing
                     enableClusters: false,       // Disable clusters initially
                     enableSpecialFeatures: false, // Disable special features initially
                     useThematicAreas: false      // Disable thematic areas initially
@@ -180,8 +180,8 @@ export class WorldManager {
         
         setTimeout(() => {
             this.dynamicGenerationSettings = {
-                environmentDensity: settings.environmentDensity || 0.3,
-                structureDensity: settings.structureDensity || 0.1,
+                environmentDensity: settings.environmentDensity || 0.06, // Reduced by 5x for 5x farther spacing
+                structureDensity: settings.structureDensity || 0.02, // Reduced by 5x for 5x farther spacing
                 enableClusters: settings.enableClusters || false,
                 enableSpecialFeatures: settings.enableSpecialFeatures || false,
                 useThematicAreas: settings.useThematicAreas || false
