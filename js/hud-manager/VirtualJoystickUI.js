@@ -1,5 +1,6 @@
 import { UIComponent } from '../UIComponent.js';
 import { JOYSTICK } from '../config/input.js';
+import { touchManager } from './TouchManager.js';
 
 /**
  * Virtual Joystick UI component
@@ -60,6 +61,12 @@ export class VirtualJoystickUI extends UIComponent {
         // Set up touch event listeners directly on the joystick
         this.setupJoystickEvents();
         
+        // Register with the touch manager
+        touchManager.registerHandler('joystick', {
+            handleMove: (touch) => this.handleJoystickMove(touch.clientX, touch.clientY),
+            handleEnd: (touch) => this.handleJoystickEnd()
+        });
+        
         return true;
     }
     
@@ -77,8 +84,12 @@ export class VirtualJoystickUI extends UIComponent {
             // Only respond if joystick is not already active
             if (!this.joystickState.active) {
                 const touch = event.touches[0];
-                this.joystickState.touchId = touch.identifier;
-                this.handleJoystickStart(touch.clientX, touch.clientY);
+                
+                // Try to claim the touch through the touch manager
+                if (touchManager.claimTouch(touch, 'joystick')) {
+                    this.joystickState.touchId = touch.identifier;
+                    this.handleJoystickStart(touch.clientX, touch.clientY);
+                }
             }
         });
         
@@ -94,48 +105,6 @@ export class VirtualJoystickUI extends UIComponent {
                 // Add global mouse move and up events
                 document.addEventListener('mousemove', this.handleMouseMove);
                 document.addEventListener('mouseup', this.handleMouseUp);
-            }
-        });
-        
-        // Touch move event on document (to ensure smooth movement even when finger moves outside joystick)
-        document.addEventListener('touchmove', (event) => {
-            if (this.joystickState.active && this.joystickState.touchId !== null) {
-                // Find the touch that corresponds to our joystick
-                for (let i = 0; i < event.touches.length; i++) {
-                    if (event.touches[i].identifier === this.joystickState.touchId) {
-                        event.preventDefault();
-                        this.handleJoystickMove(event.touches[i].clientX, event.touches[i].clientY);
-                        break;
-                    }
-                }
-            }
-        }, { passive: false });
-        
-        // Touch end event on document
-        document.addEventListener('touchend', (event) => {
-            if (this.joystickState.active && this.joystickState.touchId !== null) {
-                // Check if our joystick touch ended
-                for (let i = 0; i < event.changedTouches.length; i++) {
-                    if (event.changedTouches[i].identifier === this.joystickState.touchId) {
-                        event.preventDefault();
-                        this.handleJoystickEnd();
-                        break;
-                    }
-                }
-            }
-        });
-        
-        // Touch cancel event on document
-        document.addEventListener('touchcancel', (event) => {
-            if (this.joystickState.active && this.joystickState.touchId !== null) {
-                // Check if our joystick touch was cancelled
-                for (let i = 0; i < event.changedTouches.length; i++) {
-                    if (event.changedTouches[i].identifier === this.joystickState.touchId) {
-                        event.preventDefault();
-                        this.handleJoystickEnd();
-                        break;
-                    }
-                }
             }
         });
         
@@ -248,17 +217,13 @@ export class VirtualJoystickUI extends UIComponent {
      * Override from UIComponent
      */
     removeEventListeners() {
-        // Remove container event listeners
-        if (this.container) {
-            this.container.removeEventListener('touchstart', this.handleTouchStart);
-            this.container.removeEventListener('mousedown', this.handleMouseDown);
+        // Remove mouse event listeners if they exist
+        if (this.handleMouseMove && this.handleMouseUp) {
+            document.removeEventListener('mousemove', this.handleMouseMove);
+            document.removeEventListener('mouseup', this.handleMouseUp);
         }
         
-        // Remove document event listeners
-        document.removeEventListener('touchmove', this.handleTouchMove);
-        document.removeEventListener('touchend', this.handleTouchEnd);
-        document.removeEventListener('touchcancel', this.handleTouchCancel);
-        document.removeEventListener('mousemove', this.handleMouseMove);
-        document.removeEventListener('mouseup', this.handleMouseUp);
+        // Note: Touch events are now handled by TouchManager globally
+        // Individual component cleanup is not needed for touch events
     }
 }

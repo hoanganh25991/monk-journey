@@ -1,6 +1,7 @@
 import { UIComponent } from '../UIComponent.js';
 import { getSkillIcon } from '../config/skill-icons.js';
 import { CAST_INTERVAL } from '../config/input.js';
+import { touchManager } from './TouchManager.js';
 
 /**
  * Skills UI component
@@ -97,68 +98,94 @@ export class SkillsUI extends UIComponent {
                 e.preventDefault(); // Prevent default behavior
                 e.stopPropagation(); // Stop event from bubbling to other elements
                 
-                // Clear any existing interval for this skill
-                this.stopContinuousCasting(index);
+                const touch = e.touches[0];
                 
-                // Trigger first cast immediately
-                if (isPrimaryAttack) {
-                    this.game.player.usePrimaryAttack();
-                } else {
-                    this.game.player.useSkill(index);
-                }
-                
-                // Initialize cooldown for this skill
-                this.skillCastCooldowns[index] = 0;
-                
-                // Set up continuous casting with respect to cooldown
-                this.skillCastIntervals[index] = setInterval(() => {
-                    // Reduce cooldown
-                    this.skillCastCooldowns[index] -= this.castInterval / 1000;
+                // Try to claim the touch through the touch manager
+                if (touchManager.claimTouch(touch, 'skills')) {
+                    // Clear any existing interval for this skill
+                    this.stopContinuousCasting(index);
                     
-                    // If cooldown is up, cast the skill again
-                    if (this.skillCastCooldowns[index] <= 0) {
-                        try {
-                            // Get the actual skill to check its current cooldown
-                            const skills = this.game.player.getSkills();
-                            const skill = skills[index];
-                            
-                            // Only cast if the skill is not on cooldown
-                            if (skill && skill.getCooldownPercent() === 0) {
-                                if (isPrimaryAttack) {
-                                    this.game.player.usePrimaryAttack();
-                                } else {
-                                    this.game.player.useSkill(index);
-                                }
-                                
-                                // Reset the casting cooldown
-                                this.skillCastCooldowns[index] = CAST_INTERVAL;
-                            }
-                        } catch (error) {
-                            console.error(`Error in continuous casting for skill ${index}:`, error);
-                            // Stop the interval to prevent further errors
-                            this.stopContinuousCasting(index);
-                        }
+                    // Store the touch ID for this skill button
+                    button.dataset.touchId = touch.identifier;
+                    
+                    // Trigger first cast immediately
+                    if (isPrimaryAttack) {
+                        this.game.player.usePrimaryAttack();
+                    } else {
+                        this.game.player.useSkill(index);
                     }
-                }, 100); // Check more frequently than the cast interval for better responsiveness
-                
-                // Add active state
-                button.classList.add('skill-activated');
+                    
+                    // Initialize cooldown for this skill
+                    this.skillCastCooldowns[index] = 0;
+                    
+                    // Set up continuous casting with respect to cooldown
+                    this.skillCastIntervals[index] = setInterval(() => {
+                        // Reduce cooldown
+                        this.skillCastCooldowns[index] -= this.castInterval / 1000;
+                        
+                        // If cooldown is up, cast the skill again
+                        if (this.skillCastCooldowns[index] <= 0) {
+                            try {
+                                // Get the actual skill to check its current cooldown
+                                const skills = this.game.player.getSkills();
+                                const skill = skills[index];
+                                
+                                // Only cast if the skill is not on cooldown
+                                if (skill && skill.getCooldownPercent() === 0) {
+                                    if (isPrimaryAttack) {
+                                        this.game.player.usePrimaryAttack();
+                                    } else {
+                                        this.game.player.useSkill(index);
+                                    }
+                                    
+                                    // Reset the casting cooldown
+                                    this.skillCastCooldowns[index] = CAST_INTERVAL;
+                                }
+                            } catch (error) {
+                                console.error(`Error in continuous casting for skill ${index}:`, error);
+                                // Stop the interval to prevent further errors
+                                this.stopContinuousCasting(index);
+                            }
+                        }
+                    }, 100); // Check more frequently than the cast interval for better responsiveness
+                    
+                    // Add active state
+                    button.classList.add('skill-activated');
+                }
             });
             
             // Stop continuous casting on touch end
             button.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this.stopContinuousCasting(index);
-                button.classList.remove('skill-activated');
+                
+                // Check if any of the ended touches match this button's touch
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    if (button.dataset.touchId === touch.identifier.toString()) {
+                        this.stopContinuousCasting(index);
+                        button.classList.remove('skill-activated');
+                        delete button.dataset.touchId;
+                        break;
+                    }
+                }
             });
             
             // Also stop on touch cancel
             button.addEventListener('touchcancel', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this.stopContinuousCasting(index);
-                button.classList.remove('skill-activated');
+                
+                // Check if any of the cancelled touches match this button's touch
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    if (button.dataset.touchId === touch.identifier.toString()) {
+                        this.stopContinuousCasting(index);
+                        button.classList.remove('skill-activated');
+                        delete button.dataset.touchId;
+                        break;
+                    }
+                }
             });
             
             // Add tooltip with description on hover
