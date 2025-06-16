@@ -856,6 +856,23 @@ export const ENVIRONMENT_SOUNDS = {
             decay: true,
             slide: -20
         }
+    },
+    teleport: {
+        id: 'teleport',
+        file: 'teleport.mp3',
+        volume: 0.8,
+        simulated: {
+            frequency: 400,
+            duration: 0.6,
+            type: 'sine',
+            decay: true,
+            slide: 100,
+            vibrato: 15,
+            tremolo: 8,
+            reverb: true,
+            filter: 'highpass',
+            arpeggio: [1, 1.5, 2, 1.5, 1]
+        }
     }
 };
 
