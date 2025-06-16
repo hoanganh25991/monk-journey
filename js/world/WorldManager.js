@@ -66,46 +66,47 @@ export class WorldManager {
         
         // Dynamic world generation settings
         this.dynamicWorldEnabled = true;
-        this.environmentDensity = 0.4; // Reduced by 5x to make objects 5x farther apart
+        this.environmentDensity = 2.0; // Reduced from 3.0 to 2.0 for better performance
+        this.worldScale = 5.0; // Scale factor to make objects appear 5x farther apart
         
         // Procedural generation settings
         this.generatedChunks = new Set(); // Track which chunks have been generated
         this.currentZoneType = 'Forest'; // Current zone type
-        this.zoneSize = 500; // Reduced size of each zone in world units for more frequent zone changes
-        this.zoneTransitionBuffer = 20; // Buffer zone for transitions
+        this.zoneSize = 500 * this.worldScale; // Scale zone size to maintain proper zone distribution
+        this.zoneTransitionBuffer = 20 * this.worldScale; // Scale buffer zone for transitions
         
         // Flag to track initial terrain creation
         this.initialTerrainCreated = false;
         
-        // Generation densities per zone type - reduced by 5x to make objects 5x farther apart
+        // Generation densities per zone type - significantly increased for more objects
         this.zoneDensities = {
             'Forest': { 
-                environment: 0.5, // Reduced by 5x for 5x farther spacing
-                structures: 0.08, // Reduced by 5x for 5x farther spacing
+                environment: 2.5, // Increased density
+                structures: 0.4, // Increased structure probability
                 environmentTypes: ['tree', 'bush', 'flower', 'tall_grass', 'fern', 'berry_bush', 'ancient_tree', 'mushroom', 'fallen_log', 'tree_cluster', 'forest_flower', 'forest_debris', 'small_mushroom'],
                 structureTypes: ['ruins', 'village', 'house', 'tower', 'temple', 'altar']
             },
             'Desert': { 
-                environment: 0.36, // Reduced by 5x for 5x farther spacing
-                structures: 0.07, // Reduced by 5x for 5x farther spacing
+                environment: 1.8, // Increased density
+                structures: 0.35, // Increased structure probability
                 environmentTypes: ['desert_plant', 'cactus', 'oasis', 'sand_dune', 'desert_shrine', 'ash_pile', 'rock', 'rock_formation', 'small_peak'],
                 structureTypes: ['ruins', 'temple', 'altar', 'house', 'tower']
             },
             'Mountain': { 
-                environment: 0.4, // Reduced by 5x for 5x farther spacing
-                structures: 0.06, // Reduced by 5x for 5x farther spacing
+                environment: 2.0, // Increased density
+                structures: 0.3, // Increased structure probability
                 environmentTypes: ['pine_tree', 'mountain_rock', 'ice_shard', 'alpine_flower', 'small_peak', 'snow_patch', 'rock', 'rock_formation', 'tree'],
                 structureTypes: ['ruins', 'fortress', 'tower', 'mountain', 'house', 'altar']
             },
             'Swamp': { 
-                environment: 0.6, // Reduced by 5x for 5x farther spacing
-                structures: 0.08, // Reduced by 5x for 5x farther spacing
+                environment: 3.0, // Increased density
+                structures: 0.4, // Increased structure probability
                 environmentTypes: ['swamp_tree', 'lily_pad', 'swamp_plant', 'glowing_mushroom', 'moss', 'swamp_debris', 'tree', 'bush', 'fallen_log', 'mushroom'],
                 structureTypes: ['ruins', 'dark_sanctum', 'altar', 'house', 'tower']
             },
             'Magical': { 
-                environment: 0.5, // Reduced by 5x for 5x farther spacing
-                structures: 0.09, // Reduced by 5x for 5x farther spacing
+                environment: 2.5, // Increased density
+                structures: 0.45, // Increased structure probability
                 environmentTypes: ['glowing_flowers', 'crystal_formation', 'fairy_circle', 'magical_stone', 'ancient_artifact', 'mysterious_portal', 'ancient_tree', 'glowing_mushroom', 'crystal_formation'],
                 structureTypes: ['ruins', 'temple', 'altar', 'tower', 'dark_sanctum']
             }
@@ -113,8 +114,8 @@ export class WorldManager {
         
         // Dynamic generation settings
         this.dynamicGenerationSettings = {
-            environmentDensity: 0.24, // Reduced by 5x for 5x farther spacing
-            structureDensity: 0.16, // Reduced by 5x for 5x farther spacing
+            environmentDensity: 1.2,
+            structureDensity: 0.8,
             enableClusters: true,
             enableSpecialFeatures: true,
             useThematicAreas: true
@@ -158,8 +159,8 @@ export class WorldManager {
                 
                 // Set conservative default settings to prevent freezes
                 this.dynamicGenerationSettings = {
-                    environmentDensity: 0.06,    // Reduced by 5x for 5x farther spacing
-                    structureDensity: 0.02,      // Reduced by 5x for 5x farther spacing
+                    environmentDensity: 0.3,     // Much lower density
+                    structureDensity: 0.1,       // Much lower structure density
                     enableClusters: false,       // Disable clusters initially
                     enableSpecialFeatures: false, // Disable special features initially
                     useThematicAreas: false      // Disable thematic areas initially
@@ -180,8 +181,8 @@ export class WorldManager {
         
         setTimeout(() => {
             this.dynamicGenerationSettings = {
-                environmentDensity: settings.environmentDensity || 0.06, // Reduced by 5x for 5x farther spacing
-                structureDensity: settings.structureDensity || 0.02, // Reduced by 5x for 5x farther spacing
+                environmentDensity: settings.environmentDensity || 0.3,
+                structureDensity: settings.structureDensity || 0.1,
                 enableClusters: settings.enableClusters || false,
                 enableSpecialFeatures: settings.enableSpecialFeatures || false,
                 useThematicAreas: settings.useThematicAreas || false
@@ -303,8 +304,8 @@ export class WorldManager {
                 const clusterCenterX = worldX + Math.random() * chunkSize;
                 const clusterCenterZ = worldZ + Math.random() * chunkSize;
                 
-                // Random cluster radius - increased by 5x for more spacing between objects
-                const clusterRadius = (3 + Math.random() * 7) * 5; // Increased from 3-10 to 15-50
+                // Random cluster radius
+                const clusterRadius = 3 + Math.random() * 7;
                 
                 // Generate objects in this cluster
                 for (let i = 0; i < objectsPerCluster; i++) {
@@ -314,12 +315,13 @@ export class WorldManager {
                     const minDistance = clusterRadius * 0.2; // At least 20% of radius
                     const distance = minDistance + Math.random() * (clusterRadius - minDistance);
                     
-                    // Calculate position
-                    const x = clusterCenterX + Math.cos(angle) * distance;
-                    const z = clusterCenterZ + Math.sin(angle) * distance;
+                    // Calculate position and apply world scale
+                    const x = (clusterCenterX + Math.cos(angle) * distance) * this.worldScale;
+                    const z = (clusterCenterZ + Math.sin(angle) * distance) * this.worldScale;
                     
-                    // Make sure position is within chunk bounds
-                    if (x >= worldX && x < worldX + chunkSize && z >= worldZ && z < worldZ + chunkSize) {
+                    // Make sure position is within scaled chunk bounds
+                    if (x >= worldX * this.worldScale && x < (worldX + chunkSize) * this.worldScale && 
+                        z >= worldZ * this.worldScale && z < (worldZ + chunkSize) * this.worldScale) {
                         // Random object type from zone types - weighted to create more natural groupings
                         let objectType;
                         
@@ -463,9 +465,9 @@ export class WorldManager {
                 (zoneType === 'Forest' || zoneType === 'Magical' || zoneType === 'Mountain');
             
             if (createVillage) {
-                // Place village near center of chunk
-                const villageX = worldX + chunkSize * 0.5;
-                const villageZ = worldZ + chunkSize * 0.5;
+                // Place village near center of chunk and apply world scale
+                const villageX = (worldX + chunkSize * 0.5) * this.worldScale;
+                const villageZ = (worldZ + chunkSize * 0.5) * this.worldScale;
                 
                 // Create the village
                 const village = this.structureManager.createVillage(villageX, villageZ);
@@ -486,17 +488,16 @@ export class WorldManager {
                     const buildingCount = 1 + Math.floor(Math.random() * 2); // Reduced from 2-4 to 1-2
                     
                     for (let i = 0; i < buildingCount; i++) {
-                        // Position buildings in a circle around the village with increased spacing
+                        // Position buildings in a circle around the village
                         const angle = (i / buildingCount) * Math.PI * 2;
-                        // Increase distance by 5x for more spacing
-                        const distance = (15 + Math.random() * 10) * 5; // Increased from 15-25 to 75-125
+                        const distance = 15 + Math.random() * 10;
                         
-                        const buildingX = villageX + Math.cos(angle) * distance;
-                        const buildingZ = villageZ + Math.sin(angle) * distance;
+                        const buildingX = villageX + Math.cos(angle) * distance * this.worldScale;
+                        const buildingZ = villageZ + Math.sin(angle) * distance * this.worldScale;
                         
-                        // Make sure building is within chunk bounds
-                        if (buildingX >= worldX && buildingX < worldX + chunkSize && 
-                            buildingZ >= worldZ && buildingZ < worldZ + chunkSize) {
+                        // Make sure building is within scaled chunk bounds
+                        if (buildingX >= worldX * this.worldScale && buildingX < (worldX + chunkSize) * this.worldScale && 
+                            buildingZ >= worldZ * this.worldScale && buildingZ < (worldZ + chunkSize) * this.worldScale) {
                             
                             // Create a house or tower
                             const buildingType = Math.random() < 0.7 ? 'house' : 'tower';
@@ -531,10 +532,10 @@ export class WorldManager {
             } else {
                 // Generate individual structures
                 for (let i = 0; i < structureCount; i++) {
-                    // Random position within chunk (but not too close to edges)
+                    // Random position within chunk (but not too close to edges) and apply world scale
                     const margin = chunkSize * 0.1; // 10% margin
-                    const x = worldX + margin + Math.random() * (chunkSize - 2 * margin);
-                    const z = worldZ + margin + Math.random() * (chunkSize - 2 * margin);
+                    const x = (worldX + margin + Math.random() * (chunkSize - 2 * margin)) * this.worldScale;
+                    const z = (worldZ + margin + Math.random() * (chunkSize - 2 * margin)) * this.worldScale;
                     
                     // Random structure type from zone types
                     const structureType = zoneDensity.structureTypes[
