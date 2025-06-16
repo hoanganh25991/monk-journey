@@ -249,6 +249,111 @@ export class EffectsManager {
     }
     
     /**
+     * Create a defense boost effect around the player
+     * @param {Object} position - 3D position {x, y, z}
+     * @returns {Object|null} - The created defense boost effect or null if creation failed
+     */
+    createDefenseBoostEffect(position) {
+        // Check if defense boost effect already exists
+        const existingEffect = this.effects.find(effect => effect.type === 'defenseBoost');
+        if (existingEffect) {
+            // Update position of existing effect
+            if (existingEffect.group) {
+                existingEffect.group.position.copy(position);
+            }
+            return existingEffect;
+        }
+        
+        // Create a defense boost effect using a simple sphere with transparent material
+        const geometry = new THREE.SphereGeometry(1.2, 16, 16);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xffaa00, // Orange-yellow color for defense boost
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide
+        });
+        
+        const sphere = new THREE.Mesh(geometry, material);
+        const group = new THREE.Group();
+        group.add(sphere);
+        
+        // Position the effect
+        group.position.copy(position);
+        
+        // Create a custom effect object
+        const defenseBoostEffect = {
+            type: 'defenseBoost',
+            group: group,
+            isActive: true,
+            isPaused: false,
+            duration: 3.0, // 3 seconds duration
+            elapsedTime: 0,
+            
+            // Update method for the defense boost effect
+            update: function(delta) {
+                // Update elapsed time
+                this.elapsedTime += delta;
+                
+                // Pulse the effect
+                const scale = 1.0 + 0.1 * Math.sin(this.elapsedTime * 5);
+                sphere.scale.set(scale, scale, scale);
+                
+                // Rotate the effect
+                sphere.rotation.y += delta * 0.5;
+                sphere.rotation.x += delta * 0.3;
+                
+                // Pulse opacity
+                material.opacity = 0.3 + 0.1 * Math.sin(this.elapsedTime * 3);
+                
+                // Check if effect has expired
+                if (this.elapsedTime >= this.duration) {
+                    this.isActive = false;
+                }
+            },
+            
+            // Dispose method to clean up resources
+            dispose: function() {
+                if (this.group && this.group.parent) {
+                    this.group.parent.remove(this.group);
+                }
+                geometry.dispose();
+                material.dispose();
+            }
+        };
+        
+        // Add the effect to the scene
+        if (this.game && this.game.scene) {
+            this.game.scene.add(group);
+            
+            // Add to the effects array for updates
+            this.effects.push(defenseBoostEffect);
+            
+            return defenseBoostEffect;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Remove the defense boost effect
+     */
+    removeDefenseBoostEffect() {
+        // Find the defense boost effect
+        const effectIndex = this.effects.findIndex(effect => effect.type === 'defenseBoost');
+        
+        if (effectIndex >= 0) {
+            // Get the effect
+            const effect = this.effects[effectIndex];
+            
+            // Dispose the effect
+            effect.dispose();
+            
+            // Remove from the effects array
+            this.effects.splice(effectIndex, 1);
+        }
+    }
+    
+    /**
      * Create a level up effect in the 3D scene
      * @param {number} level - The new level
      * @param {Object} position - 3D position {x, y, z}, defaults to player position if not provided
@@ -268,30 +373,39 @@ export class EffectsManager {
         // Create a group to hold all level up effect elements
         const group = new THREE.Group();
         
-        // Create sprites for "LEVEL UP" text
-        // Main sprite for "LEVEL"
-        const levelSprite = new THREE.Sprite(
-            new THREE.SpriteMaterial({
-                color: 0xffcc00,
-                transparent: true,
-                opacity: 0.8
-            })
-        );
-        levelSprite.scale.set(2, 0.7, 1);
-        levelSprite.position.set(-0.8, 2, 0);
-        group.add(levelSprite);
+        // Create a canvas-based text for "LEVEL UP"
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 512;
+        canvas.height = 128;
         
-        // Sprite for level number
-        const numberSprite = new THREE.Sprite(
-            new THREE.SpriteMaterial({
-                color: 0xffcc00,
-                transparent: true,
-                opacity: 0.8
-            })
-        );
-        numberSprite.scale.set(1, 1, 1);
-        numberSprite.position.set(0.8, 2, 0);
-        group.add(numberSprite);
+        // Fill with transparent background
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Add text
+        context.font = 'bold 64px Arial';
+        context.fillStyle = '#ffcc00'; // Gold color
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(`LEVEL ${level}`, canvas.width / 2, canvas.height / 2);
+        
+        // Create texture from canvas
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        
+        // Create a plane for the text
+        const textGeometry = new THREE.PlaneGeometry(2, 0.5);
+        const textMaterial = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            opacity: 0.8,
+            side: THREE.DoubleSide
+        });
+        
+        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+        textMesh.position.set(0, 2, 0); // Position above
+        textMesh.rotation.x = -Math.PI / 8; // Tilt slightly for better visibility
+        group.add(textMesh);
         
         // Create a ring effect
         const ringGeometry = new THREE.RingGeometry(1.5, 2, 32);
@@ -354,8 +468,7 @@ export class EffectsManager {
             duration: 2.0, // 2 seconds duration
             elapsedTime: 0,
             level: level,
-            levelSprite: levelSprite,
-            numberSprite: numberSprite,
+            textMesh: textMesh,
             ring: ring,
             particles: particles,
             particlePositions: positions,
@@ -393,14 +506,12 @@ export class EffectsManager {
                 // Fade out particles
                 this.particles.material.opacity = 0.8 * (1 - progress);
                 
-                // Update sprites
-                this.levelSprite.material.opacity = fadeInOut;
-                this.numberSprite.material.opacity = fadeInOut;
+                // Update text
+                this.textMesh.material.opacity = fadeInOut;
                 
                 // Float upward
                 const floatY = 2 + progress * 0.5;
-                this.levelSprite.position.y = floatY;
-                this.numberSprite.position.y = floatY;
+                this.textMesh.position.y = floatY;
                 
                 // Check if effect has expired
                 if (this.elapsedTime >= this.duration) {
@@ -417,49 +528,30 @@ export class EffectsManager {
                 // Dispose geometries and materials
                 if (this.textMesh) {
                     this.textMesh.geometry.dispose();
-                    this.textMesh.material.dispose();
+                    if (this.textMesh.material) {
+                        this.textMesh.material.dispose();
+                        if (this.textMesh.material.map) {
+                            this.textMesh.material.map.dispose();
+                        }
+                    }
                 }
                 
-                this.tempSprite.material.dispose();
-                this.ring.geometry.dispose();
-                this.ring.material.dispose();
-                this.particles.geometry.dispose();
-                this.particles.material.dispose();
+                // Dispose ring and particles
+                if (this.ring) {
+                    this.ring.geometry.dispose();
+                    if (this.ring.material) {
+                        this.ring.material.dispose();
+                    }
+                }
+                
+                if (this.particles) {
+                    this.particles.geometry.dispose();
+                    if (this.particles.material) {
+                        this.particles.material.dispose();
+                    }
+                }
             }
         };
-        
-        // Try to load the font for better text (non-blocking)
-        try {
-            fontLoader.load('/assets/fonts/helvetiker_bold.typeface.json', (font) => {
-                // If the effect is still active, replace the sprite with actual text
-                if (levelUpEffect.isActive) {
-                    // Create text for "LEVEL"
-                    const levelTextGeo = new THREE.TextGeometry('LEVEL ' + level, {
-                        font: font,
-                        size: 0.3,
-                        height: 0.05,
-                        curveSegments: 12,
-                        bevelEnabled: false
-                    });
-                    
-                    levelTextGeo.computeBoundingBox();
-                    const textWidth = levelTextGeo.boundingBox.max.x - levelTextGeo.boundingBox.min.x;
-                    
-                    const textMesh = new THREE.Mesh(levelTextGeo, textMaterial);
-                    textMesh.position.set(-textWidth/2, 2, 0); // Center text
-                    
-                    // Remove the temporary sprite
-                    group.remove(tempSprite);
-                    
-                    // Add the text mesh
-                    group.add(textMesh);
-                    levelUpEffect.textMesh = textMesh;
-                }
-            });
-        } catch (error) {
-            console.warn("Could not load font for level up effect:", error);
-            // Continue with sprite as fallback
-        }
         
         // Add the level up effect to the scene
         if (this.game && this.game.scene) {
