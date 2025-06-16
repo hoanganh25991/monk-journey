@@ -6,6 +6,8 @@ export class PerformanceManager {
         this.game = game;
         this.stats = null;
         this.statsEnabled = false;
+        this.currentQualityLevel = 'high';
+        this.performanceSettings = {};
     }
     
     async init() {
@@ -40,11 +42,11 @@ export class PerformanceManager {
     }
 
     getCurrentQualityLevel() {
-        return "ultra";
+        return this.currentQualityLevel;
     }
 
     getCurrentPerformanceLevel() {
-        return "ultra";
+        return this.currentQualityLevel;
     }
 
     togglePerformanceStats(enabled) {

@@ -310,10 +310,21 @@ export class GameplayTab extends SettingsTab {
                 // Store the value using storage service
                 this.saveSetting(STORAGE_KEYS.MATERIAL_QUALITY, selectedQuality);
                 
-                // Show notification that changes will apply on game restart
+                // Show notification that the game will reload to apply changes
                 if (this.game && this.game.hudManager) {
-                    this.game.hudManager.showNotification(`Material quality will be applied on next game start`);
+                    this.game.hudManager.showNotification(`Applying material quality: ${selectedQuality}. Game will reload...`);
                 }
+                
+                // Close the settings menu if it exists
+                if (this.settingsMenu) {
+                    this.settingsMenu.hide();
+                }
+                
+                // Set a short timeout to allow the notification to be seen
+                setTimeout(() => {
+                    // Reload the page to apply the new material quality
+                    window.location.reload();
+                }, 1500);
             });
         }
         

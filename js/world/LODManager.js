@@ -308,4 +308,74 @@ export class LODManager {
     getConfig() {
         return this.config;
     }
+    
+    /**
+     * Update LOD settings based on quality level
+     * @param {string} quality - The quality level ('high', 'medium', 'low', or 'minimal')
+     */
+    updateQualitySettings(quality) {
+        console.debug(`Updating LOD settings for quality: ${quality}`);
+        
+        switch (quality) {
+            case 'high':
+                this.config.distances = {
+                    high: 0,
+                    medium: 75,      // Further distances for high quality
+                    low: 150,
+                    wireframe: 250,
+                    outlineOnly: 350
+                };
+                this.config.useWireframeForDistant = false;
+                this.config.useOutlineOnlyForVeryDistant = false;
+                break;
+                
+            case 'medium':
+                this.config.distances = {
+                    high: 0,
+                    medium: 50,      // Standard distances
+                    low: 100,
+                    wireframe: 150,
+                    outlineOnly: 200
+                };
+                this.config.useWireframeForDistant = true;
+                this.config.useOutlineOnlyForVeryDistant = false;
+                break;
+                
+            case 'low':
+                this.config.distances = {
+                    high: 0,
+                    medium: 25,      // Closer distances for low quality
+                    low: 50,
+                    wireframe: 75,
+                    outlineOnly: 100
+                };
+                this.config.useWireframeForDistant = true;
+                this.config.useOutlineOnlyForVeryDistant = true;
+                break;
+                
+            case 'minimal':
+                this.config.distances = {
+                    high: 0,
+                    medium: 15,      // Very close distances for minimal quality
+                    low: 30,
+                    wireframe: 45,
+                    outlineOnly: 60
+                };
+                this.config.useWireframeForDistant = true;
+                this.config.useOutlineOnlyForVeryDistant = true;
+                break;
+                
+            default:
+                console.warn(`Unknown quality level for LOD: ${quality}`);
+        }
+        
+        // Update wireframe material opacity based on quality
+        if (quality === 'minimal') {
+            this.wireframeMaterial.opacity = 0.3;
+        } else if (quality === 'low') {
+            this.wireframeMaterial.opacity = 0.4;
+        } else {
+            this.wireframeMaterial.opacity = 0.5;
+        }
+    }
 }
