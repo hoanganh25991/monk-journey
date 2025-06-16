@@ -5,12 +5,13 @@
 
 .status-effects-container {
     position: fixed;
-    top: 100px;
-    right: 20px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     display: flex;
     flex-direction: column;
     gap: 10px;
-    z-index: 1000;
+    z-index: 50;
 }
 
 .status-effect {
