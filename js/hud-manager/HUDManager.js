@@ -246,20 +246,20 @@ export class HUDManager {
     }
     
     /**
-     * Show countdown animation
+     * Show a DOM-based countdown for teleport
      * @param {number} startCount - Starting countdown number (e.g., 3)
      * @param {function} onComplete - Callback when countdown reaches 0
      * @param {string} message - Optional message to show with countdown
      */
     showCountdown(startCount = 3, onComplete = null, message = 'Portal created! Auto-teleport in') {
-        if (this.game && this.game.effectsManager) {
-            // Show notification with message
-            this.showNotification(`${message} ${startCount}s (move to cancel)`);
-            
-            // Create 3D countdown effect
-            this.game.effectsManager.createCountdownEffect(startCount, onComplete);
-        } else {
-            // Fallback to regular notification
+        console.debug(`Starting teleport countdown: ${startCount}`);
+        
+        // Get the countdown container and elements
+        const countdownContainer = document.getElementById('teleport-countdown-container');
+        const countdownNumber = document.querySelector('.teleport-countdown-number');
+        
+        if (!countdownContainer || !countdownNumber) {
+            console.warn('Countdown DOM elements not found, falling back to notification');
             this.showNotification(`${message} ${startCount}s (move to cancel)`);
             
             // Manual countdown with setTimeout
@@ -275,7 +275,44 @@ export class HUDManager {
                     }
                 }
             }, 1000);
+            return;
         }
+        
+        // Start countdown
+        let currentCount = startCount;
+        
+        // Show the countdown container
+        countdownContainer.style.display = 'flex';
+        
+        // Function to update countdown display
+        const updateCountdown = () => {
+            if (currentCount > 0) {
+                // Update the number display
+                countdownNumber.textContent = currentCount;
+                
+                // Reset animation by removing and re-adding the class
+                countdownNumber.style.animation = 'none';
+                countdownNumber.offsetHeight; // Trigger reflow
+                countdownNumber.style.animation = 'teleportNumberPulse 1s ease-in-out';
+                
+                currentCount--;
+                
+                // Schedule next update
+                setTimeout(updateCountdown, 1000);
+            } else {
+                // Hide countdown container
+                countdownContainer.style.display = 'none';
+                
+                // Execute completion callback
+                if (onComplete) {
+                    console.debug('Teleport countdown completed, executing callback');
+                    onComplete();
+                }
+            }
+        };
+        
+        // Start the countdown
+        updateCountdown();
     }
     
     /**

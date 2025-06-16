@@ -1398,6 +1398,54 @@ export class TeleportManager {
     }
     
     /**
+     * Create a temporary portal for teleport-to-origin functionality
+     * @param {THREE.Vector3} sourcePosition - The position of the source portal
+     * @param {THREE.Vector3} targetPosition - The position to teleport to (default: origin)
+     * @param {number} duration - Portal duration in milliseconds (default: 10 seconds)
+     * @returns {Object} - The created temporary portal object
+     */
+    createTemporaryPortal(sourcePosition, targetPosition = null, duration = 10000) {
+        // Default target position is origin (0, 0, 0)
+        if (!targetPosition) {
+            targetPosition = new THREE.Vector3(0, 0, 0);
+            // Adjust target Y position based on terrain height
+            try {
+                if (this.worldManager && this.worldManager.getTerrainHeight) {
+                    targetPosition.y = this.worldManager.getTerrainHeight(0, 0) + 0.5;
+                }
+            } catch (e) {
+                console.warn('Error adjusting target portal height:', e);
+                targetPosition.y = 0.5;
+            }
+        }
+        
+        // Create the portal with custom colors for temporary portals
+        const temporaryPortal = this.createPortal(
+            sourcePosition,
+            targetPosition,
+            'Origin Portal',
+            'Starting Area',
+            0x00ffff, // Cyan color for origin portals
+            0x0099ff, // Blue emissive
+            1.5       // Slightly larger size
+        );
+        
+        // Mark as temporary
+        temporaryPortal.isTemporary = true;
+        temporaryPortal.expirationTime = Date.now() + duration;
+        
+        console.debug(`Created temporary portal at (${sourcePosition.x.toFixed(1)}, ${sourcePosition.y.toFixed(1)}, ${sourcePosition.z.toFixed(1)}) for ${duration}ms`);
+        
+        // Auto-remove after duration
+        setTimeout(() => {
+            this.removePortal(temporaryPortal.id);
+            console.debug('Temporary portal expired and removed');
+        }, duration);
+        
+        return temporaryPortal;
+    }
+    
+    /**
      * Remove a portal
      * @param {string} portalId - ID of the portal to remove
      */

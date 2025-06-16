@@ -117,3 +117,83 @@
         transform: scale(8);
     }
 }
+
+/* Teleport Countdown Container */
+#teleport-countdown-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.teleport-countdown-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    animation: teleportCountdownAnimation 1s ease-in-out;
+}
+
+.teleport-countdown-text {
+    color: #00ffff;
+    font-size: 2.5rem;
+    font-weight: bold;
+    text-shadow: 0 0 1rem #0099ff;
+    text-align: center;
+}
+
+.teleport-countdown-number {
+    color: #00ffff;
+    font-size: 8rem;
+    font-weight: bold;
+    text-shadow: 0 0 2rem #0099ff, 0 0 4rem #0066ff;
+    text-align: center;
+    animation: teleportNumberPulse 1s ease-in-out;
+}
+
+.teleport-countdown-subtext {
+    color: #ffcc00;
+    font-size: 1.5rem;
+    font-weight: normal;
+    text-shadow: 0 0 0.5rem #ff6600;
+    text-align: center;
+    opacity: 0.8;
+}
+
+@keyframes teleportCountdownAnimation {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes teleportNumberPulse {
+    0% {
+        transform: scale(1);
+        text-shadow: 0 0 2rem #0099ff, 0 0 4rem #0066ff;
+    }
+    50% {
+        transform: scale(1.3);
+        text-shadow: 0 0 3rem #00ffff, 0 0 6rem #0099ff, 0 0 8rem #0066ff;
+    }
+    100% {
+        transform: scale(1);
+        text-shadow: 0 0 2rem #0099ff, 0 0 4rem #0066ff;  
+    }
+}

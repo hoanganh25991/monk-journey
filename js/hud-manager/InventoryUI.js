@@ -38,8 +38,8 @@ export class InventoryUI extends UIComponent {
         this.itemPreviewContainer = null;
         this.itemPreview = null; // ItemPreview instance
         
-        // Portal properties
-        this.portal = null;
+        // Portal properties (using TeleportManager)
+        this.temporaryPortal = null;
         this.portalTimeout = null;
         this.playerStartPosition = null;
         this.isPortalActive = false;
@@ -1084,7 +1084,7 @@ export class InventoryUI extends UIComponent {
     }
     
     /**
-     * Create and manage teleport portal
+     * Create and manage teleport portal using TeleportManager
      */
     teleportToOrigin() {
         if (!this.game || !this.game.player) {
@@ -1095,9 +1095,23 @@ export class InventoryUI extends UIComponent {
             return;
         }
 
+        // Check if TeleportManager is available  
+        if (!this.game.worldManager || !this.game.worldManager.teleportManager) {
+            console.error('Cannot create portal: TeleportManager not available');
+            if (this.game.hudManager) {
+                this.game.hudManager.showNotification('Teleport system not available!', 'error');
+            }
+            return;
+        }
+
         // If portal is already active, remove it
-        if (this.isPortalActive) {
-            this.removePortal();
+        if (this.isPortalActive && this.temporaryPortal) {
+            this.game.worldManager.teleportManager.removePortal(this.temporaryPortal.id);
+            this.temporaryPortal = null;
+            this.isPortalActive = false;
+            if (this.game.hudManager) {
+                this.game.hudManager.showNotification('Portal removed.');
+            }
             return;
         }
 
@@ -1113,14 +1127,22 @@ export class InventoryUI extends UIComponent {
             return;
         }
         
+        // Store player start position for movement detection
         this.playerStartPosition = {
             x: playerPosition.x,
             y: playerPosition.y,
             z: playerPosition.z
         };
 
-        // Create portal at player position
-        this.createPortal(this.playerStartPosition);
+        // Create temporary portal using TeleportManager
+        const sourcePosition = new THREE.Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
+        this.temporaryPortal = this.game.worldManager.teleportManager.createTemporaryPortal(
+            sourcePosition,
+            null, // Use default origin position
+            15000 // 15 seconds duration
+        );
+        
+        this.isPortalActive = true;
         
         // Close inventory
         this.toggleInventory();
@@ -1156,8 +1178,8 @@ export class InventoryUI extends UIComponent {
                 }
                 
                 if (distance < this.movementThreshold) {
-                    // Player didn't move, auto-teleport
-                    this.performTeleport();
+                    // Player didn't move, auto-teleport to origin
+                    this.performTeleportToOrigin();
                 } else {
                     // Player moved, cancel auto-teleport but keep portal
                     if (this.game.hudManager) {
@@ -1166,11 +1188,11 @@ export class InventoryUI extends UIComponent {
                 }
             };
             
-            // Start the countdown with 3D effect
+            // Start the DOM-based countdown
             this.game.hudManager.showCountdown(3, onCountdownComplete, 'Portal created! Auto-teleport in');
         }
 
-        console.debug('Portal created at player position:', this.playerStartPosition);
+        console.debug('Temporary portal created at player position:', this.playerStartPosition);
     }
 
     /**
