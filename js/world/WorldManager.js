@@ -133,6 +133,7 @@ export class WorldManager {
     
     /**
      * Initialize dynamic generators safely with performance controls
+     * @returns {Promise<boolean>} - Promise that resolves when initialization is complete
      */
     initializeDynamicGenerators() {
         console.log('🔄 Initializing dynamic generators...');
@@ -140,64 +141,75 @@ export class WorldManager {
         // Check if already initialized
         if (this.dynamicEnvironmentGenerator && this.dynamicStructureGenerator) {
             console.log('✅ Dynamic generators already initialized');
-            return;
+            return Promise.resolve(true);
         }
         
-        // Wait for environment manager to be ready with its factory
-        setTimeout(() => {
-            try {
-                if (this.environmentManager && this.environmentManager.environmentFactory) {
-                    this.dynamicEnvironmentGenerator = new DynamicEnvironmentGenerator(
-                        this.scene, 
-                        this, 
-                        this.environmentManager.environmentFactory
-                    );
-                    console.log('✅ Dynamic Environment Generator initialized');
-                } else {
-                    console.warn('⚠️ Environment factory not available for dynamic generator');
+        // Return a promise that resolves when initialization is complete
+        return new Promise((resolve) => {
+            // Wait for environment manager to be ready with its factory
+            setTimeout(() => {
+                try {
+                    // Initialize environment generator if possible
+                    if (this.environmentManager && this.environmentManager.environmentFactory) {
+                        this.dynamicEnvironmentGenerator = new DynamicEnvironmentGenerator(
+                            this.scene, 
+                            this, 
+                            this.environmentManager.environmentFactory
+                        );
+                        console.log('✅ Dynamic Environment Generator initialized');
+                    } else {
+                        console.warn('⚠️ Environment factory not available for dynamic generator');
+                    }
+                    
+                    // Initialize structure generator if possible
+                    if (this.structureManager) {
+                        this.dynamicStructureGenerator = new DynamicStructureGenerator(
+                            this.scene,
+                            this,
+                            this.structureManager
+                        );
+                        console.log('✅ Dynamic Structure Generator initialized');
+                    }
+                    
+                    // Set conservative default settings to prevent freezes
+                    this.dynamicGenerationSettings = {
+                        environmentDensity: 0.3,     // Lower density for better performance
+                        structureDensity: 0.1,       // Lower structure density
+                        enableClusters: false,       // Disable clusters initially
+                        enableSpecialFeatures: false, // Disable special features initially
+                        useThematicAreas: false      // Disable thematic areas initially
+                    };
+                    
+                    console.log('✅ Dynamic generators initialized with safe settings');
+                    resolve(true);
+                } catch (error) {
+                    console.error('❌ Error initializing dynamic generators:', error);
+                    resolve(false);
                 }
-                
-                if (this.structureManager) {
-                    this.dynamicStructureGenerator = new DynamicStructureGenerator(
-                        this.scene,
-                        this,
-                        this.structureManager
-                    );
-                    console.log('✅ Dynamic Structure Generator initialized');
-                }
-                
-                // Set conservative default settings to prevent freezes
-                this.dynamicGenerationSettings = {
-                    environmentDensity: 0.3,     // Much lower density
-                    structureDensity: 0.1,       // Much lower structure density
-                    enableClusters: false,       // Disable clusters initially
-                    enableSpecialFeatures: false, // Disable special features initially
-                    useThematicAreas: false      // Disable thematic areas initially
-                };
-                
-                console.log('✅ Dynamic generators initialized with safe settings');
-            } catch (error) {
-                console.error('❌ Error initializing dynamic generators:', error);
-            }
-        }, 100);
+            }, 100);
+        });
     }
     
     /**
-     * Initialize dynamic generators with custom settings (use carefully)
+     * Initialize dynamic generators with custom settings
+     * @param {Object} settings - Custom generation settings
+     * @returns {Promise<boolean>} - Promise that resolves when initialization is complete
      */
-    initializeDynamicGeneratorsWithSettings(settings = {}) {
-        this.initializeDynamicGenerators();
+    async initializeDynamicGeneratorsWithSettings(settings = {}) {
+        // First initialize with default settings
+        await this.initializeDynamicGenerators();
         
-        setTimeout(() => {
-            this.dynamicGenerationSettings = {
-                environmentDensity: settings.environmentDensity || 0.3,
-                structureDensity: settings.structureDensity || 0.1,
-                enableClusters: settings.enableClusters || false,
-                enableSpecialFeatures: settings.enableSpecialFeatures || false,
-                useThematicAreas: settings.useThematicAreas || false
-            };
-            console.log('✅ Dynamic generators initialized with custom settings:', this.dynamicGenerationSettings);
-        }, 200);
+        // Then apply custom settings
+        this.dynamicGenerationSettings = {
+            environmentDensity: settings.environmentDensity || 0.3,
+            structureDensity: settings.structureDensity || 0.1,
+            enableClusters: settings.enableClusters || false,
+            enableSpecialFeatures: settings.enableSpecialFeatures || false,
+            useThematicAreas: settings.useThematicAreas || false
+        };
+        
+        console.log('✅ Dynamic generators initialized with custom settings:', this.dynamicGenerationSettings);
+        return true;
     }
     
     /**
@@ -248,56 +260,13 @@ export class WorldManager {
      * @param {number} chunkZ - Chunk Z coordinate
      */
     generateChunkContent(chunkX, chunkZ) {
-        // Try dynamic generation first if available
+        // Try dynamic generation if available and enabled
         if (this.dynamicEnvironmentGenerator && this.dynamicStructureGenerator) {
             return this.generateDynamicChunkContent(chunkX, chunkZ);
         }
         
-        // Fallback to original chunk generation
-        const chunkKey = `${chunkX},${chunkZ}`;
-        
-        // Skip if already generated
-        if (this.generatedChunks.has(chunkKey)) {
-            return;
-        }
-        
-        console.debug(`Generating content for chunk ${chunkKey} (legacy method)`);
-        
-        // Calculate world coordinates for this chunk
-        const worldX = chunkX * this.terrainManager.terrainChunkSize;
-        const worldZ = chunkZ * this.terrainManager.terrainChunkSize;
-        
-        // Determine zone type for this chunk
-        const zoneType = this.getZoneTypeAt(worldX, worldZ);
-        const zoneDensity = this.zoneDensities[zoneType];
-        
-        if (!zoneDensity) {
-            console.warn(`Unknown zone type: ${zoneType}`);
-            return;
-        }
-        
-        try {
-            // Generate environment objects with reduced density for better performance
-            const reducedDensity = { ...zoneDensity };
-            reducedDensity.environment = zoneDensity.environment * 0.6; // Reduce environment density by 40%
-            reducedDensity.structures = zoneDensity.structures * 0.5; // Reduce structure probability by 50%
-            
-            // Generate environment objects
-            this.generateEnvironmentObjectsForChunk(chunkX, chunkZ, zoneType, reducedDensity);
-            
-            // Generate structures - but only if this is not the initial loading
-            // This helps prevent freezing during initial load
-            if (this.initialTerrainCreated) {
-                this.generateStructuresForChunk(chunkX, chunkZ, zoneType, reducedDensity);
-            }
-            
-            // Mark chunk as generated
-            this.generatedChunks.add(chunkKey);
-        } catch (error) {
-            console.error(`Error generating content for chunk ${chunkKey}:`, error);
-            // Still mark as generated to prevent repeated attempts that might cause freezing
-            this.generatedChunks.add(chunkKey);
-        }
+        // Otherwise use legacy chunk generation
+        return this.generateLegacyChunkContent(chunkX, chunkZ);
     }
     
     /**
@@ -1348,11 +1317,38 @@ export class WorldManager {
     
     /**
      * Manage memory and performance to prevent memory leaks and maintain frame rate
+     * This method is called periodically to monitor and adjust performance settings
      */
     manageMemoryAndPerformance() {
         const currentTime = Date.now();
         
         // Track frame rate
+        this.trackFrameRate();
+        
+        // Periodically check memory usage
+        if (currentTime - this.lastMemoryCheck > this.memoryCheckInterval) {
+            this.lastMemoryCheck = currentTime;
+            this.checkMemoryUsage();
+        }
+        
+        // Periodically adjust performance settings
+        if (currentTime - this.lastPerformanceAdjustment > this.performanceAdjustmentInterval) {
+            this.lastPerformanceAdjustment = currentTime;
+            this.adjustPerformanceSettings();
+        }
+        
+        // Periodically hint for garbage collection
+        if (currentTime - this.lastGarbageCollection > this.gcInterval) {
+            this.lastGarbageCollection = currentTime;
+            this.hintGarbageCollection();
+        }
+    }
+    
+    /**
+     * Track frame rate for performance monitoring
+     * @private
+     */
+    trackFrameRate() {
         if (this.game && this.game.stats && this.game.stats.fps) {
             this.frameRateHistory.push(this.game.stats.fps);
             
@@ -1361,97 +1357,119 @@ export class WorldManager {
                 this.frameRateHistory.shift();
             }
         }
+    }
+    
+    /**
+     * Check memory usage and perform cleanup if necessary
+     * @private
+     */
+    checkMemoryUsage() {
+        // Only proceed if we have enough frame rate history
+        if (this.frameRateHistory.length <= 10) return;
         
-        // Periodically check memory usage
-        if (currentTime - this.lastMemoryCheck > this.memoryCheckInterval) {
-            this.lastMemoryCheck = currentTime;
+        // Calculate average FPS
+        const avgFPS = this.calculateAverageFPS();
+        
+        // If FPS is consistently low, trigger aggressive cleanup
+        if (avgFPS < 30) {
+            console.debug(`Low FPS detected (${avgFPS.toFixed(1)}), performing aggressive cleanup`);
+            this.performAggressiveCleanup();
+        } else {
+            // Even if FPS is good, periodically clean up distant terrain to prevent memory buildup
+            console.debug("Performing routine terrain cleanup to prevent memory buildup");
+            this.terrainManager.clearDistantChunks();
+        }
+    }
+    
+    /**
+     * Calculate average FPS from frame rate history
+     * @private
+     * @returns {number} - Average FPS
+     */
+    calculateAverageFPS() {
+        if (this.frameRateHistory.length === 0) return 60; // Default to 60 if no history
+        return this.frameRateHistory.reduce((sum, fps) => sum + fps, 0) / this.frameRateHistory.length;
+    }
+    
+    /**
+     * Adjust performance settings based on current frame rate
+     * @private
+     */
+    adjustPerformanceSettings() {
+        // Only proceed if we have enough frame rate history
+        if (this.frameRateHistory.length <= 10) return;
+        
+        // Calculate average FPS
+        const avgFPS = this.calculateAverageFPS();
+        
+        // Adjust performance mode and density based on FPS
+        const wasLowPerformanceMode = this.lowPerformanceMode;
+        
+        // Determine performance level and density
+        const { densityLevel, performanceMode } = this.determinePerformanceLevel(avgFPS);
+        
+        // Apply the new density level
+        this.setDensityLevel(densityLevel);
+        
+        // Notify if performance mode changed
+        if (wasLowPerformanceMode !== this.lowPerformanceMode || this.lastPerformanceLevel !== densityLevel) {
+            console.debug(`Performance mode changed to: ${performanceMode} (density: ${densityLevel})`);
+            this.lastPerformanceLevel = densityLevel;
             
-            // Check if we need to force cleanup
-            if (this.frameRateHistory.length > 10) {
-                // Calculate average FPS
-                const avgFPS = this.frameRateHistory.reduce((sum, fps) => sum + fps, 0) / 
-                               this.frameRateHistory.length;
-                
-                // If FPS is consistently low, trigger aggressive cleanup
-                if (avgFPS < 30) {
-                    console.debug(`Low FPS detected (${avgFPS.toFixed(1)}), performing aggressive cleanup`);
-                    this.performAggressiveCleanup();
-                } else {
-                    // Even if FPS is good, periodically clean up distant terrain to prevent memory buildup
-                    // This addresses the issue of memory accumulation during long-distance travel
-                    console.debug("Performing routine terrain cleanup to prevent memory buildup");
-                    this.terrainManager.clearDistantChunks();
-                }
+            // Notify user if performance mode changed
+            this.notifyPerformanceModeChange(performanceMode, densityLevel);
+            
+            // If switching to low performance mode, force terrain cleanup
+            if (this.lowPerformanceMode) {
+                this.terrainManager.clearDistantChunks(this.terrainChunkViewDistance);
             }
         }
+    }
+    
+    /**
+     * Determine performance level based on FPS
+     * @private
+     * @param {number} avgFPS - Average FPS
+     * @returns {Object} - Performance level information
+     */
+    determinePerformanceLevel(avgFPS) {
+        let densityLevel, performanceMode;
         
-        // Periodically adjust performance settings
-        if (currentTime - this.lastPerformanceAdjustment > this.performanceAdjustmentInterval) {
-            this.lastPerformanceAdjustment = currentTime;
-            
-            if (this.frameRateHistory.length > 10) {
-                // Calculate average FPS
-                const avgFPS = this.frameRateHistory.reduce((sum, fps) => sum + fps, 0) / 
-                               this.frameRateHistory.length;
-                
-                // Adjust performance mode and density based on FPS
-                const wasLowPerformanceMode = this.lowPerformanceMode;
-                
-                // Determine performance level and density
-                let densityLevel;
-                let performanceMode;
-                
-                if (avgFPS < 20) {
-                    // Very low FPS - minimal density
-                    densityLevel = 'minimal';
-                    performanceMode = 'MINIMAL';
-                    this.lowPerformanceMode = true;
-                } else if (avgFPS < 30) {
-                    // Low FPS - low density
-                    densityLevel = 'low';
-                    performanceMode = 'LOW';
-                    this.lowPerformanceMode = true;
-                } else if (avgFPS < 45) {
-                    // Medium FPS - medium density
-                    densityLevel = 'medium';
-                    performanceMode = 'NORMAL';
-                    this.lowPerformanceMode = false;
-                } else {
-                    // High FPS - high density
-                    densityLevel = 'high';
-                    performanceMode = 'HIGH';
-                    this.lowPerformanceMode = false;
-                }
-                
-                // Apply the new density level
-                this.setDensityLevel(densityLevel);
-                
-                // Notify if performance mode changed
-                if (wasLowPerformanceMode !== this.lowPerformanceMode || this.lastPerformanceLevel !== densityLevel) {
-                    console.debug(`Performance mode changed to: ${performanceMode} (density: ${densityLevel})`);
-                    this.lastPerformanceLevel = densityLevel;
-                    
-                    // Notify user if performance mode changed
-                    if (this.game && this.game.hudManager) {
-                        const message = `Performance mode: ${performanceMode} - Environment density set to ${densityLevel}`;
-                        
-                        if (this.game.hudManager.showNotification) {
-                            this.game.hudManager.showNotification(message, 3000);
-                        }
-                    }
-                    
-                    // If switching to low performance mode, force terrain cleanup
-                    if (this.lowPerformanceMode) {
-                        this.terrainManager.clearDistantChunks(this.terrainChunkViewDistance);
-                    }
-                }
-            }
+        if (avgFPS < 20) {
+            // Very low FPS - minimal density
+            densityLevel = 'minimal';
+            performanceMode = 'MINIMAL';
+            this.lowPerformanceMode = true;
+        } else if (avgFPS < 30) {
+            // Low FPS - low density
+            densityLevel = 'low';
+            performanceMode = 'LOW';
+            this.lowPerformanceMode = true;
+        } else if (avgFPS < 45) {
+            // Medium FPS - medium density
+            densityLevel = 'medium';
+            performanceMode = 'NORMAL';
+            this.lowPerformanceMode = false;
+        } else {
+            // High FPS - high density
+            densityLevel = 'high';
+            performanceMode = 'HIGH';
+            this.lowPerformanceMode = false;
         }
         
-        // Periodically hint for garbage collection
-        if (currentTime - this.lastGarbageCollection > this.gcInterval) {
-            this.lastGarbageCollection = currentTime;
-            this.hintGarbageCollection();
+        return { densityLevel, performanceMode };
+    }
+    
+    /**
+     * Notify user of performance mode change
+     * @private
+     * @param {string} performanceMode - New performance mode
+     * @param {string} densityLevel - New density level
+     */
+    notifyPerformanceModeChange(performanceMode, densityLevel) {
+        if (this.game && this.game.hudManager && this.game.hudManager.showNotification) {
+            const message = `Performance mode: ${performanceMode} - Environment density set to ${densityLevel}`;
+            this.game.hudManager.showNotification(message, 3000);
         }
     }
     
@@ -2022,55 +2040,12 @@ export class WorldManager {
     }
     
     // ============================================================================
-    // DYNAMIC GENERATION DEBUG AND TEST METHODS
+    // DYNAMIC GENERATION EMERGENCY CONTROL
     // ============================================================================
     
     /**
-     * Test dynamic generation with minimal objects to identify freezing cause
-     */
-    testDynamicGeneration() {
-        console.log('🧪 Testing dynamic generation...');
-        
-        try {
-            // Test 1: Check if generators can be initialized
-            console.log('📋 Test 1: Initializing generators...');
-            this.initializeDynamicGenerators();
-            
-            setTimeout(() => {
-                // Test 2: Try generating just one object
-                console.log('📋 Test 2: Generating single object...');
-                if (this.dynamicEnvironmentGenerator) {
-                    try {
-                        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
-                            new THREE.Vector3(0, 0, 0),
-                            5, // Very small radius
-                            'FOREST',
-                            0.1 // Very low density
-                        );
-                        console.log(`✅ Generated ${objects.length} objects successfully`);
-                    } catch (error) {
-                        console.error('❌ Error in object generation:', error);
-                    }
-                } else {
-                    console.error('❌ Environment generator not available');
-                }
-                
-                // Test 3: Check memory usage
-                console.log('📋 Test 3: Memory check...');
-                if (performance.memory) {
-                    console.log(`🧠 Memory: ${Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)}MB used`);
-                }
-                
-                console.log('✅ Basic test complete');
-            }, 500);
-            
-        } catch (error) {
-            console.error('❌ Error in test:', error);
-        }
-    }
-    
-    /**
      * Emergency stop for freezing situations
+     * Clears all dynamic content and resets settings to minimal values
      */
     emergencyStop() {
         console.log('🚨 Emergency stop activated');
@@ -2505,7 +2480,9 @@ export class WorldManager {
     }
     
     /**
-     * Enhanced chunk generation with dynamic system (SAFE VERSION)
+     * Enhanced chunk generation with dynamic system
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
      */
     generateDynamicChunkContent(chunkX, chunkZ) {
         const chunkKey = `${chunkX},${chunkZ}`;
@@ -2515,84 +2492,16 @@ export class WorldManager {
             return;
         }
         
-        // SAFETY: Don't use dynamic generation for chunks to prevent freezing
-        console.debug('⚠️ Skipping dynamic chunk generation to prevent freezing, using legacy method');
+        // For now, use legacy method for better performance and stability
         return this.generateLegacyChunkContent(chunkX, chunkZ);
-        
-        // TODO: Enable this when dynamic generation is more stable
-        /*
-        // Check if dynamic generators are available
-        if (!this.dynamicEnvironmentGenerator || !this.dynamicStructureGenerator) {
-            console.debug('Dynamic generators not ready, falling back to standard generation');
-            return this.generateLegacyChunkContent(chunkX, chunkZ);
-        }
-        
-        console.debug(`🎯 Generating dynamic content for chunk ${chunkKey}`);
-        
-        // Calculate world coordinates for this chunk
-        const worldX = chunkX * this.terrainManager.terrainChunkSize;
-        const worldZ = chunkZ * this.terrainManager.terrainChunkSize;
-        const chunkCenter = new THREE.Vector3(
-            worldX + this.terrainManager.terrainChunkSize / 2,
-            0,
-            worldZ + this.terrainManager.terrainChunkSize / 2
-        );
-        
-        // Determine zone type for this chunk
-        const zoneType = this.getZoneTypeAt(worldX, worldZ).toUpperCase();
-        const chunkRadius = Math.min(this.terrainManager.terrainChunkSize / 2, 25); // Cap chunk radius
-        
-        try {
-            // Generate very few environment objects using dynamic system
-            const safeEnvironmentDensity = Math.min(this.dynamicGenerationSettings.environmentDensity * 0.1, 0.05);
-            const environmentObjects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
-                chunkCenter,
-                chunkRadius,
-                zoneType,
-                safeEnvironmentDensity // Much lower density for chunks
-            );
-            
-            // Cap the number of objects per chunk
-            if (environmentObjects.length > 5) {
-                environmentObjects.splice(5); // Remove excess objects
-            }
-            
-            console.debug(`Generated ${environmentObjects.length} dynamic environment objects for chunk ${chunkKey}`);
-            
-            // Very rarely generate structures in chunks
-            if (Math.random() < 0.02) { // Only 2% chance for structures in chunk
-                const safeStructureDensity = Math.min(this.dynamicGenerationSettings.structureDensity * 0.1, 0.02);
-                const structures = this.dynamicStructureGenerator.generateSettlement(
-                    chunkCenter,
-                    Math.min(chunkRadius * 0.3, 10), // Very small settlements
-                    zoneType,
-                    'SCATTERED',
-                    safeStructureDensity
-                );
-                
-                // Cap structures per chunk
-                if (structures.length > 2) {
-                    structures.splice(2);
-                }
-                
-                console.debug(`Generated ${structures.length} structures for chunk ${chunkKey}`);
-            }
-            
-            // Mark chunk as generated
-            this.generatedChunks.add(chunkKey);
-        } catch (error) {
-            console.error(`Error generating dynamic content for chunk ${chunkKey}:`, error);
-            // Fall back to standard generation
-            this.generateLegacyChunkContent(chunkX, chunkZ);
-        }
-        */
     }
     
     /**
      * Legacy chunk generation (safe fallback)
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
      */
     generateLegacyChunkContent(chunkX, chunkZ) {
-        // This is the original method body moved to a separate function
         const chunkKey = `${chunkX},${chunkZ}`;
         
         // Skip if already generated
@@ -2600,7 +2509,7 @@ export class WorldManager {
             return;
         }
         
-        console.debug(`Generating content for chunk ${chunkKey} (legacy method)`);
+        console.debug(`Generating content for chunk ${chunkKey}`);
         
         // Calculate world coordinates for this chunk
         const worldX = chunkX * this.terrainManager.terrainChunkSize;
@@ -2612,21 +2521,24 @@ export class WorldManager {
         
         if (!zoneDensity) {
             console.warn(`Unknown zone type: ${zoneType}`);
+            this.generatedChunks.add(chunkKey); // Mark as generated to prevent retries
             return;
         }
         
         try {
-            // Generate environment objects with heavily reduced density for better performance
-            const reducedDensity = { ...zoneDensity };
-            reducedDensity.environment = zoneDensity.environment * 0.3; // Reduce environment density by 70%
-            reducedDensity.structures = zoneDensity.structures * 0.2; // Reduce structure probability by 80%
+            // Apply density reduction based on performance settings
+            const performanceMultiplier = this.lowPerformanceMode ? 0.2 : 0.3;
+            const reducedDensity = { 
+                ...zoneDensity,
+                environment: zoneDensity.environment * performanceMultiplier,
+                structures: zoneDensity.structures * 0.2
+            };
             
             // Generate environment objects
             this.generateEnvironmentObjectsForChunk(chunkX, chunkZ, zoneType, reducedDensity);
             
-            // Generate structures - but only if this is not the initial loading
-            // This helps prevent freezing during initial load
-            if (this.initialTerrainCreated && Math.random() < 0.1) { // Only 10% chance
+            // Generate structures with limited probability and only after initial terrain is created
+            if (this.initialTerrainCreated && Math.random() < 0.1) {
                 this.generateStructuresForChunk(chunkX, chunkZ, zoneType, reducedDensity);
             }
             
@@ -2634,8 +2546,7 @@ export class WorldManager {
             this.generatedChunks.add(chunkKey);
         } catch (error) {
             console.error(`Error generating content for chunk ${chunkKey}:`, error);
-            // Still mark as generated to prevent repeated attempts that might cause freezing
-            this.generatedChunks.add(chunkKey);
+            this.generatedChunks.add(chunkKey); // Mark as generated to prevent retries
         }
     }
 }
