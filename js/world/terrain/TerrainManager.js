@@ -16,17 +16,32 @@ export class TerrainManager {
         this.worldManager = worldManager;
         this.game = game;
         
+        // Get world scale for consistent scaling
+        const worldScale = this.worldManager.worldScale || 1.0;
+        
         // Terrain properties from config
-        this.terrainSize = TERRAIN_CONFIG.size;
+        this.terrainSize = TERRAIN_CONFIG.size * worldScale; // Scale base terrain with world scale
         this.terrainResolution = TERRAIN_CONFIG.resolution;
         this.terrainHeight = TERRAIN_CONFIG.height;
         
-        // For terrain chunks from config
-        this.terrainChunkSize = TERRAIN_CONFIG.chunkSize;
-        this.terrainChunkViewDistance = TERRAIN_CONFIG.chunkViewDistance;
+        // For terrain chunks from config - scale with world scale for performance
+        this.terrainChunkSize = TERRAIN_CONFIG.chunkSize * worldScale;
+        this.terrainChunkViewDistance = Math.max(1, Math.floor(TERRAIN_CONFIG.chunkViewDistance / worldScale)); // Reduce view distance with scaling
         
-        // For terrain buffering (pre-rendering) from config
-        this.terrainBufferDistance = TERRAIN_CONFIG.bufferDistance;
+        // For terrain buffering (pre-rendering) from config - scale appropriately
+        this.terrainBufferDistance = Math.max(1, Math.floor(TERRAIN_CONFIG.bufferDistance / worldScale));
+        
+        // Log the terrain scaling adjustments
+        if (worldScale !== 1.0) {
+            console.log(`🌍 Terrain scaling applied (${worldScale}x):`, {
+                originalChunkSize: TERRAIN_CONFIG.chunkSize,
+                scaledChunkSize: this.terrainChunkSize,
+                originalViewDistance: TERRAIN_CONFIG.chunkViewDistance,
+                scaledViewDistance: this.terrainChunkViewDistance,
+                originalBufferDistance: TERRAIN_CONFIG.bufferDistance,
+                scaledBufferDistance: this.terrainBufferDistance
+            });
+        }
 
         // Base terrain
         this.terrain = null;
@@ -37,15 +52,24 @@ export class TerrainManager {
         // Initialize managers
         this.coloringManager = new TerrainColoringManager();
         this.templateManager = new TerrainTemplateManager();
+        
+        // Create scaled terrain config for optimized performance with world scaling
+        const scaledTerrainConfig = {
+            ...TERRAIN_CONFIG,
+            chunkSize: this.terrainChunkSize,
+            chunkViewDistance: this.terrainChunkViewDistance,
+            bufferDistance: this.terrainBufferDistance
+        };
+        
         this.chunkManager = new TerrainChunkManager(
             scene, 
             worldManager, 
-            TERRAIN_CONFIG, 
+            scaledTerrainConfig, 
             this.templateManager, 
             this.coloringManager
         );
-        this.queueManager = new TerrainQueueManager(this.chunkManager, TERRAIN_CONFIG);
-        this.cleanupManager = new TerrainCleanupManager(scene, worldManager, TERRAIN_CONFIG);
+        this.queueManager = new TerrainQueueManager(this.chunkManager, scaledTerrainConfig);
+        this.cleanupManager = new TerrainCleanupManager(scene, worldManager, scaledTerrainConfig);
         
         // Set game reference for queue manager
         if (game) {
