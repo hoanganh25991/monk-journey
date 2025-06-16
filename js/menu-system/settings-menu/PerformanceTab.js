@@ -17,7 +17,6 @@ export class PerformanceTab extends SettingsTab {
         super('performance', game, settingsMenu);
         
         // Performance settings elements
-        this.qualitySelect = document.getElementById('quality-select');
         this.adaptiveCheckbox = document.getElementById('adaptive-checkbox');
         this.fpsSlider = document.getElementById('fps-slider');
         this.fpsValue = document.getElementById('fps-value');
@@ -58,9 +57,7 @@ export class PerformanceTab extends SettingsTab {
         const { key, newValue } = event.detail;
         
         // Update UI based on the key that changed
-        if (key === STORAGE_KEYS.QUALITY_LEVEL && this.qualitySelect) {
-            this.qualitySelect.value = newValue;
-        } else if (key === STORAGE_KEYS.ADAPTIVE_QUALITY && this.adaptiveCheckbox) {
+        if (key === STORAGE_KEYS.ADAPTIVE_QUALITY && this.adaptiveCheckbox) {
             this.adaptiveCheckbox.checked = newValue === true || newValue === 'true';
         } else if (key === STORAGE_KEYS.TARGET_FPS && this.fpsSlider && this.fpsValue) {
             const parsedFPS = parseInt(newValue) || 60;
@@ -80,37 +77,6 @@ export class PerformanceTab extends SettingsTab {
      * @returns {boolean} - True if initialization was successful
      */
     initSettings() {
-        if (this.qualitySelect) {
-            // Clear existing options
-            while (this.qualitySelect.options.length > 0) {
-                this.qualitySelect.remove(0);
-            }
-            
-            // Add quality options
-            const qualityLevels = ['ultra'];
-            qualityLevels.forEach(level => {
-                const option = document.createElement('option');
-                option.value = level;
-                option.textContent = level.charAt(0).toUpperCase() + level.slice(1);
-                this.qualitySelect.appendChild(option);
-            });
-            
-            // Set current quality synchronously
-            const currentQuality = this.loadSettingSync(STORAGE_KEYS.QUALITY_LEVEL, 'ultra');
-            this.qualitySelect.value = currentQuality;
-            
-            // Add change event listener
-            this.qualitySelect.addEventListener('change', () => {
-                // Save immediately to localStorage
-                this.saveSetting(STORAGE_KEYS.QUALITY_LEVEL, this.qualitySelect.value);
-                
-                // Apply quality settings immediately if game is available
-                if (this.game && this.game.renderer) {
-                    // this.game.applyQualitySettings(this.qualitySelect.value);
-                }
-            });
-        }
-        
         if (this.adaptiveCheckbox) {
             // Set current adaptive quality state synchronously
             const adaptiveQuality = this.loadSettingSync(STORAGE_KEYS.ADAPTIVE_QUALITY, true);
@@ -242,10 +208,6 @@ export class PerformanceTab extends SettingsTab {
         // Create a list of promises for all settings
         const savePromises = [];
         
-        if (this.qualitySelect) {
-            savePromises.push(this.saveSetting(STORAGE_KEYS.QUALITY_LEVEL, this.qualitySelect.value));
-        }
-        
         if (this.adaptiveCheckbox) {
             savePromises.push(this.saveSetting(STORAGE_KEYS.ADAPTIVE_QUALITY, this.adaptiveCheckbox.checked.toString()));
         }
@@ -278,10 +240,6 @@ export class PerformanceTab extends SettingsTab {
     async resetToDefaults() {
         return this.withProgress(
             async () => {
-                if (this.qualitySelect) {
-                    this.qualitySelect.value = 'ultra';
-                }
-                
                 if (this.adaptiveCheckbox) {
                     this.adaptiveCheckbox.checked = true;
                 }

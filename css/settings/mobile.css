@@ -157,7 +157,7 @@
 .settings-content {
     height: 100%;
     width: 100%;
-    padding: var(--padding-large);
+    padding: var(--padding-medium);
 }
 
 /* Tooltips for icon buttons */
