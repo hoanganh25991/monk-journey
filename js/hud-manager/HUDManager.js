@@ -14,6 +14,7 @@ import { MiniMapUI } from './MiniMapUI.js';
 import { HomeButton } from './HomeUI.js';
 import { FullscreenButton } from './SkillSelectionButton.js';
 import { SkillTreeButton } from './SkillTreeButton.js';
+import { TouchDebugUI } from './TouchDebugUI.js';
 
 import { InventoryButton } from './InventoryButton.js';
 
@@ -127,6 +128,10 @@ export class HUDManager {
         this.components.fullscreenButton = new FullscreenButton(this.game);
         this.components.skillTreeButton = new SkillTreeButton(this.game);
         this.components.inventoryButton = new InventoryButton(this.game);
+        
+        // Create touch debug UI (remove in production)
+        this.components.touchDebugUI = new TouchDebugUI(this.game);
+        this.components.touchDebugUI.init();
     }
     
     /**
