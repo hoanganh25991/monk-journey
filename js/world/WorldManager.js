@@ -66,7 +66,16 @@ export class WorldManager {
         
         // Dynamic world generation settings
         this.dynamicWorldEnabled = true;
-        this.environmentDensity = 2.0; // Reduced from 3.0 to 2.0 for better performance
+        
+        // Environment density levels
+        this.densityLevels = {
+            high: 3.0,
+            medium: 2.0,
+            low: 1.0,
+            minimal: 0.5
+        };
+        
+        this.environmentDensity = this.densityLevels.medium; // Default to medium density
         this.worldScale = 5.0; // Scale factor to make objects appear 5x farther apart
         
         // Procedural generation settings
@@ -189,6 +198,27 @@ export class WorldManager {
             };
             console.log('✅ Dynamic generators initialized with custom settings:', this.dynamicGenerationSettings);
         }, 200);
+    }
+    
+    /**
+     * Set environment density level
+     * @param {string} level - Density level: 'high', 'medium', 'low', or 'minimal'
+     */
+    setDensityLevel(level) {
+        if (!this.densityLevels[level]) {
+            console.warn(`Invalid density level: ${level}. Using 'medium' instead.`);
+            level = 'medium';
+        }
+        
+        this.environmentDensity = this.densityLevels[level];
+        console.log(`Environment density set to ${level} (${this.environmentDensity})`);
+        
+        // Update environment manager if available
+        if (this.environmentManager && this.environmentManager.setDensity) {
+            this.environmentManager.setDensity(this.environmentDensity);
+        }
+        
+        return this.environmentDensity;
     }
     
     // setGame method removed - game is now passed in constructor
@@ -1364,19 +1394,46 @@ export class WorldManager {
                 const avgFPS = this.frameRateHistory.reduce((sum, fps) => sum + fps, 0) / 
                                this.frameRateHistory.length;
                 
-                // Adjust performance mode based on FPS
+                // Adjust performance mode and density based on FPS
                 const wasLowPerformanceMode = this.lowPerformanceMode;
-                this.lowPerformanceMode = avgFPS < 30;
+                
+                // Determine performance level and density
+                let densityLevel;
+                let performanceMode;
+                
+                if (avgFPS < 20) {
+                    // Very low FPS - minimal density
+                    densityLevel = 'minimal';
+                    performanceMode = 'MINIMAL';
+                    this.lowPerformanceMode = true;
+                } else if (avgFPS < 30) {
+                    // Low FPS - low density
+                    densityLevel = 'low';
+                    performanceMode = 'LOW';
+                    this.lowPerformanceMode = true;
+                } else if (avgFPS < 45) {
+                    // Medium FPS - medium density
+                    densityLevel = 'medium';
+                    performanceMode = 'NORMAL';
+                    this.lowPerformanceMode = false;
+                } else {
+                    // High FPS - high density
+                    densityLevel = 'high';
+                    performanceMode = 'HIGH';
+                    this.lowPerformanceMode = false;
+                }
+                
+                // Apply the new density level
+                this.setDensityLevel(densityLevel);
                 
                 // Notify if performance mode changed
-                if (wasLowPerformanceMode !== this.lowPerformanceMode) {
-                    console.debug(`Performance mode changed to: ${this.lowPerformanceMode ? 'LOW' : 'NORMAL'}`);
+                if (wasLowPerformanceMode !== this.lowPerformanceMode || this.lastPerformanceLevel !== densityLevel) {
+                    console.debug(`Performance mode changed to: ${performanceMode} (density: ${densityLevel})`);
+                    this.lastPerformanceLevel = densityLevel;
                     
                     // Notify user if performance mode changed
                     if (this.game && this.game.hudManager) {
-                        const message = this.lowPerformanceMode ? 
-                            "Performance mode: LOW - Reducing visual quality to improve performance" :
-                            "Performance mode: NORMAL - Visual quality restored";
+                        const message = `Performance mode: ${performanceMode} - Environment density set to ${densityLevel}`;
                         
                         if (this.game.hudManager.showNotification) {
                             this.game.hudManager.showNotification(message, 3000);
@@ -1565,6 +1622,7 @@ export class WorldManager {
             settings: {
                 dynamicWorldEnabled: this.dynamicWorldEnabled,
                 environmentDensity: this.environmentDensity,
+                densityLevel: this.lastPerformanceLevel || 'medium',
                 zoneSize: this.zoneSize
             }
         };
@@ -1589,15 +1647,28 @@ export class WorldManager {
             this.dynamicWorldEnabled = worldState.settings.dynamicWorldEnabled !== undefined ? 
                 worldState.settings.dynamicWorldEnabled : this.dynamicWorldEnabled;
                 
-            this.environmentDensity = worldState.settings.environmentDensity !== undefined ? 
-                worldState.settings.environmentDensity : this.environmentDensity;
+            // Handle environment density using our new level system
+            if (worldState.settings.environmentDensity !== undefined) {
+                // Find the closest density level
+                const savedDensity = worldState.settings.environmentDensity;
+                let closestLevel = 'medium';
+                let minDiff = Math.abs(this.densityLevels.medium - savedDensity);
+                
+                for (const [level, value] of Object.entries(this.densityLevels)) {
+                    const diff = Math.abs(value - savedDensity);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestLevel = level;
+                    }
+                }
+                
+                // Set the density level
+                this.setDensityLevel(closestLevel);
+                console.debug(`Loaded environment density mapped to level: ${closestLevel}`);
+            }
                 
             this.zoneSize = worldState.settings.zoneSize !== undefined ? 
                 worldState.settings.zoneSize : this.zoneSize;
-            
-            if (this.environmentManager && this.environmentManager.setDensity) {
-                this.environmentManager.setDensity(this.environmentDensity);
-            }
         }
         
         // When loading from a saved position, we need to reset the generatedChunks
