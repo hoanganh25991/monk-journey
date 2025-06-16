@@ -1088,25 +1088,34 @@ export class InventoryUI extends UIComponent {
      */
     teleportToOrigin() {
         if (!this.game || !this.game.player) {
-            console.error('Cannot create portal: Game or player not available');
+            console.warn('Cannot create portal: Game or player not available');
+            if (this.game && this.game.hudManager) {
+                this.game.hudManager.showNotification('Game not ready for teleport!', 'warning');
+            }
+            return;
+        }
+
+        // Check if game is still initializing
+        if (this.game.isWorldLoading) {
+            console.warn('Cannot create portal: World is still loading');
             if (this.game.hudManager) {
-                this.game.hudManager.showNotification('Failed to create portal!', 'error');
+                this.game.hudManager.showNotification('Please wait for the world to finish loading!', 'warning');
             }
             return;
         }
 
         // Check if TeleportManager is available  
-        if (!this.game.worldManager || !this.game.worldManager.teleportManager) {
-            console.error('Cannot create portal: TeleportManager not available');
+        if (!this.game.world || !this.game.world.teleportManager) {
+            console.warn('Cannot create portal: TeleportManager not available - world may still be initializing');
             if (this.game.hudManager) {
-                this.game.hudManager.showNotification('Teleport system not available!', 'error');
+                this.game.hudManager.showNotification('Teleport system not ready yet - please wait!', 'warning');
             }
             return;
         }
 
         // If portal is already active, remove it
         if (this.isPortalActive && this.temporaryPortal) {
-            this.game.worldManager.teleportManager.removePortal(this.temporaryPortal.id);
+            this.game.world.teleportManager.removePortal(this.temporaryPortal.id);
             this.temporaryPortal = null;
             this.isPortalActive = false;
             if (this.game.hudManager) {
@@ -1136,7 +1145,7 @@ export class InventoryUI extends UIComponent {
 
         // Create temporary portal using TeleportManager
         const sourcePosition = new THREE.Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
-        this.temporaryPortal = this.game.worldManager.teleportManager.createTemporaryPortal(
+        this.temporaryPortal = this.game.world.teleportManager.createTemporaryPortal(
             sourcePosition,
             null, // Use default origin position
             15000 // 15 seconds duration
