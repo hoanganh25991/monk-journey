@@ -572,6 +572,177 @@ export class EffectsManager {
     }
     
     /**
+     * Create a countdown effect in the 3D scene
+     * @param {number} countdownStart - Starting countdown number (e.g., 3)
+     * @param {function} onComplete - Callback when countdown reaches 0
+     * @param {Object} position - 3D position {x, y, z}, defaults to player position if not provided
+     * @returns {Object|null} - The created countdown effect or null if creation failed
+     */
+    createCountdownEffect(countdownStart = 3, onComplete = null, position = null) {
+        // Use player position if no position is provided
+        if (!position && this.game && this.game.player) {
+            position = this.game.player.model.getPosition();
+        }
+        
+        // If still no position, use a default
+        if (!position) {
+            position = new THREE.Vector3(0, 1, 0);
+        }
+        
+        // Create a group to hold all countdown effect elements
+        const group = new THREE.Group();
+        
+        // Store countdown state
+        let currentCount = countdownStart;
+        let timeElapsed = 0;
+        const countdownInterval = 1.0; // 1 second per count
+        
+        // Create a canvas-based text for the countdown
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 256;
+        canvas.height = 256;
+        
+        // Function to update the countdown text
+        const updateCountdownText = (count) => {
+            // Clear canvas
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Set text properties
+            context.font = 'bold 120px Arial';
+            context.fillStyle = count <= 1 ? '#ff4444' : '#ffaa00'; // Red for 1, orange for others
+            context.strokeStyle = '#000000';
+            context.lineWidth = 4;
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            
+            // Draw text with outline
+            const text = count.toString();
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            context.strokeText(text, centerX, centerY);
+            context.fillText(text, centerX, centerY);
+        };
+        
+        // Initial text
+        updateCountdownText(currentCount);
+        
+        // Create texture and material
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        
+        const material = new THREE.SpriteMaterial({ 
+            map: texture, 
+            transparent: true,
+            alphaTest: 0.1
+        });
+        
+        // Create sprite
+        const sprite = new THREE.Sprite(material);
+        sprite.position.set(position.x, position.y + 2.5, position.z);
+        sprite.scale.set(2, 2, 1);
+        
+        group.add(sprite);
+        
+        // Position the group
+        group.position.copy(position);
+        
+        // Countdown effect object with update method
+        const countdownEffect = {
+            group: group,
+            sprite: sprite,
+            material: material,
+            texture: texture,
+            canvas: canvas,
+            context: context,
+            finished: false,
+            timeElapsed: 0,
+            currentCount: currentCount,
+            countdownInterval: countdownInterval,
+            onComplete: onComplete,
+            game: this.game, // Store reference to game
+            
+            // Update method for the countdown effect
+            update: function(delta) {
+                if (this.finished) return false;
+                
+                this.timeElapsed += delta;
+                
+                // Check if it's time to update the countdown
+                const expectedCount = Math.max(0, countdownStart - Math.floor(this.timeElapsed / this.countdownInterval));
+                
+                if (expectedCount !== this.currentCount) {
+                    this.currentCount = expectedCount;
+                    
+                    if (this.currentCount > 0) {
+                        // Update the countdown display
+                        updateCountdownText(this.currentCount);
+                        this.texture.needsUpdate = true;
+                        
+                        // Add a pulse animation
+                        const pulseScale = 1 + Math.sin(this.timeElapsed * 10) * 0.1;
+                        this.sprite.scale.set(2 * pulseScale, 2 * pulseScale, 1);
+                        
+                        // Play countdown sound (if available)
+                        if (this.game && this.game.audioManager) {
+                            this.game.audioManager.playSound('click'); // or another appropriate sound
+                        }
+                    } else {
+                        // Countdown finished
+                        this.finished = true;
+                        
+                        // Call completion callback
+                        if (this.onComplete) {
+                            this.onComplete();
+                        }
+                        
+                        // Start fade out animation
+                        let fadeTime = 0;
+                        const fadeOutDuration = 0.5;
+                        const fadeOut = () => {
+                            fadeTime += 0.016; // Approximate 60fps
+                            const alpha = Math.max(0, 1 - (fadeTime / fadeOutDuration));
+                            this.material.opacity = alpha;
+                            
+                            if (alpha > 0) {
+                                requestAnimationFrame(fadeOut);
+                            }
+                        };
+                        fadeOut();
+                        
+                        return false; // Remove this effect
+                    }
+                }
+                
+                return true; // Continue updating
+            },
+            
+            // Cleanup method
+            dispose: function() {
+                if (this.texture) {
+                    this.texture.dispose();
+                }
+                if (this.material) {
+                    this.material.dispose();
+                }
+            }
+        };
+        
+        // Add the countdown effect to the scene
+        if (this.game && this.game.scene) {
+            this.game.scene.add(group);
+            
+            // Add to the effects array for updates
+            this.effects.push(countdownEffect);
+            
+            return countdownEffect;
+        }
+        
+        return null;
+    }
+    
+    /**
      * Get all active effects
      * @returns {Array} - Array of active effects
      */

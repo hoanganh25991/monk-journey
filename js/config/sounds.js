@@ -666,6 +666,24 @@ export const ENEMY_SOUNDS = {
             slide: -50,
             vibrato: 5
         }
+    },
+    bossSpawn: {
+        id: 'bossSpawn',
+        file: 'boss_spawn.mp3',
+        volume: 0.9,
+        simulated: {
+            frequency: 120,
+            duration: 0.8,
+            type: 'sawtooth',
+            decay: false,
+            slide: 80,
+            vibrato: 10,
+            tremolo: 6,
+            noise: 0.15,
+            distortion: 0.3,
+            filter: 'bandpass',
+            reverb: true
+        }
     }
 };
 

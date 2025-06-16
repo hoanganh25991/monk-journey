@@ -1122,52 +1122,53 @@ export class InventoryUI extends UIComponent {
         // Create portal at player position
         this.createPortal(this.playerStartPosition);
         
-        // Show notification
-        if (this.game.hudManager) {
-            this.game.hudManager.showNotification('Portal created! Auto-teleport in 0.5s (move to cancel)');
-        }
-
         // Close inventory
         this.toggleInventory();
 
-        // Set auto-teleport timer
-        this.portalTimeout = setTimeout(() => {
-            // Additional safety checks
-            if (!this.game || !this.game.player) {
-                console.warn('Auto-teleport cancelled: Game or player not available');
-                return;
-            }
-            
-            // Check if player moved
-            const currentPosition = this.game.player.getPosition();
-            
-            // Validate positions before calculating distance
-            if (!this.playerStartPosition || !currentPosition) {
-                console.warn('Auto-teleport cancelled: Invalid positions', {
-                    playerStartPosition: this.playerStartPosition,
-                    currentPosition: currentPosition
-                });
-                return;
-            }
-            
-            const distance = this.calculateDistance(this.playerStartPosition, currentPosition);
-            
-            // If distance calculation failed (returned Infinity), cancel auto-teleport
-            if (distance === Infinity) {
-                console.warn('Auto-teleport cancelled: Distance calculation failed');
-                return;
-            }
-            
-            if (distance < this.movementThreshold) {
-                // Player didn't move, auto-teleport
-                this.performTeleport();
-            } else {
-                // Player moved, cancel auto-teleport but keep portal
-                if (this.game.hudManager) {
-                    this.game.hudManager.showNotification('Auto-teleport cancelled (player moved). Click portal to teleport manually.');
+        // Show countdown and set auto-teleport
+        if (this.game.hudManager) {
+            // Define the countdown completion callback
+            const onCountdownComplete = () => {
+                // Additional safety checks
+                if (!this.game || !this.game.player) {
+                    console.warn('Auto-teleport cancelled: Game or player not available');
+                    return;
                 }
-            }
-        }, 500);
+                
+                // Check if player moved
+                const currentPosition = this.game.player.getPosition();
+                
+                // Validate positions before calculating distance
+                if (!this.playerStartPosition || !currentPosition) {
+                    console.warn('Auto-teleport cancelled: Invalid positions', {
+                        playerStartPosition: this.playerStartPosition,
+                        currentPosition: currentPosition
+                    });
+                    return;
+                }
+                
+                const distance = this.calculateDistance(this.playerStartPosition, currentPosition);
+                
+                // If distance calculation failed (returned Infinity), cancel auto-teleport
+                if (distance === Infinity) {
+                    console.warn('Auto-teleport cancelled: Distance calculation failed');
+                    return;
+                }
+                
+                if (distance < this.movementThreshold) {
+                    // Player didn't move, auto-teleport
+                    this.performTeleport();
+                } else {
+                    // Player moved, cancel auto-teleport but keep portal
+                    if (this.game.hudManager) {
+                        this.game.hudManager.showNotification('Auto-teleport cancelled (player moved). Click portal to teleport manually.');
+                    }
+                }
+            };
+            
+            // Start the countdown with 3D effect
+            this.game.hudManager.showCountdown(3, onCountdownComplete, 'Portal created! Auto-teleport in');
+        }
 
         console.debug('Portal created at player position:', this.playerStartPosition);
     }
@@ -1177,8 +1178,16 @@ export class InventoryUI extends UIComponent {
      * @param {Object} position - Portal position {x, y, z}
      */
     createPortal(position) {
+        // Store the player start position before removing existing portal
+        const savedPlayerStartPosition = this.playerStartPosition;
+        
         // Remove existing portal if any
         this.removePortal();
+        
+        // Restore the player start position if it was saved
+        if (savedPlayerStartPosition) {
+            this.playerStartPosition = savedPlayerStartPosition;
+        }
 
         // Create portal geometry and material
         const portalGeometry = new THREE.RingGeometry(0.5, 1.0, 16);

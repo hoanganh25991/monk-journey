@@ -300,16 +300,18 @@ export class NotificationsUI extends UIComponent {
      * @param {number} level - New level
      */
     showLevelUp(level) {
-        // Use the EffectsManager to create a 3D level up effect
-        if (this.game && this.game.effectsManager) {
-            this.game.effectsManager.createLevelUpEffect(level);
-            
-            // Also show a notification
-            this.showNotification(`Level Up! You are now level ${level}`);
-        } else {
-            // Fallback to DOM-based notification if EffectsManager is not available
-            this.showNotification(`Level Up! You are now level ${level}`, 3.0);
-        }
+        // Get the level up container and level elements
+        const levelUpContainer = document.getElementById('level-up-container');
+        const levelElement = levelUpContainer.querySelector('.level-up-level');
+
+        // Set the level text
+        levelElement.textContent = level;
+        
+        // Show the level up animation
+        levelUpContainer.style.removeProperty("display");
+        setTimeout(() => {
+            levelUpContainer.style.display = "none";
+        }, 2000)
     }
     
     /**

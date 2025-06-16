@@ -246,6 +246,39 @@ export class HUDManager {
     }
     
     /**
+     * Show countdown animation
+     * @param {number} startCount - Starting countdown number (e.g., 3)
+     * @param {function} onComplete - Callback when countdown reaches 0
+     * @param {string} message - Optional message to show with countdown
+     */
+    showCountdown(startCount = 3, onComplete = null, message = 'Portal created! Auto-teleport in') {
+        if (this.game && this.game.effectsManager) {
+            // Show notification with message
+            this.showNotification(`${message} ${startCount}s (move to cancel)`);
+            
+            // Create 3D countdown effect
+            this.game.effectsManager.createCountdownEffect(startCount, onComplete);
+        } else {
+            // Fallback to regular notification
+            this.showNotification(`${message} ${startCount}s (move to cancel)`);
+            
+            // Manual countdown with setTimeout
+            let currentCount = startCount;
+            const countdownInterval = setInterval(() => {
+                currentCount--;
+                if (currentCount > 0) {
+                    this.showNotification(`${message} ${currentCount}s (move to cancel)`);
+                } else {
+                    clearInterval(countdownInterval);
+                    if (onComplete) {
+                        onComplete();
+                    }
+                }
+            }, 1000);
+        }
+    }
+    
+    /**
      * Update the quest log with active quests
      * @param {Array} activeQuests - Array of active quests
      */
@@ -407,6 +440,9 @@ export class HUDManager {
             return;
         }
         
+        // Make sure the container is visible
+        statusContainer.style.display = 'block';
+        
         // Check if this effect already has an indicator
         let effectElement = document.getElementById(`status-effect-${effectType}`);
         if (!effectElement) {
@@ -471,10 +507,10 @@ export class HUDManager {
             effectElement.remove();
         }
         
-        // Check if container is empty and remove it if so
+        // Check if container is empty and hide it if so
         const statusContainer = document.getElementById('status-effects-container');
         if (statusContainer && statusContainer.children.length === 0) {
-            statusContainer.remove();
+            statusContainer.style.display = 'none';
         }
     }
     
