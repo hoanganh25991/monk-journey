@@ -45,9 +45,22 @@ export class VirtualJoystickUI extends UIComponent {
         this.container.style.width = `${scaledBaseSize}px`;
         this.container.style.height = `${scaledBaseSize}px`;
         
+        // Check if the overlay already exists and preserve it
+        const existingOverlay = this.container.querySelector('#joystick-interaction-overlay');
+        let overlayHTML = '';
+        if (existingOverlay) {
+            overlayHTML = existingOverlay.outerHTML;
+            console.debug('Preserving existing joystick overlay element');
+        } else {
+            // Create overlay HTML if it doesn't exist
+            overlayHTML = '<div id="joystick-interaction-overlay"></div>';
+            console.debug('Creating joystick overlay element in template');
+        }
+        
         const template = `
             <div id="virtual-joystick-base"></div>
             <div id="virtual-joystick-handle" style="width: ${handleSize * sizeMultiplier}px; height: ${handleSize * sizeMultiplier}px;"></div>
+            ${overlayHTML}
         `;
         
         // Render the template
@@ -133,17 +146,12 @@ export class VirtualJoystickUI extends UIComponent {
      * Create a larger invisible overlay for easier joystick interaction
      */
     createJoystickOverlay() {
-        // First, try to get the overlay element that should already be in the HTML
-        this.joystickOverlay = document.getElementById('joystick-interaction-overlay');
+        // The overlay should now always exist since we include it in the template
+        this.joystickOverlay = this.container.querySelector('#joystick-interaction-overlay');
         
-        // If not found globally, check if it's a child of our container
-        if (!this.joystickOverlay && this.container) {
-            this.joystickOverlay = this.container.querySelector('#joystick-interaction-overlay');
-        }
-        
-        // Ensure the overlay exists (fallback if not found in HTML)
         if (!this.joystickOverlay) {
-            console.warn('Joystick interaction overlay not found in HTML, creating dynamically');
+            // This should not happen now, but keep as a safety fallback
+            console.warn('Joystick interaction overlay not found after template rendering, creating dynamically');
             this.joystickOverlay = document.createElement('div');
             this.joystickOverlay.id = 'joystick-interaction-overlay';
             // Apply the necessary CSS styles for the dynamically created overlay
@@ -158,7 +166,7 @@ export class VirtualJoystickUI extends UIComponent {
             this.joystickOverlay.style.zIndex = '50';
             this.container.appendChild(this.joystickOverlay);
         } else {
-            console.debug('Found existing joystick interaction overlay in HTML');
+            console.debug('Successfully found joystick interaction overlay element');
         }
     }
     

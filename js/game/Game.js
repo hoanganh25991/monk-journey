@@ -199,9 +199,9 @@ export class Game {
             await this.loadInitialSettings();
 
             
-            // Initialize renderer with quality settings from localStorage or use 'high' as default
-            // We align with material quality levels: high, medium, low, minimal
-            const qualityLevel = localStorage.getItem('monk_journey_quality_level') || 'high';
+            // Initialize renderer with quality settings from storage service to match material quality
+            // Use materialQuality if available, otherwise fall back to localStorage or 'high' as default
+            const qualityLevel = this.materialQuality || localStorage.getItem('monk_journey_quality_level') || 'high';
             this.renderer = this.createRenderer(qualityLevel);
             
             this.updateLoadingProgress(10, 'Creating game world...', 'Setting up scene');
@@ -332,6 +332,10 @@ export class Game {
             if (this.materialQuality) {
                 console.debug(`Applying material quality from settings: ${this.materialQuality}`);
                 this.applyInitialMaterialQuality(this.materialQuality);
+            } else {
+                // Fallback to medium quality if no setting is found
+                console.debug('No material quality setting found, using medium as default');
+                this.applyInitialMaterialQuality('medium');
             }
             
             // Set up event listeners
@@ -802,7 +806,7 @@ export class Game {
     createRenderer(qualityLevel) {
         if (!RENDER_CONFIG[qualityLevel]) {
             console.error(`Unknown quality level: ${qualityLevel}, falling back to medium`);
-            qualityLevel = 'ultra';
+            qualityLevel = 'medium';
         }
         
         const config = RENDER_CONFIG[qualityLevel].init;
@@ -893,7 +897,7 @@ export class Game {
             
             // Reinitialize renderer settings
             try {
-                const qualityLevel = localStorage.getItem('monk_journey_quality_level') || 'ultra';
+                const qualityLevel = this.materialQuality || localStorage.getItem('monk_journey_quality_level') || 'high';
                 this.applyRendererSettings(renderer, qualityLevel);
                 
                 // Restart the animation loop if the game is running
@@ -953,6 +957,41 @@ export class Game {
         }
         
         console.debug(`Applied ${qualityLevel} renderer settings`);
+    }
+    
+    /**
+     * Apply material quality settings to all objects in the scene
+     * @param {string} quality - The quality level ('high', 'medium', 'low', or 'minimal')
+     * @param {boolean} updateRenderer - Whether to also update renderer settings
+     */
+    applyMaterialQuality(quality, updateRenderer = false) {
+        if (!this.scene) {
+            console.warn('Cannot apply material quality: scene not available');
+            return;
+        }
+        
+        // Store the current quality level
+        this.materialQuality = quality;
+        
+        // Update renderer settings if requested
+        if (updateRenderer && this.renderer) {
+            this.applyRendererSettings(this.renderer, quality);
+        }
+        
+        // Apply to existing scene objects
+        this.applyInitialMaterialQuality(quality);
+        
+        // Update LOD settings if LOD manager exists
+        if (this.world && this.world.lodManager) {
+            this.world.lodManager.updateQualitySettings(quality);
+        }
+        
+        // Update performance manager settings
+        if (this.performanceManager) {
+            this.performanceManager.updateQualitySettings(quality);
+        }
+        
+        console.debug(`Material quality updated to: ${quality}`);
     }
     
     /**
