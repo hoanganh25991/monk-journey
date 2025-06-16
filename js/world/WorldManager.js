@@ -803,7 +803,7 @@ export class WorldManager {
         this.updateEnvironmentForPlayer(playerPosition, effectiveDrawDistance);
         
         // Generate procedural content around player
-        this.generateProceduralContent(playerChunkX, playerChunkZ);
+        this.generateProceduralContent(playerChunkX, playerChunkZ, playerPosition, effectiveDrawDistance);
         
         // Update lighting, fog, and other world systems
         this.updateWorldSystems(playerPosition, effectiveDrawDistance);
@@ -851,68 +851,72 @@ export class WorldManager {
      * Generate procedural content for chunks around the player
      * @param {number} playerChunkX - Player's chunk X coordinate
      * @param {number} playerChunkZ - Player's chunk Z coordinate
+     * @param {THREE.Vector3} playerPosition - Player position for zone detection
+     * @param {number} effectiveDrawDistance - Effective draw distance
      */
-    generateProceduralContent(playerChunkX, playerChunkZ) {
+    generateProceduralContent(playerChunkX, playerChunkZ, playerPosition, effectiveDrawDistance) {
         // Only generate content if dynamic world is enabled
         if (!this.dynamicWorldEnabled) return;
-            // Set initialTerrainCreated to true after first update
-            // This allows structures to be generated in subsequent updates
-            if (!this.initialTerrainCreated) {
-                console.debug("Initial terrain creation complete, enabling structure generation");
-                this.initialTerrainCreated = true;
-            }
-            
-            // Reduced content generation distance for better performance
-            const contentGenDistance = 3; // Reduced from 4 to 3 chunks in each direction
-            
-            // Generate content in a spiral pattern starting from player's position
-            // This ensures closer chunks are generated first
-            const spiralCoords = [];
-            
-            // Generate spiral coordinates
-            for (let layer = 0; layer <= contentGenDistance; layer++) {
-                if (layer === 0) {
-                    // Center point (player's chunk)
-                    spiralCoords.push([playerChunkX, playerChunkZ]);
-                } else {
-                    // Top edge (left to right)
-                    for (let i = -layer; i <= layer; i++) {
-                        spiralCoords.push([playerChunkX + i, playerChunkZ - layer]);
-                    }
-                    // Right edge (top to bottom)
-                    for (let i = -layer + 1; i <= layer; i++) {
-                        spiralCoords.push([playerChunkX + layer, playerChunkZ + i]);
-                    }
-                    // Bottom edge (right to left)
-                    for (let i = layer - 1; i >= -layer; i--) {
-                        spiralCoords.push([playerChunkX + i, playerChunkZ + layer]);
-                    }
-                    // Left edge (bottom to top)
-                    for (let i = layer - 1; i >= -layer + 1; i--) {
-                        spiralCoords.push([playerChunkX - layer, playerChunkZ + i]);
-                    }
+        
+        // Set initialTerrainCreated to true after first update
+        // This allows structures to be generated in subsequent updates
+        if (!this.initialTerrainCreated) {
+            console.debug("Initial terrain creation complete, enabling structure generation");
+            this.initialTerrainCreated = true;
+        }
+        
+        // Reduced content generation distance for better performance
+        const contentGenDistance = 3; // Reduced from 4 to 3 chunks in each direction
+        
+        // Generate content in a spiral pattern starting from player's position
+        // This ensures closer chunks are generated first
+        const spiralCoords = [];
+        
+        // Generate spiral coordinates
+        for (let layer = 0; layer <= contentGenDistance; layer++) {
+            if (layer === 0) {
+                // Center point (player's chunk)
+                spiralCoords.push([playerChunkX, playerChunkZ]);
+            } else {
+                // Top edge (left to right)
+                for (let i = -layer; i <= layer; i++) {
+                    spiralCoords.push([playerChunkX + i, playerChunkZ - layer]);
+                }
+                // Right edge (top to bottom)
+                for (let i = -layer + 1; i <= layer; i++) {
+                    spiralCoords.push([playerChunkX + layer, playerChunkZ + i]);
+                }
+                // Bottom edge (right to left)
+                for (let i = layer - 1; i >= -layer; i--) {
+                    spiralCoords.push([playerChunkX + i, playerChunkZ + layer]);
+                }
+                // Left edge (bottom to top)
+                for (let i = layer - 1; i >= -layer + 1; i--) {
+                    spiralCoords.push([playerChunkX - layer, playerChunkZ + i]);
                 }
             }
+        }
+        
+        // Generate content for chunks in spiral order - but limit how many we process per frame
+        // This prevents freezing by spreading the work across multiple frames
+        const maxChunksPerFrame = 3; // Process at most 3 chunks per frame
+        let chunksProcessed = 0;
+        
+        for (const [x, z] of spiralCoords) {
+            // Only process a limited number of chunks per frame
+            if (chunksProcessed >= maxChunksPerFrame) break;
             
-            // Generate content for chunks in spiral order - but limit how many we process per frame
-            // This prevents freezing by spreading the work across multiple frames
-            const maxChunksPerFrame = 3; // Process at most 3 chunks per frame
-            let chunksProcessed = 0;
+            // Skip if already generated
+            const chunkKey = `${x},${z}`;
+            if (this.generatedChunks.has(chunkKey)) continue;
             
-            for (const [x, z] of spiralCoords) {
-                // Only process a limited number of chunks per frame
-                if (chunksProcessed >= maxChunksPerFrame) break;
-                
-                // Skip if already generated
-                const chunkKey = `${x},${z}`;
-                if (this.generatedChunks.has(chunkKey)) continue;
-                
-                // Generate content for this chunk
-                this.generateChunkContent(x, z);
-                chunksProcessed++;
-            }
-            
-            // Update current zone type based on player position
+            // Generate content for this chunk
+            this.generateChunkContent(x, z);
+            chunksProcessed++;
+        }
+        
+        // Update current zone type based on player position
+        if (playerPosition) {
             const newZoneType = this.getZoneTypeAt(playerPosition.x, playerPosition.z);
             if (newZoneType !== this.currentZoneType) {
                 console.debug(`Player entered new zone: ${this.currentZoneType} -> ${newZoneType}`);
@@ -930,9 +934,6 @@ export class WorldManager {
                 }
             }
         }
-        
-        // Update lighting, fog, and other world systems
-        this.updateWorldSystems(playerPosition, effectiveDrawDistance);
     }
     
     /**
