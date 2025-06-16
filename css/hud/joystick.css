@@ -8,8 +8,8 @@
 #virtual-joystick-container {
     /* width and height are set dynamically via JavaScript */
     position: fixed; /* Change to fixed position */
-    bottom: 10px; /* Position at bottom */
-    left: 10px; /* Position at left */
+    bottom: 2rem; /* Position at bottom */
+    left: 2rem; /* Position at left */
     pointer-events: auto;
     touch-action: none;
     display: block;

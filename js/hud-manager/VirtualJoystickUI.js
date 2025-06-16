@@ -138,7 +138,7 @@ export class VirtualJoystickUI extends UIComponent {
         this.joystickOverlay.id = 'joystick-interaction-overlay';
         
         // Style the overlay to be larger than the joystick
-        const overlaySize = 200; // Larger area for easier interaction
+        const overlaySize = 240; // Larger area for easier interaction
         this.joystickOverlay.style.cssText = `
             position: absolute;
             width: ${overlaySize}px;
@@ -148,7 +148,7 @@ export class VirtualJoystickUI extends UIComponent {
             transform: translate(-50%, -50%);
             background-color: transparent;
             pointer-events: auto;
-            z-index: 10;
+            z-index: 50;
         `;
         
         // Add overlay to the container
