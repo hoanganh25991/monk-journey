@@ -48,7 +48,6 @@ export class VirtualJoystickUI extends UIComponent {
         const template = `
             <div id="virtual-joystick-base"></div>
             <div id="virtual-joystick-handle" style="width: ${handleSize * sizeMultiplier}px; height: ${handleSize * sizeMultiplier}px;"></div>
-            <div id="joystick-overlay"></div>
         `;
         
         // Render the template
@@ -76,8 +75,11 @@ export class VirtualJoystickUI extends UIComponent {
      * Set up joystick event listeners
      */
     setupJoystickEvents() {
-        // Touch start event directly on joystick container
-        this.container.addEventListener('touchstart', (event) => {
+        // Create a larger invisible overlay for easier touch interaction
+        this.createJoystickOverlay();
+        
+        // Touch start event on the larger overlay area
+        this.joystickOverlay.addEventListener('touchstart', (event) => {
             event.preventDefault();
             event.stopPropagation();
             
@@ -93,8 +95,8 @@ export class VirtualJoystickUI extends UIComponent {
             }
         });
         
-        // Mouse down event directly on joystick container (for testing on desktop)
-        this.container.addEventListener('mousedown', (event) => {
+        // Mouse down event on the larger overlay area (for testing on desktop)
+        this.joystickOverlay.addEventListener('mousedown', (event) => {
             event.preventDefault();
             event.stopPropagation();
             
@@ -127,6 +129,32 @@ export class VirtualJoystickUI extends UIComponent {
         };
     }
     
+    /**
+     * Create a larger invisible overlay for easier joystick interaction
+     */
+    createJoystickOverlay() {
+        // Create overlay element
+        this.joystickOverlay = document.createElement('div');
+        this.joystickOverlay.id = 'joystick-interaction-overlay';
+        
+        // Style the overlay to be larger than the joystick
+        const overlaySize = 200; // Larger area for easier interaction
+        this.joystickOverlay.style.cssText = `
+            position: absolute;
+            width: ${overlaySize}px;
+            height: ${overlaySize}px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background-color: transparent;
+            pointer-events: auto;
+            z-index: 10;
+        `;
+        
+        // Add overlay to the container
+        this.container.appendChild(this.joystickOverlay);
+    }
+    
 
     
     /**
@@ -135,15 +163,15 @@ export class VirtualJoystickUI extends UIComponent {
      * @param {number} clientY - Y position of touch/mouse
      */
     handleJoystickStart(clientX, clientY) {
-        // Get joystick container position
+        // Get joystick container position for center reference
         const rect = this.container.getBoundingClientRect();
         
-        // Set joystick state
+        // Set joystick state - center is always the joystick's actual center
         this.joystickState.active = true;
         this.joystickState.centerX = rect.left + rect.width / 2;
         this.joystickState.centerY = rect.top + rect.height / 2;
         
-        // Update joystick position
+        // Immediately position the joystick based on touch/click direction
         this.handleJoystickMove(clientX, clientY);
     }
     
@@ -221,6 +249,11 @@ export class VirtualJoystickUI extends UIComponent {
         if (this.handleMouseMove && this.handleMouseUp) {
             document.removeEventListener('mousemove', this.handleMouseMove);
             document.removeEventListener('mouseup', this.handleMouseUp);
+        }
+        
+        // Remove the joystick overlay if it exists
+        if (this.joystickOverlay && this.joystickOverlay.parentNode) {
+            this.joystickOverlay.parentNode.removeChild(this.joystickOverlay);
         }
         
         // Note: Touch events are now handled by TouchManager globally
