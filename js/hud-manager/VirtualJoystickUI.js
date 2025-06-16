@@ -133,15 +133,32 @@ export class VirtualJoystickUI extends UIComponent {
      * Create a larger invisible overlay for easier joystick interaction
      */
     createJoystickOverlay() {
-        // Get the overlay element that's already in the HTML
+        // First, try to get the overlay element that should already be in the HTML
         this.joystickOverlay = document.getElementById('joystick-interaction-overlay');
+        
+        // If not found globally, check if it's a child of our container
+        if (!this.joystickOverlay && this.container) {
+            this.joystickOverlay = this.container.querySelector('#joystick-interaction-overlay');
+        }
         
         // Ensure the overlay exists (fallback if not found in HTML)
         if (!this.joystickOverlay) {
             console.warn('Joystick interaction overlay not found in HTML, creating dynamically');
             this.joystickOverlay = document.createElement('div');
             this.joystickOverlay.id = 'joystick-interaction-overlay';
+            // Apply the necessary CSS styles for the dynamically created overlay
+            this.joystickOverlay.style.position = 'absolute';
+            this.joystickOverlay.style.width = '240px';
+            this.joystickOverlay.style.height = '240px';
+            this.joystickOverlay.style.left = '50%';
+            this.joystickOverlay.style.top = '50%';
+            this.joystickOverlay.style.transform = 'translate(-50%, -50%)';
+            this.joystickOverlay.style.backgroundColor = 'transparent';
+            this.joystickOverlay.style.pointerEvents = 'auto';
+            this.joystickOverlay.style.zIndex = '50';
             this.container.appendChild(this.joystickOverlay);
+        } else {
+            console.debug('Found existing joystick interaction overlay in HTML');
         }
     }
     
