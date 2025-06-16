@@ -12,27 +12,11 @@ export class TouchDebugUI extends UIComponent {
     }
     
     init() {
-        // Create debug container if it doesn't exist
-        if (!document.getElementById('touch-debug-container')) {
-            const debugContainer = document.createElement('div');
-            debugContainer.id = 'touch-debug-container';
-            debugContainer.style.cssText = `
-                position: fixed;
-                top: 10px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0, 0, 0, 0.8);
-                color: white;
-                padding: 10px;
-                border-radius: 5px;
-                font-family: monospace;
-                font-size: 12px;
-                z-index: 9999;
-                pointer-events: none;
-                min-width: 300px;
-            `;
-            document.body.appendChild(debugContainer);
-            this.container = debugContainer;
+        // Use existing container from HTML
+        this.container = document.getElementById('touch-debug-container');
+        if (!this.container) {
+            console.error('Touch debug container not found in HTML');
+            return false;
         }
         
         this.render('<div id="touch-debug-info">Touch Debug Info</div>');
