@@ -778,30 +778,83 @@ export class WorldManager {
     
     /**
      * Update the world based on player position
+     * This is the main method for world generation and updates
+     * 
      * @param {THREE.Vector3} playerPosition - The player's current position
-     * @param {number} drawDistanceMultiplier - Multiplier for draw distance
+     * @param {number} drawDistanceMultiplier - Multiplier for draw distance (1.0 is default)
      */
     updateWorldForPlayer(playerPosition, drawDistanceMultiplier = 1.0) {
-        // Apply low performance mode if needed
-        const effectiveDrawDistance = this.lowPerformanceMode ? 
-            Math.min(0.6, drawDistanceMultiplier) : drawDistanceMultiplier;
+        // Skip update if position is invalid
+        if (!playerPosition || isNaN(playerPosition.x) || isNaN(playerPosition.z)) {
+            console.warn("Invalid player position for world update");
+            return;
+        }
         
-        // Calculate which terrain chunk the player is in
+        // Calculate effective draw distance based on performance mode
+        const effectiveDrawDistance = this.calculateEffectiveDrawDistance(drawDistanceMultiplier);
+        
+        // Calculate player's current chunk coordinates
         const terrainChunkSize = this.terrainManager.terrainChunkSize;
         const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
         const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
         
-        // Update terrain chunks with potentially reduced draw distance
-        this.terrainManager.updateForPlayer(playerPosition, effectiveDrawDistance);
+        // Update world components in order of importance
+        this.updateTerrainForPlayer(playerPosition, effectiveDrawDistance);
+        this.updateEnvironmentForPlayer(playerPosition, effectiveDrawDistance);
         
-        // Update environment objects with potentially reduced draw distance
+        // Generate procedural content around player
+        this.generateProceduralContent(playerChunkX, playerChunkZ);
+        
+        // Update lighting, fog, and other world systems
+        this.updateWorldSystems(playerPosition, effectiveDrawDistance);
+    }
+    
+    /**
+     * Calculate effective draw distance based on performance settings
+     * @private
+     * @param {number} drawDistanceMultiplier - Base multiplier for draw distance
+     * @returns {number} - Effective draw distance multiplier
+     */
+    calculateEffectiveDrawDistance(drawDistanceMultiplier) {
+        // In low performance mode, cap the draw distance
+        if (this.lowPerformanceMode) {
+            return Math.min(0.6, drawDistanceMultiplier);
+        }
+        return drawDistanceMultiplier;
+    }
+    
+    /**
+     * Update terrain for player position
+     * @private
+     * @param {THREE.Vector3} playerPosition - Player position
+     * @param {number} effectiveDrawDistance - Effective draw distance
+     */
+    updateTerrainForPlayer(playerPosition, effectiveDrawDistance) {
+        if (this.terrainManager) {
+            this.terrainManager.updateForPlayer(playerPosition, effectiveDrawDistance);
+        }
+    }
+    
+    /**
+     * Update environment objects for player position
+     * @private
+     * @param {THREE.Vector3} playerPosition - Player position
+     * @param {number} effectiveDrawDistance - Effective draw distance
+     */
+    updateEnvironmentForPlayer(playerPosition, effectiveDrawDistance) {
         if (this.environmentManager && this.environmentManager.updateForPlayer) {
             this.environmentManager.updateForPlayer(playerPosition, effectiveDrawDistance);
         }
-        
-        // ENHANCED: Generate procedural content for chunks around the player
-        // This ensures both environment objects and structures are generated
-        if (this.dynamicWorldEnabled) {
+    }
+    
+    /**
+     * Generate procedural content for chunks around the player
+     * @param {number} playerChunkX - Player's chunk X coordinate
+     * @param {number} playerChunkZ - Player's chunk Z coordinate
+     */
+    generateProceduralContent(playerChunkX, playerChunkZ) {
+        // Only generate content if dynamic world is enabled
+        if (!this.dynamicWorldEnabled) return;
             // Set initialTerrainCreated to true after first update
             // This allows structures to be generated in subsequent updates
             if (!this.initialTerrainCreated) {
@@ -1475,21 +1528,64 @@ export class WorldManager {
     
     /**
      * Perform aggressive cleanup to recover memory and improve performance
+     * This method is called when FPS drops below acceptable levels
      */
     performAggressiveCleanup() {
-        // Clear terrain and environment caches
+        console.debug("🧹 Performing aggressive cleanup to recover memory");
+        
+        try {
+            // Clear all cached data arrays
+            this.clearCachedArrays();
+            
+            // Calculate reduced view distance for more aggressive cleanup
+            const reducedViewDistance = Math.max(2, Math.floor(this.terrainChunkViewDistance * 0.6));
+            
+            // Force terrain manager to clear distant chunks with reduced view distance
+            if (this.terrainManager && this.terrainManager.clearDistantChunks) {
+                this.terrainManager.clearDistantChunks(reducedViewDistance);
+            }
+            
+            // Clear environment objects beyond reduced distance
+            if (this.environmentManager && this.environmentManager.clearDistantObjects) {
+                const cleanupRadius = reducedViewDistance * this.terrainManager.terrainChunkSize;
+                this.environmentManager.clearDistantObjects(cleanupRadius);
+            }
+            
+            // Clear structures beyond reduced distance
+            if (this.structureManager && this.structureManager.clearDistantStructures) {
+                const cleanupRadius = reducedViewDistance * this.terrainManager.terrainChunkSize;
+                this.structureManager.clearDistantStructures(cleanupRadius);
+            }
+            
+            // Clear WebGL resources
+            this.clearWebGLResources();
+            
+            // Hint for garbage collection
+            this.hintGarbageCollection();
+            
+            console.debug("✅ Aggressive cleanup complete");
+        } catch (error) {
+            console.error("❌ Error during aggressive cleanup:", error);
+        }
+    }
+    
+    /**
+     * Clear cached data arrays
+     * @private
+     */
+    clearCachedArrays() {
         this.terrainFeatures = [];
         this.trees = [];
         this.rocks = [];
         this.buildings = [];
         this.paths = [];
-        
-        // Force terrain manager to clear distant chunks
-        if (this.terrainManager && this.terrainManager.clearDistantChunks) {
-            this.terrainManager.clearDistantChunks();
-        }
-        
-        // Clear texture caches if available
+    }
+    
+    /**
+     * Clear WebGL resources and caches
+     * @private
+     */
+    clearWebGLResources() {
         if (this.game && this.game.renderer) {
             // Clear WebGL state
             this.game.renderer.state.reset();
@@ -1499,24 +1595,62 @@ export class WorldManager {
                 THREE.Cache.clear();
             }
         }
-        
-        // Hint for garbage collection
-        this.hintGarbageCollection();
-        
-        console.debug("Aggressive cleanup performed");
     }
     
     /**
-     * Hint for garbage collection
+     * Hint for garbage collection and log memory usage
+     * This is a best-effort approach as browsers handle memory differently
      */
     hintGarbageCollection() {
-        // Force garbage collection hint if available
+        // Try to trigger garbage collection if available
+        this.triggerGarbageCollection();
+        
+        // Log memory usage information if available
+        this.logMemoryUsage();
+    }
+    
+    /**
+     * Attempt to trigger garbage collection
+     * @private
+     */
+    triggerGarbageCollection() {
+        // Force garbage collection hint if available (Chrome with --js-flags="--expose-gc")
         if (window.gc) {
             try {
                 window.gc();
                 console.debug("Garbage collection hint triggered");
             } catch (e) {
                 // Ignore if not available
+            }
+        } else {
+            // Alternative approach for browsers without explicit GC
+            // Create and release a large object to encourage GC
+            try {
+                const largeArray = new Array(10000).fill(0);
+                largeArray.length = 0;
+            } catch (e) {
+                // Ignore any errors
+            }
+        }
+    }
+    
+    /**
+     * Log memory usage information if available
+     * @private
+     */
+    logMemoryUsage() {
+        // Log memory usage if performance.memory is available (Chrome)
+        if (window.performance && window.performance.memory) {
+            const memoryInfo = window.performance.memory;
+            const usedMB = Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024);
+            const totalMB = Math.round(memoryInfo.jsHeapSizeLimit / 1024 / 1024);
+            const percentUsed = Math.round((usedMB / totalMB) * 100);
+            
+            console.debug(`Memory usage: ${usedMB}MB / ${totalMB}MB (${percentUsed}%)`);
+            
+            // Warn if memory usage is high
+            if (percentUsed > 80) {
+                console.warn(`⚠️ High memory usage detected: ${percentUsed}% of available heap`);
             }
         }
     }
