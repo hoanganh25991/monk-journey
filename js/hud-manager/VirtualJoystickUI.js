@@ -133,26 +133,16 @@ export class VirtualJoystickUI extends UIComponent {
      * Create a larger invisible overlay for easier joystick interaction
      */
     createJoystickOverlay() {
-        // Create overlay element
-        this.joystickOverlay = document.createElement('div');
-        this.joystickOverlay.id = 'joystick-interaction-overlay';
+        // Get the overlay element that's already in the HTML
+        this.joystickOverlay = document.getElementById('joystick-interaction-overlay');
         
-        // Style the overlay to be larger than the joystick
-        const overlaySize = 240; // Larger area for easier interaction
-        this.joystickOverlay.style.cssText = `
-            position: absolute;
-            width: ${overlaySize}px;
-            height: ${overlaySize}px;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            background-color: transparent;
-            pointer-events: auto;
-            z-index: 50;
-        `;
-        
-        // Add overlay to the container
-        this.container.appendChild(this.joystickOverlay);
+        // Ensure the overlay exists (fallback if not found in HTML)
+        if (!this.joystickOverlay) {
+            console.warn('Joystick interaction overlay not found in HTML, creating dynamically');
+            this.joystickOverlay = document.createElement('div');
+            this.joystickOverlay.id = 'joystick-interaction-overlay';
+            this.container.appendChild(this.joystickOverlay);
+        }
     }
     
 
@@ -251,8 +241,10 @@ export class VirtualJoystickUI extends UIComponent {
             document.removeEventListener('mouseup', this.handleMouseUp);
         }
         
-        // Remove the joystick overlay if it exists
-        if (this.joystickOverlay && this.joystickOverlay.parentNode) {
+        // Only remove the joystick overlay if it was dynamically created
+        // (not part of the original HTML structure)
+        if (this.joystickOverlay && this.joystickOverlay.parentNode && 
+            this.joystickOverlay.parentNode === this.container) {
             this.joystickOverlay.parentNode.removeChild(this.joystickOverlay);
         }
         
