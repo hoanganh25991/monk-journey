@@ -1349,209 +1349,8 @@ export class TeleportManager {
         
         console.debug(`Teleport distance: ${distance.toFixed(2)}, long: ${isLongDistance}, extreme: ${isExtremeDistance}`);
         
-        // Create enhanced spiral effect
-        if (this.game.hudManager) {
-            // Create spiral container
-            const spiralContainer = document.createElement('div');
-            spiralContainer.className = 'teleport-spiral-container';
-            spiralContainer.innerHTML = `
-                <div class="spiral-overlay">
-                    <div class="spiral-center">
-                        <div class="spiral-symbols">🌀 🍥 𖦹 𖣐</div>
-                        <div class="spiral-text">TELEPORTING...</div>
-                    </div>
-                    <div class="spiral-rings">
-                        <div class="spiral-ring ring-1"></div>
-                        <div class="spiral-ring ring-2"></div>
-                        <div class="spiral-ring ring-3"></div>
-                        <div class="spiral-ring ring-4"></div>
-                    </div>
-                    <div class="spiral-particles"></div>
-                </div>
-            `;
-            
-            // Add styles for the spiral effect
-            const style = document.createElement('style');
-            style.textContent = `
-                .teleport-spiral-container {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100vw;
-                    height: 100vh;
-                    pointer-events: none;
-                    z-index: 10000;
-                    background: radial-gradient(circle at center, 
-                        rgba(0, 255, 255, 0.1) 0%,
-                        rgba(0, 200, 255, 0.2) 20%,
-                        rgba(100, 0, 255, 0.3) 40%,
-                        rgba(0, 0, 0, 0.8) 100%);
-                    animation: spiralFadeIn 0.5s ease-out;
-                }
-                
-                .spiral-overlay {
-                    position: relative;
-                    width: 100%;
-                    height: 100%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                
-                .spiral-center {
-                    position: relative;
-                    z-index: 100;
-                    text-align: center;
-                    color: cyan;
-                    text-shadow: 0 0 20px cyan;
-                }
-                
-                .spiral-symbols {
-                    font-size: 3rem;
-                    margin-bottom: 1rem;
-                    animation: spiralRotate 1s linear infinite;
-                    filter: drop-shadow(0 0 10px cyan);
-                }
-                
-                .spiral-text {
-                    font-size: 1.5rem;
-                    font-weight: bold;
-                    letter-spacing: 3px;
-                    animation: pulse 0.8s ease-in-out infinite alternate;
-                }
-                
-                .spiral-rings {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                }
-                
-                .spiral-ring {
-                    position: absolute;
-                    border: 2px solid cyan;
-                    border-radius: 50%;
-                    border-style: dashed;
-                    box-shadow: 0 0 20px cyan, inset 0 0 20px cyan;
-                    opacity: 0.7;
-                }
-                
-                .ring-1 {
-                    width: 100px;
-                    height: 100px;
-                    margin: -50px 0 0 -50px;
-                    animation: spiralRotate 2s linear infinite;
-                }
-                
-                .ring-2 {
-                    width: 200px;
-                    height: 200px;
-                    margin: -100px 0 0 -100px;
-                    animation: spiralRotate 3s linear infinite reverse;
-                    border-color: #00ffaa;
-                    box-shadow: 0 0 20px #00ffaa, inset 0 0 20px #00ffaa;
-                }
-                
-                .ring-3 {
-                    width: 400px;
-                    height: 400px;
-                    margin: -200px 0 0 -200px;
-                    animation: spiralRotate 4s linear infinite;
-                    border-color: #aa00ff;
-                    box-shadow: 0 0 20px #aa00ff, inset 0 0 20px #aa00ff;
-                }
-                
-                .ring-4 {
-                    width: 800px;
-                    height: 800px;
-                    margin: -400px 0 0 -400px;
-                    animation: spiralRotate 6s linear infinite reverse;
-                    border-color: #ffaa00;
-                    box-shadow: 0 0 20px #ffaa00, inset 0 0 20px #ffaa00;
-                    opacity: 0.4;
-                }
-                
-                .spiral-particles {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-image: 
-                        radial-gradient(2px 2px at 20px 30px, cyan, transparent),
-                        radial-gradient(2px 2px at 40px 70px, #00ffaa, transparent),
-                        radial-gradient(1px 1px at 90px 40px, #aa00ff, transparent),
-                        radial-gradient(1px 1px at 130px 80px, #ffaa00, transparent),
-                        radial-gradient(2px 2px at 160px 30px, cyan, transparent);
-                    background-repeat: repeat;
-                    background-size: 200px 100px;
-                    animation: particleFloat 3s linear infinite;
-                    opacity: 0.6;
-                }
-                
-                @keyframes spiralFadeIn {
-                    from { opacity: 0; transform: scale(0.8) rotate(-180deg); }
-                    to { opacity: 1; transform: scale(1) rotate(0deg); }
-                }
-                
-                @keyframes spiralRotate {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-                
-                @keyframes pulse {
-                    from { opacity: 0.7; transform: scale(1); }
-                    to { opacity: 1; transform: scale(1.1); }
-                }
-                
-                @keyframes particleFloat {
-                    from { transform: translateY(0px) rotate(0deg); }
-                    to { transform: translateY(-200px) rotate(360deg); }
-                }
-            `;
-            
-            // Add styles to head
-            document.head.appendChild(style);
-            
-            // Add to DOM
-            document.body.appendChild(spiralContainer);
-            
-            // Enhanced effect for extreme distances
-            if (isExtremeDistance) {
-                spiralContainer.classList.add('extreme-spiral');
-                // Add more dramatic effects for extreme distances
-                setTimeout(() => {
-                    spiralContainer.style.background = `
-                        radial-gradient(circle at center, 
-                            rgba(255, 0, 255, 0.3) 0%,
-                            rgba(0, 255, 255, 0.4) 30%,
-                            rgba(255, 255, 0, 0.3) 60%,
-                            rgba(0, 0, 0, 0.9) 100%)
-                    `;
-                }, 200);
-            }
-            
-            // Remove spiral effect
-            setTimeout(() => {
-                spiralContainer.style.animation = 'spiralFadeOut 0.8s ease-in forwards';
-                
-                // Add fade out animation
-                const fadeOutStyle = document.createElement('style');
-                fadeOutStyle.textContent = `
-                    @keyframes spiralFadeOut {
-                        from { opacity: 1; transform: scale(1) rotate(0deg); }
-                        to { opacity: 0; transform: scale(1.2) rotate(720deg); }
-                    }
-                `;
-                document.head.appendChild(fadeOutStyle);
-                
-                setTimeout(() => {
-                    document.body.removeChild(spiralContainer);
-                    document.head.removeChild(style);
-                    document.head.removeChild(fadeOutStyle);
-                }, 800);
-            }, this.effectDuration - 800);
-        }
+        // Show enhanced spiral effect using pre-defined HTML element
+        this.showTeleportSpiralEffect(isExtremeDistance);
         
         // Play teleport sound with spiral effect
         if (this.game.audioManager) {
@@ -1679,5 +1478,46 @@ export class TeleportManager {
         this.activePortal = null;
         
         console.debug("Cleared all teleport portals");
+    }
+    
+    /**
+     * Show the teleport spiral effect using pre-defined HTML element
+     * @param {boolean} isExtremeDistance - Whether this is an extreme distance teleport
+     */
+    showTeleportSpiralEffect(isExtremeDistance = false) {
+        // Get the pre-defined spiral container element
+        const spiralContainer = document.getElementById('teleport-spiral-container');
+        
+        if (!spiralContainer) {
+            console.warn('Teleport spiral container not found in DOM');
+            return;
+        }
+        
+        // Reset any previous state
+        spiralContainer.classList.remove('extreme-spiral');
+        spiralContainer.style.animation = '';
+        
+        // Show the container
+        spiralContainer.style.display = 'block';
+        
+        // Enhanced effect for extreme distances
+        if (isExtremeDistance) {
+            spiralContainer.classList.add('extreme-spiral');
+        }
+        
+        // Hide spiral effect after duration
+        setTimeout(() => {
+            // Add fade out animation
+            spiralContainer.style.animation = 'spiralFadeOut 0.8s ease-in forwards';
+            
+            setTimeout(() => {
+                // Hide the container
+                spiralContainer.style.display = 'none';
+                // Reset animation for next use
+                spiralContainer.style.animation = '';
+                // Remove extreme class for next use
+                spiralContainer.classList.remove('extreme-spiral');
+            }, 800);
+        }, this.effectDuration - 800);
     }
 }

@@ -7,12 +7,7 @@ import { ZoneManager } from './zones/ZoneManager.js';
 import { LightingManager } from './lighting/LightingManager.js';
 import { FogManager } from './environment/FogManager.js';
 import { TeleportManager } from './teleport/TeleportManager.js';
-<<<<<<< Updated upstream
 import { LODManager } from './LODManager.js';
-=======
-import { DynamicEnvironmentGenerator } from './environment/DynamicEnvironmentGenerator.js';
-import { DynamicStructureGenerator } from './structures/DynamicStructureGenerator.js';
->>>>>>> Stashed changes
 
 
 /**

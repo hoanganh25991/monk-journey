@@ -400,14 +400,11 @@ export class HUDManager {
      * @param {string} effectType - Type of status effect (e.g., 'slow', 'stun', 'poison', 'invulnerable')
      */
     showStatusEffect(effectType) {
-        // Create or update status effect indicator
-        let statusContainer = document.getElementById('status-effects-container');
+        // Get the pre-defined status effects container
+        const statusContainer = document.getElementById('status-effects-container');
         if (!statusContainer) {
-            // Create container if it doesn't exist
-            statusContainer = document.createElement('div');
-            statusContainer.id = 'status-effects-container';
-            statusContainer.className = 'status-effects-container';
-            document.body.appendChild(statusContainer);
+            console.warn('Status effects container not found in DOM');
+            return;
         }
         
         // Check if this effect already has an indicator
