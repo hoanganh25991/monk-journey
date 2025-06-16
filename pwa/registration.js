@@ -33,6 +33,8 @@
         }
 
         // TODO: install later when stable
+        // Unregister any existing service workers
+        unregisterServiceWorkers();
         return;
 
         // Determine the correct path to service-worker.js
@@ -98,5 +100,59 @@
                 document.body.removeChild(toast);
             }, 500);
         }, 3000);
+    }
+    
+    /**
+     * Unregisters all existing service workers
+     */
+    async function unregisterServiceWorkers() {
+        if (!('serviceWorker' in navigator)) {
+            console.debug('Service workers not supported, nothing to unregister');
+            return;
+        }
+        
+        try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            
+            if (registrations.length === 0) {
+                console.debug('No service workers found to unregister');
+                return;
+            }
+            
+            console.debug(`Found ${registrations.length} service worker(s) to unregister`);
+            
+            const unregisterPromises = registrations.map(async (registration) => {
+                try {
+                    const success = await registration.unregister();
+                    if (success) {
+                        console.debug('Service worker unregistered:', registration.scope);
+                    } else {
+                        console.warn('Failed to unregister service worker:', registration.scope);
+                    }
+                    return success;
+                } catch (error) {
+                    console.error('Error unregistering service worker:', registration.scope, error);
+                    return false;
+                }
+            });
+            
+            const results = await Promise.all(unregisterPromises);
+            const successCount = results.filter(Boolean).length;
+            
+            console.debug(`Successfully unregistered ${successCount}/${registrations.length} service worker(s)`);
+            
+            // Optional: Clear caches as well
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                if (cacheNames.length > 0) {
+                    console.debug(`Clearing ${cacheNames.length} cache(s)`);
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    console.debug('All caches cleared');
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error during service worker unregistration:', error);
+        }
     }
 })();
