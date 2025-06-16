@@ -759,6 +759,21 @@ export const EFFECT_SOUNDS = {
             arpeggio: [1, 1.5, 2, 1.5],
             filter: 'highpass'
         }
+    },
+    effect_invulnerable: {
+        id: 'effect_invulnerable',
+        file: 'effect_invulnerable.mp3',
+        volume: 0.8,
+        simulated: {
+            frequency: 550,
+            duration: 0.5,
+            type: 'triangle',
+            decay: false,
+            reverb: true,
+            vibrato: 10,
+            arpeggio: [1, 1.3, 1.6, 2],
+            filter: 'highpass'
+        }
     }
 };
 
