@@ -32,6 +32,9 @@
             return;
         }
 
+        // TODO: install later when stable
+        return;
+
         // Determine the correct path to service-worker.js
         const swPath = window.location.pathname.includes('/pwa/') ? '../service-worker.js' : 'service-worker.js';
         
