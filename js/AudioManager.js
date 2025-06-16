@@ -126,7 +126,9 @@ export class AudioManager {
         // Load all sound effects from the sound configuration
         Object.values(ALL_SOUNDS).forEach(sound => {
             this.sounds[sound.id] = this.createSound(sound.id, sound.file, sound.volume);
+            console.debug(`Loaded sound effect: ${sound.id} (${sound.file}) - volume: ${sound.volume}`);
         });
+        console.debug('Total sound effects loaded:', Object.keys(this.sounds).length);
     }
     
     createMusic() {
@@ -156,8 +158,10 @@ export class AudioManager {
                     loop, 
                     simParams
                 );
+                console.debug(`Created simulated sound: ${sound.id} - freq: ${frequency}Hz, vol: ${volume}, dur: ${duration}s`);
             }
         });
+        console.debug('Total simulated sound effects created:', Object.keys(this.sounds).length);
     }
     
     createSimulatedMusic() {
@@ -426,7 +430,10 @@ export class AudioManager {
     }
     
     playSound(name) {
-        if (!this.audioEnabled || this.isMuted) return;
+        if (!this.audioEnabled || this.isMuted) {
+            console.debug(`Audio disabled or muted - not playing sound: ${name}`);
+            return;
+        }
         
         const sound = this.sounds[name];
         if (sound) {
@@ -438,13 +445,16 @@ export class AudioManager {
                 
                 // Play the sound
                 sound.play();
+                console.debug(`Successfully played sound: ${name} (volume: ${sound.getVolume()})`);
                 return true;
             } catch (error) {
                 console.warn(`Could not play sound ${name}:`, error);
                 return false;
             }
+        } else {
+            console.warn(`Sound not found: ${name}. Available sounds:`, Object.keys(this.sounds));
+            return false;
         }
-        return false;
     }
     
     playMusic(name = 'mainTheme') {

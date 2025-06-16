@@ -9,6 +9,12 @@ export class CollisionManager {
         
         // Track which enemies have been hit by which skills to prevent multiple hits
         this.skillHitRegistry = new Map();
+        
+        // Performance optimization flags
+        this.lastCollisionCheck = Date.now();
+        this.objectCollisionInterval = 100; // Check object collisions every 100ms by default
+        this.enemyCollisionInterval = 50; // Check enemy-enemy collisions every 50ms by default
+        this.frameCount = 0; // Track frames for staggered collision checks
     }
     
     update() {
@@ -17,20 +23,48 @@ export class CollisionManager {
             return; // Don't process collisions when game is paused
         }
         
+        // Increment frame counter
+        this.frameCount++;
+        
+        // Get current time for interval-based checks
+        const currentTime = Date.now();
+        
+        // Check if we're in critical performance mode
+        const inCriticalMode = this.world && 
+                              this.world.criticalPerformanceMode === true;
+        
+        // Always check these collisions every frame (critical for gameplay)
         // Check player-enemy collisions
         this.checkPlayerEnemyCollisions();
         
-        // Check player-object collisions
-        this.checkPlayerObjectCollisions();
-        
-        // Check player-terrain collisions
+        // Check player-terrain collisions (always needed for player movement)
         this.checkPlayerTerrainCollisions();
         
-        // Check player skill-enemy collisions
+        // Check player skill-enemy collisions (critical for combat)
         this.checkSkillEnemyCollisions();
         
-        // Check enemy-enemy collisions
-        this.checkEnemyEnemyCollisions();
+        // Optimize less critical collision checks based on performance mode
+        if (inCriticalMode) {
+            // In critical performance mode, check object collisions less frequently
+            if (currentTime - this.lastCollisionCheck > this.objectCollisionInterval) {
+                // Check player-object collisions (can be checked less frequently)
+                this.checkPlayerObjectCollisions();
+                this.lastCollisionCheck = currentTime;
+            }
+            
+            // Skip enemy-enemy collisions entirely in critical mode
+            // This is a significant performance optimization
+        } else {
+            // In normal mode, check all collisions
+            // Check player-object collisions
+            this.checkPlayerObjectCollisions();
+            
+            // Check enemy-enemy collisions (least critical, can be staggered)
+            // Only check every 3 frames to improve performance
+            if (this.frameCount % 3 === 0) {
+                this.checkEnemyEnemyCollisions();
+            }
+        }
     }
     
     checkPlayerEnemyCollisions() {

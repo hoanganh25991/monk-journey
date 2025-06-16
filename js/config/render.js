@@ -22,10 +22,17 @@ export const FOG_CONFIG = {
     // Quality level adjustments
     qualityMultipliers: {
         ultra: 1.0, // Standard fog density for ultra quality
+<<<<<<< Updated upstream
         high: 1.2, // Slightly increased fog density for high quality
         medium: 1.5, // Moderately increased fog density for medium quality
         low: 2.0, // Significantly increased fog density for low quality
         minimal: 2.5 // Very high fog density for minimal quality
+=======
+        high: 1.1, // Slightly increased fog density for high quality
+        medium: 1.3, // Moderately increased fog density for medium quality
+        low: 1.5, // Reduced fog density for low quality to prevent gray screen
+        minimal: 1.8 // Reduced fog density for minimal quality
+>>>>>>> Stashed changes
     }
 };
 

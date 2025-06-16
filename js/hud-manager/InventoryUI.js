@@ -37,6 +37,13 @@ export class InventoryUI extends UIComponent {
         this.activeItemSlot = null;
         this.itemPreviewContainer = null;
         this.itemPreview = null; // ItemPreview instance
+        
+        // Portal properties
+        this.portal = null;
+        this.portalTimeout = null;
+        this.playerStartPosition = null;
+        this.isPortalActive = false;
+        this.movementThreshold = 0.5; // Distance player needs to move to cancel auto-teleport
     }
     
     /**
@@ -1077,28 +1084,256 @@ export class InventoryUI extends UIComponent {
     }
     
     /**
-     * Teleport player to origin position (0,0,0)
+     * Create and manage teleport portal
      */
     teleportToOrigin() {
-        if (this.game && this.game.player) {
-            // Set player position to origin
-            this.game.player.setPosition(0, 0, 0);
-            
-            // Show notification
+        if (!this.game || !this.game.player) {
+            console.error('Cannot create portal: Game or player not available');
             if (this.game.hudManager) {
-                this.game.hudManager.showNotification('Teleported to origin!');
+                this.game.hudManager.showNotification('Failed to create portal!', 'error');
+            }
+            return;
+        }
+
+        // If portal is already active, remove it
+        if (this.isPortalActive) {
+            this.removePortal();
+            return;
+        }
+
+        // Get player position
+        const playerPosition = this.game.player.getPosition();
+        
+        // Validate player position
+        if (!playerPosition || typeof playerPosition.x !== 'number' || typeof playerPosition.y !== 'number' || typeof playerPosition.z !== 'number') {
+            console.error('Cannot create portal: Invalid player position', playerPosition);
+            if (this.game.hudManager) {
+                this.game.hudManager.showNotification('Failed to create portal: Invalid player position!', 'error');
+            }
+            return;
+        }
+        
+        this.playerStartPosition = {
+            x: playerPosition.x,
+            y: playerPosition.y,
+            z: playerPosition.z
+        };
+
+        // Create portal at player position
+        this.createPortal(this.playerStartPosition);
+        
+        // Show notification
+        if (this.game.hudManager) {
+            this.game.hudManager.showNotification('Portal created! Auto-teleport in 0.5s (move to cancel)');
+        }
+
+        // Close inventory
+        this.toggleInventory();
+
+        // Set auto-teleport timer
+        this.portalTimeout = setTimeout(() => {
+            // Additional safety checks
+            if (!this.game || !this.game.player) {
+                console.warn('Auto-teleport cancelled: Game or player not available');
+                return;
             }
             
-            // Close inventory after teleporting
-            this.toggleInventory();
+            // Check if player moved
+            const currentPosition = this.game.player.getPosition();
             
-            console.debug('Player teleported to origin (0,0,0)');
-        } else {
-            console.error('Cannot teleport: Game or player not available');
-            if (this.game.hudManager) {
-                this.game.hudManager.showNotification('Failed to teleport!', 'error');
+            // Validate positions before calculating distance
+            if (!this.playerStartPosition || !currentPosition) {
+                console.warn('Auto-teleport cancelled: Invalid positions', {
+                    playerStartPosition: this.playerStartPosition,
+                    currentPosition: currentPosition
+                });
+                return;
+            }
+            
+            const distance = this.calculateDistance(this.playerStartPosition, currentPosition);
+            
+            // If distance calculation failed (returned Infinity), cancel auto-teleport
+            if (distance === Infinity) {
+                console.warn('Auto-teleport cancelled: Distance calculation failed');
+                return;
+            }
+            
+            if (distance < this.movementThreshold) {
+                // Player didn't move, auto-teleport
+                this.performTeleport();
+            } else {
+                // Player moved, cancel auto-teleport but keep portal
+                if (this.game.hudManager) {
+                    this.game.hudManager.showNotification('Auto-teleport cancelled (player moved). Click portal to teleport manually.');
+                }
+            }
+        }, 500);
+
+        console.debug('Portal created at player position:', this.playerStartPosition);
+    }
+
+    /**
+     * Create a visual portal at the specified position
+     * @param {Object} position - Portal position {x, y, z}
+     */
+    createPortal(position) {
+        // Remove existing portal if any
+        this.removePortal();
+
+        // Create portal geometry and material
+        const portalGeometry = new THREE.RingGeometry(0.5, 1.0, 16);
+        const portalMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.7
+        });
+
+        // Create portal mesh
+        this.portal = new THREE.Mesh(portalGeometry, portalMaterial);
+        this.portal.position.set(position.x, position.y + 0.1, position.z);
+        this.portal.rotation.x = -Math.PI / 2; // Lay flat on ground
+
+        // Add portal to scene
+        if (this.game.scene) {
+            this.game.scene.add(this.portal);
+        }
+
+        // Create portal animation (rotating and pulsing)
+        this.animatePortal();
+
+        // Add click interaction
+        this.setupPortalInteraction();
+
+        this.isPortalActive = true;
+    }
+
+    /**
+     * Animate the portal (rotation and pulsing effect)
+     */
+    animatePortal() {
+        if (!this.portal || !this.isPortalActive) return;
+
+        // Rotate portal
+        this.portal.rotation.z += 0.02;
+
+        // Pulse effect
+        const time = Date.now() * 0.003;
+        this.portal.material.opacity = 0.4 + Math.sin(time) * 0.3;
+        this.portal.scale.setScalar(1 + Math.sin(time * 1.5) * 0.1);
+
+        // Continue animation
+        requestAnimationFrame(() => this.animatePortal());
+    }
+
+    /**
+     * Setup portal click interaction
+     */
+    setupPortalInteraction() {
+        if (!this.portal) return;
+
+        // Create a larger invisible collision mesh for easier clicking
+        const collisionGeometry = new THREE.CylinderGeometry(1.2, 1.2, 0.1, 16);
+        const collisionMaterial = new THREE.MeshBasicMaterial({
+            transparent: true,
+            opacity: 0,
+            visible: false
+        });
+        
+        const collisionMesh = new THREE.Mesh(collisionGeometry, collisionMaterial);
+        collisionMesh.position.copy(this.portal.position);
+        collisionMesh.userData = { isPortal: true };
+        
+        this.portal.add(collisionMesh);
+
+        // Add to game's clickable objects if the system exists
+        if (this.game.inputHandler && this.game.inputHandler.addClickableObject) {
+            this.game.inputHandler.addClickableObject(collisionMesh, () => {
+                this.performTeleport();
+            });
+        }
+    }
+
+    /**
+     * Calculate distance between two positions
+     * @param {Object} pos1 - First position {x, y, z}
+     * @param {Object} pos2 - Second position {x, y, z}
+     * @returns {number} Distance between positions
+     */
+    calculateDistance(pos1, pos2) {
+        // Null checks to prevent errors
+        if (!pos1 || !pos2) {
+            console.warn('calculateDistance: One or both positions are null/undefined');
+            return Infinity; // Return large distance if positions are invalid
+        }
+        
+        // Check if positions have required x, y, z properties
+        if (typeof pos1.x !== 'number' || typeof pos1.y !== 'number' || typeof pos1.z !== 'number' ||
+            typeof pos2.x !== 'number' || typeof pos2.y !== 'number' || typeof pos2.z !== 'number') {
+            console.warn('calculateDistance: Positions missing x, y, or z properties', { pos1, pos2 });
+            return Infinity;
+        }
+        
+        const dx = pos1.x - pos2.x;
+        const dy = pos1.y - pos2.y;
+        const dz = pos1.z - pos2.z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    /**
+     * Perform the actual teleportation
+     */
+    performTeleport() {
+        if (!this.game || !this.game.player) return;
+
+        // Teleport player to origin
+        this.game.player.setPosition(0, 0, 0);
+
+        // Show notification
+        if (this.game.hudManager) {
+            this.game.hudManager.showNotification('Teleported to origin!');
+        }
+
+        // Remove portal
+        this.removePortal();
+
+        console.debug('Player teleported to origin (0,0,0)');
+    }
+
+    /**
+     * Remove the portal and clean up
+     */
+    removePortal() {
+        // Clear timeout
+        if (this.portalTimeout) {
+            clearTimeout(this.portalTimeout);
+            this.portalTimeout = null;
+        }
+
+        // Remove portal from scene
+        if (this.portal && this.game.scene) {
+            this.game.scene.remove(this.portal);
+            
+            // Remove from clickable objects if the system exists
+            if (this.game.inputHandler && this.game.inputHandler.removeClickableObject) {
+                const collisionMesh = this.portal.children.find(child => child.userData.isPortal);
+                if (collisionMesh) {
+                    this.game.inputHandler.removeClickableObject(collisionMesh);
+                }
+            }
+            
+            // Dispose geometry and material
+            if (this.portal.geometry) {
+                this.portal.geometry.dispose();
+            }
+            if (this.portal.material) {
+                this.portal.material.dispose();
             }
         }
+
+        this.portal = null;
+        this.isPortalActive = false;
+        this.playerStartPosition = null;
     }
     
     /**
@@ -1153,6 +1388,9 @@ export class InventoryUI extends UIComponent {
     dispose() {
         // Stop animation loop
         this.isModelInitialized = false;
+        
+        // Clean up portal
+        this.removePortal();
         
         // Dispose of ModelPreview resources
         if (this.modelPreview) {

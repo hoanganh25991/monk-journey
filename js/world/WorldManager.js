@@ -7,7 +7,12 @@ import { ZoneManager } from './zones/ZoneManager.js';
 import { LightingManager } from './lighting/LightingManager.js';
 import { FogManager } from './environment/FogManager.js';
 import { TeleportManager } from './teleport/TeleportManager.js';
+<<<<<<< Updated upstream
 import { LODManager } from './LODManager.js';
+=======
+import { DynamicEnvironmentGenerator } from './environment/DynamicEnvironmentGenerator.js';
+import { DynamicStructureGenerator } from './structures/DynamicStructureGenerator.js';
+>>>>>>> Stashed changes
 
 
 /**
@@ -29,6 +34,10 @@ export class WorldManager {
         this.zoneManager = new ZoneManager(scene, this, game);
         this.teleportManager = new TeleportManager(scene, this, game);
         this.lodManager = new LODManager(scene, this);
+        
+        // Initialize dynamic generators (disabled by default to prevent freezing)
+        // Call this.initializeDynamicGenerators() manually when needed
+        // this.initializeDynamicGenerators();
         
         // For screen-based enemy spawning
         this.lastPlayerPosition = new THREE.Vector3(0, 0, 0);
@@ -106,6 +115,84 @@ export class WorldManager {
                 structureTypes: ['ruins', 'temple', 'altar', 'tower', 'dark_sanctum']
             }
         };
+        
+        // Dynamic generation settings
+        this.dynamicGenerationSettings = {
+            environmentDensity: 1.2,
+            structureDensity: 0.8,
+            enableClusters: true,
+            enableSpecialFeatures: true,
+            useThematicAreas: true
+        };
+    }
+    
+    /**
+     * Initialize dynamic generators safely with performance controls
+     */
+    initializeDynamicGenerators() {
+        console.log('🔄 Initializing dynamic generators...');
+        
+        // Check if already initialized
+        if (this.dynamicEnvironmentGenerator && this.dynamicStructureGenerator) {
+            console.log('✅ Dynamic generators already initialized');
+            return;
+        }
+        
+        // Wait for environment manager to be ready with its factory
+        setTimeout(() => {
+            try {
+                if (this.environmentManager && this.environmentManager.environmentFactory) {
+                    this.dynamicEnvironmentGenerator = new DynamicEnvironmentGenerator(
+                        this.scene, 
+                        this, 
+                        this.environmentManager.environmentFactory
+                    );
+                    console.log('✅ Dynamic Environment Generator initialized');
+                } else {
+                    console.warn('⚠️ Environment factory not available for dynamic generator');
+                }
+                
+                if (this.structureManager) {
+                    this.dynamicStructureGenerator = new DynamicStructureGenerator(
+                        this.scene,
+                        this,
+                        this.structureManager
+                    );
+                    console.log('✅ Dynamic Structure Generator initialized');
+                }
+                
+                // Set conservative default settings to prevent freezes
+                this.dynamicGenerationSettings = {
+                    environmentDensity: 0.3,     // Much lower density
+                    structureDensity: 0.1,       // Much lower structure density
+                    enableClusters: false,       // Disable clusters initially
+                    enableSpecialFeatures: false, // Disable special features initially
+                    useThematicAreas: false      // Disable thematic areas initially
+                };
+                
+                console.log('✅ Dynamic generators initialized with safe settings');
+            } catch (error) {
+                console.error('❌ Error initializing dynamic generators:', error);
+            }
+        }, 100);
+    }
+    
+    /**
+     * Initialize dynamic generators with custom settings (use carefully)
+     */
+    initializeDynamicGeneratorsWithSettings(settings = {}) {
+        this.initializeDynamicGenerators();
+        
+        setTimeout(() => {
+            this.dynamicGenerationSettings = {
+                environmentDensity: settings.environmentDensity || 0.3,
+                structureDensity: settings.structureDensity || 0.1,
+                enableClusters: settings.enableClusters || false,
+                enableSpecialFeatures: settings.enableSpecialFeatures || false,
+                useThematicAreas: settings.useThematicAreas || false
+            };
+            console.log('✅ Dynamic generators initialized with custom settings:', this.dynamicGenerationSettings);
+        }, 200);
     }
     
     // setGame method removed - game is now passed in constructor
@@ -135,6 +222,12 @@ export class WorldManager {
      * @param {number} chunkZ - Chunk Z coordinate
      */
     generateChunkContent(chunkX, chunkZ) {
+        // Try dynamic generation first if available
+        if (this.dynamicEnvironmentGenerator && this.dynamicStructureGenerator) {
+            return this.generateDynamicChunkContent(chunkX, chunkZ);
+        }
+        
+        // Fallback to original chunk generation
         const chunkKey = `${chunkX},${chunkZ}`;
         
         // Skip if already generated
@@ -142,7 +235,7 @@ export class WorldManager {
             return;
         }
         
-        console.debug(`Generating content for chunk ${chunkKey}`);
+        console.debug(`Generating content for chunk ${chunkKey} (legacy method)`);
         
         // Calculate world coordinates for this chunk
         const worldX = chunkX * this.terrainManager.terrainChunkSize;
@@ -971,6 +1064,11 @@ export class WorldManager {
             if (distanceMoved >= this.screenSpawnDistance * 3) {
                 console.debug(`Player moved significant distance (${distanceMoved.toFixed(1)}), forcing terrain and enemy cleanup`);
                 
+                // Calculate player's current chunk coordinates
+                const terrainChunkSize = this.terrainManager.terrainChunkSize;
+                const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
+                const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
+                
                 // Clean up terrain
                 this.terrainManager.clearDistantChunks(playerChunkX, playerChunkZ);
                 
@@ -1634,62 +1732,140 @@ export class WorldManager {
     }
     
     /**
-     * Get trees for the minimap
-     * @returns {Array} - Array of trees
+     * Get vegetation objects for the minimap (replaces getTrees)
+     * @returns {Array} - Array of vegetation objects
      */
-    getTrees() {
-        this.trees = [];
+    getVegetation() {
+        const vegetation = [];
         
-        // Add trees from environment manager
+        // Get vegetation from dynamic environment generator if available
+        if (this.environmentManager && this.environmentManager.dynamicGenerator) {
+            const vegetationObjects = this.environmentManager.dynamicGenerator.getVegetation();
+            vegetationObjects.forEach(obj => {
+                vegetation.push({
+                    position: obj.position,
+                    type: obj.type
+                });
+            });
+        }
+        
+        // Fallback to environment manager trees for backward compatibility
         if (this.environmentManager && this.environmentManager.trees) {
             this.environmentManager.trees.forEach(tree => {
-                this.trees.push({
-                    position: tree.position
+                vegetation.push({
+                    position: tree.position,
+                    type: 'tree'
                 });
             });
         }
         
-        return this.trees;
+        return vegetation;
     }
     
     /**
-     * Get rocks for the minimap
-     * @returns {Array} - Array of rocks
+     * Get all environment objects by category
+     * @param {string} category - Category name (vegetation, rocks, magical, etc.)
+     * @returns {Array} - Array of objects in category
+     */
+    getEnvironmentObjectsByCategory(category) {
+        if (this.environmentManager && this.environmentManager.dynamicGenerator) {
+            return this.environmentManager.dynamicGenerator.getObjectsByCategory(category).map(obj => ({
+                position: obj.position,
+                type: obj.type,
+                size: obj.size
+            }));
+        }
+        return [];
+    }
+    
+    /**
+     * Get rock objects for the minimap
+     * @returns {Array} - Array of rock objects
      */
     getRocks() {
-        this.rocks = [];
+        const rocks = this.getEnvironmentObjectsByCategory('rocks');
         
-        // Add rocks from environment manager
-        if (this.environmentManager && this.environmentManager.rocks) {
+        // Fallback to environment manager rocks for backward compatibility
+        if (rocks.length === 0 && this.environmentManager && this.environmentManager.rocks) {
             this.environmentManager.rocks.forEach(rock => {
-                this.rocks.push({
-                    position: rock.position
+                rocks.push({
+                    position: rock.position,
+                    type: 'rock'
                 });
             });
         }
         
-        return this.rocks;
+        return rocks;
     }
     
     /**
-     * Get buildings for the minimap
-     * @returns {Array} - Array of buildings
+     * Get structure objects for the minimap (replaces getBuildings)
+     * @returns {Array} - Array of structure objects
      */
-    getBuildings() {
-        this.buildings = [];
+    getStructures() {
+        const structures = [];
         
-        // Add buildings from structure manager
-        if (this.structureManager && this.structureManager.structures) {
-            this.structureManager.structures.forEach(structure => {
-                if (structure.type === 'building') {
-                    this.buildings.push({
-                        position: structure.position
-                    });
-                }
+        // Get structures from dynamic structure generator if available
+        if (this.structureManager && this.structureManager.dynamicGenerator) {
+            const allStructures = this.structureManager.dynamicGenerator.getAllStructures();
+            allStructures.forEach(structure => {
+                structures.push({
+                    position: structure.position,
+                    type: structure.type
+                });
             });
         }
         
-        return this.buildings;
+        // Fallback to structure manager structures for backward compatibility
+        if (this.structureManager && this.structureManager.structures) {
+            this.structureManager.structures.forEach(structure => {
+                structures.push({
+                    position: structure.position,
+                    type: structure.type
+                });
+            });
+        }
+        
+        return structures;
+    }
+    
+    /**
+     * Get buildings for the minimap (for backward compatibility)
+     * @returns {Array} - Array of building structures
+     */
+    getBuildings() {
+        return this.getStructures().filter(structure => 
+            ['house', 'building', 'tavern', 'shop', 'temple'].includes(structure.type)
+        );
+    }
+    
+    /**
+     * Get trees for the minimap (for backward compatibility)
+     * @returns {Array} - Array of tree objects
+     */
+    getTrees() {
+        return this.getVegetation().filter(obj => 
+            ['tree', 'pine_tree', 'ancient_tree', 'swamp_tree'].includes(obj.type)
+        );
+    }
+    
+    /**
+     * Get magical objects for the minimap
+     * @returns {Array} - Array of magical objects
+     */
+    getMagicalObjects() {
+        return this.getEnvironmentObjectsByCategory('magical');
+    }
+    
+    /**
+     * Get all environment objects
+     * @returns {Array} - Array of all environment objects
+     */
+    getAllEnvironmentObjects() {
+        if (this.environmentManager && this.environmentManager.dynamicGenerator) {
+            return this.environmentManager.dynamicGenerator.getAllObjects();
+        }
+        return [];
     }
     
     /**
@@ -1759,5 +1935,623 @@ export class WorldManager {
         }
         
         return nearbyObjects;
+    }
+    
+    // ============================================================================
+    // DYNAMIC GENERATION DEBUG AND TEST METHODS
+    // ============================================================================
+    
+    /**
+     * Test dynamic generation with minimal objects to identify freezing cause
+     */
+    testDynamicGeneration() {
+        console.log('🧪 Testing dynamic generation...');
+        
+        try {
+            // Test 1: Check if generators can be initialized
+            console.log('📋 Test 1: Initializing generators...');
+            this.initializeDynamicGenerators();
+            
+            setTimeout(() => {
+                // Test 2: Try generating just one object
+                console.log('📋 Test 2: Generating single object...');
+                if (this.dynamicEnvironmentGenerator) {
+                    try {
+                        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
+                            new THREE.Vector3(0, 0, 0),
+                            5, // Very small radius
+                            'FOREST',
+                            0.1 // Very low density
+                        );
+                        console.log(`✅ Generated ${objects.length} objects successfully`);
+                    } catch (error) {
+                        console.error('❌ Error in object generation:', error);
+                    }
+                } else {
+                    console.error('❌ Environment generator not available');
+                }
+                
+                // Test 3: Check memory usage
+                console.log('📋 Test 3: Memory check...');
+                if (performance.memory) {
+                    console.log(`🧠 Memory: ${Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)}MB used`);
+                }
+                
+                console.log('✅ Basic test complete');
+            }, 500);
+            
+        } catch (error) {
+            console.error('❌ Error in test:', error);
+        }
+    }
+    
+    /**
+     * Emergency stop for freezing situations
+     */
+    emergencyStop() {
+        console.log('🚨 Emergency stop activated');
+        
+        // Clear all dynamic content
+        if (this.dynamicEnvironmentGenerator) {
+            this.dynamicEnvironmentGenerator.clear();
+        }
+        if (this.dynamicStructureGenerator) {
+            this.dynamicStructureGenerator.clear();
+        }
+        
+        // Reset settings to minimal
+        this.dynamicGenerationSettings = {
+            environmentDensity: 0.1,
+            structureDensity: 0.05,
+            enableClusters: false,
+            enableSpecialFeatures: false,
+            useThematicAreas: false
+        };
+        
+        console.log('✅ Emergency stop complete');
+    }
+    
+    // ============================================================================
+    // DYNAMIC GENERATION METHODS
+    // ============================================================================
+    
+    /**
+     * Generate a complete diverse area with all types of objects (SAFE VERSION)
+     * @param {THREE.Vector3} center - Center of area to generate
+     * @param {number} radius - Radius of area
+     * @param {string} biome - Biome type
+     * @param {boolean} batch - Use batched generation to prevent freezing
+     * @returns {Object} - Generated area info
+     */
+    generateDiverseArea(center, radius = 50, biome = 'FOREST', batch = true) {
+        if (!this.dynamicEnvironmentGenerator || !this.dynamicStructureGenerator) {
+            console.warn('🚫 Dynamic generators not initialized yet. Call initializeDynamicGenerators() first.');
+            return null;
+        }
+
+        // Safety checks to prevent freeze
+        if (radius > 100) {
+            console.warn('⚠️ Large radius detected, capping at 100 to prevent freeze');
+            radius = 100;
+        }
+
+        console.log(`🌍 Generating diverse ${biome} area at (${center.x}, ${center.z}) with radius ${radius}`);
+        
+        if (batch) {
+            return this.generateDiverseAreaBatched(center, radius, biome);
+        }
+        
+        try {
+            // Generate environment objects with safety limits
+            const safeEnvironmentDensity = Math.min(this.dynamicGenerationSettings.environmentDensity, 0.5);
+            const environmentObjects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
+                center,
+                radius,
+                biome,
+                safeEnvironmentDensity
+            );
+            
+            console.log(`🌱 Generated ${environmentObjects.length} environment objects:`);
+            this.logObjectStats(environmentObjects);
+            
+            // Generate a small settlement with safety limits
+            const settlementCenter = new THREE.Vector3(
+                center.x + (Math.random() - 0.5) * radius * 0.3, // Smaller offset
+                center.y,
+                center.z + (Math.random() - 0.5) * radius * 0.3
+            );
+            
+            const settlementPattern = this.selectSettlementPattern(biome);
+            const safeStructureDensity = Math.min(this.dynamicGenerationSettings.structureDensity, 0.2);
+            const structures = this.dynamicStructureGenerator.generateSettlement(
+                settlementCenter,
+                Math.min(radius * 0.2, 20), // Cap settlement size
+                biome,
+                settlementPattern,
+                safeStructureDensity
+            );
+            
+            console.log(`🏘️ Generated ${structures.length} structures in ${settlementPattern} pattern`);
+            this.logStructureStats(structures);
+            
+            // Skip clusters for now to prevent freezing
+            if (this.dynamicGenerationSettings.enableClusters && structures.length < 10) {
+                console.log('⚠️ Skipping clusters - too many objects already generated');
+            }
+            
+            return {
+                environmentObjects,
+                structures,
+                biome,
+                center,
+                radius
+            };
+        } catch (error) {
+            console.error('❌ Error generating diverse area:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Generate area in batches to prevent freezing
+     */
+    generateDiverseAreaBatched(center, radius, biome) {
+        console.log('🔄 Using batched generation to prevent freezing...');
+        
+        const result = {
+            environmentObjects: [],
+            structures: [],
+            biome,
+            center,
+            radius
+        };
+        
+        // Generate in smaller chunks over time
+        const chunkSize = 20;
+        const chunks = Math.ceil(radius / chunkSize);
+        let currentChunk = 0;
+        
+        const generateChunk = () => {
+            if (currentChunk >= chunks) {
+                console.log('✅ Batched generation complete');
+                return;
+            }
+            
+            const chunkCenter = new THREE.Vector3(
+                center.x + (currentChunk - chunks/2) * chunkSize,
+                center.y,
+                center.z
+            );
+            
+            try {
+                // Generate small batch of objects
+                const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
+                    chunkCenter,
+                    chunkSize,
+                    biome,
+                    0.2 // Very low density per chunk
+                );
+                
+                result.environmentObjects.push(...objects);
+                console.log(`📦 Chunk ${currentChunk + 1}/${chunks}: Generated ${objects.length} objects`);
+                
+                currentChunk++;
+                setTimeout(generateChunk, 50); // Wait 50ms between chunks
+            } catch (error) {
+                console.error('❌ Error in batched generation:', error);
+            }
+        };
+        
+        generateChunk();
+        return result;
+    }
+    
+    /**
+     * Generate multiple diverse biome areas
+     * @returns {Array} - Array of generated areas
+     */
+    generateMultipleBiomes() {
+        if (!this.dynamicEnvironmentGenerator || !this.dynamicStructureGenerator) {
+            console.warn('🚫 Dynamic generators not initialized yet');
+            return [];
+        }
+
+        const biomes = ['FOREST', 'MOUNTAINS', 'DESERT', 'SWAMP', 'RUINS'];
+        const areas = [];
+        
+        biomes.forEach((biome, index) => {
+            const angle = (index / biomes.length) * Math.PI * 2;
+            const distance = 100;
+            const center = new THREE.Vector3(
+                Math.cos(angle) * distance,
+                0,
+                Math.sin(angle) * distance
+            );
+            
+            const area = this.generateDiverseArea(center, 60, biome);
+            if (area) {
+                areas.push(area);
+            }
+        });
+        
+        console.log(`🌍 Generated ${areas.length} diverse biome areas`);
+        return areas;
+    }
+    
+    /**
+     * Generate themed area (e.g., magical forest, haunted ruins, etc.)
+     * @param {THREE.Vector3} center - Center position
+     * @param {string} theme - Theme name
+     * @param {number} radius - Area radius
+     * @returns {Object} - Generated themed area
+     */
+    generateThemedArea(center, theme, radius = 40) {
+        if (!this.dynamicEnvironmentGenerator || !this.dynamicStructureGenerator) {
+            console.warn('🚫 Dynamic generators not initialized yet');
+            return null;
+        }
+
+        console.log(`🎨 Generating ${theme} themed area`);
+        
+        switch (theme) {
+            case 'magical_forest':
+                return this.generateMagicalForest(center, radius);
+            case 'haunted_ruins':
+                return this.generateHauntedRuins(center, radius);
+            case 'mountain_village':
+                return this.generateMountainVillage(center, radius);
+            case 'desert_oasis':
+                return this.generateDesertOasis(center, radius);
+            case 'swamp_mystery':
+                return this.generateSwampMystery(center, radius);
+            default:
+                return this.generateDiverseArea(center, radius);
+        }
+    }
+    
+    /**
+     * Generate magical forest theme
+     */
+    generateMagicalForest(center, radius) {
+        // High density of magical objects and glowing features
+        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
+            center, radius, 'FOREST', 1.5
+        );
+        
+        // Generate multiple fairy circles and magical groves
+        for (let i = 0; i < 3; i++) {
+            const clusterCenter = new THREE.Vector3(
+                center.x + (Math.random() - 0.5) * radius * 0.6,
+                center.y,
+                center.z + (Math.random() - 0.5) * radius * 0.6
+            );
+            this.dynamicEnvironmentGenerator.generateCluster(clusterCenter, 'magical_grove', 5);
+        }
+        
+        // Small mystical settlement
+        const structures = this.dynamicStructureGenerator.generateSettlement(
+            center, radius * 0.2, 'FOREST', 'CIRCULAR', 0.5
+        );
+        
+        return { objects, structures, theme: 'magical_forest' };
+    }
+    
+    /**
+     * Generate haunted ruins theme
+     */
+    generateHauntedRuins(center, radius) {
+        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
+            center, radius, 'RUINS', 1.0
+        );
+        
+        const structures = this.dynamicStructureGenerator.generateSettlement(
+            center, radius * 0.4, 'RUINS', 'SCATTERED', 0.8
+        );
+        
+        return { objects, structures, theme: 'haunted_ruins' };
+    }
+    
+    /**
+     * Generate mountain village theme
+     */
+    generateMountainVillage(center, radius) {
+        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
+            center, radius, 'MOUNTAINS', 0.8
+        );
+        
+        const structures = this.dynamicStructureGenerator.generateSettlement(
+            center, radius * 0.3, 'MOUNTAINS', 'LINEAR', 1.0
+        );
+        
+        return { objects, structures, theme: 'mountain_village' };
+    }
+    
+    /**
+     * Generate desert oasis theme
+     */
+    generateDesertOasis(center, radius) {
+        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
+            center, radius, 'DESERT', 1.2
+        );
+        
+        const structures = this.dynamicStructureGenerator.generateSettlement(
+            center, radius * 0.25, 'DESERT', 'CIRCULAR', 0.6
+        );
+        
+        return { objects, structures, theme: 'desert_oasis' };
+    }
+    
+    /**
+     * Generate swamp mystery theme
+     */
+    generateSwampMystery(center, radius) {
+        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
+            center, radius, 'SWAMP', 1.3
+        );
+        
+        const structures = this.dynamicStructureGenerator.generateSettlement(
+            center, radius * 0.2, 'SWAMP', 'SCATTERED', 0.4
+        );
+        
+        return { objects, structures, theme: 'swamp_mystery' };
+    }
+    
+    /**
+     * Generate interesting clusters of objects
+     */
+    generateInterestingClusters(center, radius, biome) {
+        const clusterTypes = [
+            'mushroom_patch',
+            'rock_formation',
+            'flower_field',
+            'magical_grove'
+        ];
+        
+        // Generate 2-4 clusters per area
+        const clusterCount = 2 + Math.floor(Math.random() * 3);
+        
+        for (let i = 0; i < clusterCount; i++) {
+            const clusterType = clusterTypes[Math.floor(Math.random() * clusterTypes.length)];
+            const clusterCenter = new THREE.Vector3(
+                center.x + (Math.random() - 0.5) * radius * 0.8,
+                center.y,
+                center.z + (Math.random() - 0.5) * radius * 0.8
+            );
+            
+            const objectCount = 3 + Math.floor(Math.random() * 8);
+            const clusterObjects = this.dynamicEnvironmentGenerator.generateCluster(
+                clusterCenter,
+                clusterType,
+                objectCount
+            );
+            
+            console.log(`🎯 Generated ${clusterType} cluster with ${clusterObjects.length} objects`);
+        }
+    }
+    
+    /**
+     * Select appropriate settlement pattern for biome
+     */
+    selectSettlementPattern(biome) {
+        const patterns = {
+            FOREST: ['ORGANIC', 'CLUSTERED'],
+            MOUNTAINS: ['LINEAR', 'ORGANIC'],
+            DESERT: ['CIRCULAR', 'CLUSTERED'],
+            SWAMP: ['SCATTERED', 'LINEAR'],
+            RUINS: ['SCATTERED', 'CIRCULAR']
+        };
+        
+        const biomePatterns = patterns[biome] || patterns.FOREST;
+        return biomePatterns[Math.floor(Math.random() * biomePatterns.length)];
+    }
+    
+    /**
+     * Log statistics about generated objects
+     */
+    logObjectStats(objects) {
+        const stats = {};
+        objects.forEach(obj => {
+            stats[obj.type] = (stats[obj.type] || 0) + 1;
+        });
+        
+        Object.entries(stats).forEach(([type, count]) => {
+            console.log(`  • ${type}: ${count}`);
+        });
+    }
+    
+    /**
+     * Log statistics about generated structures
+     */
+    logStructureStats(structures) {
+        const stats = {};
+        structures.forEach(structure => {
+            stats[structure.type] = (stats[structure.type] || 0) + 1;
+        });
+        
+        Object.entries(stats).forEach(([type, count]) => {
+            console.log(`  • ${type}: ${count}`);
+        });
+    }
+    
+    /**
+     * Update dynamic generation settings
+     */
+    updateDynamicGenerationSettings(newSettings) {
+        this.dynamicGenerationSettings = { ...this.dynamicGenerationSettings, ...newSettings };
+        console.log('📝 Updated dynamic generation settings:', this.dynamicGenerationSettings);
+    }
+    
+    /**
+     * Clear all dynamically generated content
+     */
+    clearDynamicContent() {
+        if (this.dynamicEnvironmentGenerator) {
+            this.dynamicEnvironmentGenerator.clear();
+        }
+        if (this.dynamicStructureGenerator) {
+            this.dynamicStructureGenerator.clear();
+        }
+        console.log('🧹 Cleared all dynamic content');
+    }
+    
+    /**
+     * Get all generated content for minimap/debugging
+     */
+    getAllDynamicContent() {
+        const content = {
+            environmentObjects: [],
+            structures: [],
+            vegetation: [],
+            rocks: [],
+            magicalObjects: []
+        };
+        
+        if (this.dynamicEnvironmentGenerator) {
+            content.environmentObjects = this.dynamicEnvironmentGenerator.getAllObjects();
+            content.vegetation = this.dynamicEnvironmentGenerator.getVegetation();
+            content.rocks = this.dynamicEnvironmentGenerator.getRocks();
+            content.magicalObjects = this.dynamicEnvironmentGenerator.getMagicalObjects();
+        }
+        
+        if (this.dynamicStructureGenerator) {
+            content.structures = this.dynamicStructureGenerator.getAllStructures();
+        }
+        
+        return content;
+    }
+    
+    /**
+     * Enhanced chunk generation with dynamic system (SAFE VERSION)
+     */
+    generateDynamicChunkContent(chunkX, chunkZ) {
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // Skip if already generated
+        if (this.generatedChunks.has(chunkKey)) {
+            return;
+        }
+        
+        // SAFETY: Don't use dynamic generation for chunks to prevent freezing
+        console.debug('⚠️ Skipping dynamic chunk generation to prevent freezing, using legacy method');
+        return this.generateLegacyChunkContent(chunkX, chunkZ);
+        
+        // TODO: Enable this when dynamic generation is more stable
+        /*
+        // Check if dynamic generators are available
+        if (!this.dynamicEnvironmentGenerator || !this.dynamicStructureGenerator) {
+            console.debug('Dynamic generators not ready, falling back to standard generation');
+            return this.generateLegacyChunkContent(chunkX, chunkZ);
+        }
+        
+        console.debug(`🎯 Generating dynamic content for chunk ${chunkKey}`);
+        
+        // Calculate world coordinates for this chunk
+        const worldX = chunkX * this.terrainManager.terrainChunkSize;
+        const worldZ = chunkZ * this.terrainManager.terrainChunkSize;
+        const chunkCenter = new THREE.Vector3(
+            worldX + this.terrainManager.terrainChunkSize / 2,
+            0,
+            worldZ + this.terrainManager.terrainChunkSize / 2
+        );
+        
+        // Determine zone type for this chunk
+        const zoneType = this.getZoneTypeAt(worldX, worldZ).toUpperCase();
+        const chunkRadius = Math.min(this.terrainManager.terrainChunkSize / 2, 25); // Cap chunk radius
+        
+        try {
+            // Generate very few environment objects using dynamic system
+            const safeEnvironmentDensity = Math.min(this.dynamicGenerationSettings.environmentDensity * 0.1, 0.05);
+            const environmentObjects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
+                chunkCenter,
+                chunkRadius,
+                zoneType,
+                safeEnvironmentDensity // Much lower density for chunks
+            );
+            
+            // Cap the number of objects per chunk
+            if (environmentObjects.length > 5) {
+                environmentObjects.splice(5); // Remove excess objects
+            }
+            
+            console.debug(`Generated ${environmentObjects.length} dynamic environment objects for chunk ${chunkKey}`);
+            
+            // Very rarely generate structures in chunks
+            if (Math.random() < 0.02) { // Only 2% chance for structures in chunk
+                const safeStructureDensity = Math.min(this.dynamicGenerationSettings.structureDensity * 0.1, 0.02);
+                const structures = this.dynamicStructureGenerator.generateSettlement(
+                    chunkCenter,
+                    Math.min(chunkRadius * 0.3, 10), // Very small settlements
+                    zoneType,
+                    'SCATTERED',
+                    safeStructureDensity
+                );
+                
+                // Cap structures per chunk
+                if (structures.length > 2) {
+                    structures.splice(2);
+                }
+                
+                console.debug(`Generated ${structures.length} structures for chunk ${chunkKey}`);
+            }
+            
+            // Mark chunk as generated
+            this.generatedChunks.add(chunkKey);
+        } catch (error) {
+            console.error(`Error generating dynamic content for chunk ${chunkKey}:`, error);
+            // Fall back to standard generation
+            this.generateLegacyChunkContent(chunkX, chunkZ);
+        }
+        */
+    }
+    
+    /**
+     * Legacy chunk generation (safe fallback)
+     */
+    generateLegacyChunkContent(chunkX, chunkZ) {
+        // This is the original method body moved to a separate function
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // Skip if already generated
+        if (this.generatedChunks.has(chunkKey)) {
+            return;
+        }
+        
+        console.debug(`Generating content for chunk ${chunkKey} (legacy method)`);
+        
+        // Calculate world coordinates for this chunk
+        const worldX = chunkX * this.terrainManager.terrainChunkSize;
+        const worldZ = chunkZ * this.terrainManager.terrainChunkSize;
+        
+        // Determine zone type for this chunk
+        const zoneType = this.getZoneTypeAt(worldX, worldZ);
+        const zoneDensity = this.zoneDensities[zoneType];
+        
+        if (!zoneDensity) {
+            console.warn(`Unknown zone type: ${zoneType}`);
+            return;
+        }
+        
+        try {
+            // Generate environment objects with heavily reduced density for better performance
+            const reducedDensity = { ...zoneDensity };
+            reducedDensity.environment = zoneDensity.environment * 0.3; // Reduce environment density by 70%
+            reducedDensity.structures = zoneDensity.structures * 0.2; // Reduce structure probability by 80%
+            
+            // Generate environment objects
+            this.generateEnvironmentObjectsForChunk(chunkX, chunkZ, zoneType, reducedDensity);
+            
+            // Generate structures - but only if this is not the initial loading
+            // This helps prevent freezing during initial load
+            if (this.initialTerrainCreated && Math.random() < 0.1) { // Only 10% chance
+                this.generateStructuresForChunk(chunkX, chunkZ, zoneType, reducedDensity);
+            }
+            
+            // Mark chunk as generated
+            this.generatedChunks.add(chunkKey);
+        } catch (error) {
+            console.error(`Error generating content for chunk ${chunkKey}:`, error);
+            // Still mark as generated to prevent repeated attempts that might cause freezing
+            this.generatedChunks.add(chunkKey);
+        }
     }
 }

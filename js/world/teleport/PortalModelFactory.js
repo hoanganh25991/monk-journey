@@ -20,12 +20,12 @@ export class PortalModelFactory {
     }
     
     /**
-     * Create a portal mesh
+     * Create a portal mesh with spiral/cyclone effects
      * @param {THREE.Vector3} position - The position of the portal
      * @param {number} color - Custom color for the portal (optional)
      * @param {number} emissiveColor - Custom emissive color (optional)
      * @param {number} size - Custom size for the portal (optional)
-     * @returns {THREE.Mesh} - The created portal mesh
+     * @returns {THREE.Group} - The created portal group with multiple effects
      */
     createPortalMesh(position, color, emissiveColor, size) {
         // Validate position
@@ -39,8 +39,11 @@ export class PortalModelFactory {
         // Use custom size or default, ensure it's a valid number
         const portalRadius = (size && !isNaN(size)) ? size : this.portalRadius;
         
-        // Create portal geometry
-        const geometry = new THREE.CylinderGeometry(
+        // Create a group to hold all portal effects
+        const portalGroup = new THREE.Group();
+        
+        // 1. Base portal disc
+        const baseGeometry = new THREE.CylinderGeometry(
             portalRadius, // Top radius
             portalRadius, // Bottom radius
             this.portalHeight, // Height
@@ -49,41 +52,151 @@ export class PortalModelFactory {
             false // Open ended
         );
         
-        // Create portal material with glow effect
-        const material = new THREE.MeshStandardMaterial({
+        const baseMaterial = new THREE.MeshStandardMaterial({
             color: color || this.portalColor,
             transparent: true,
-            opacity: 0.7,
+            opacity: 0.5,
             emissive: emissiveColor || this.portalEmissiveColor,
-            emissiveIntensity: this.portalEmissiveIntensity,
+            emissiveIntensity: this.portalEmissiveIntensity * 0.5,
             side: THREE.DoubleSide
         });
         
-        // Create portal mesh
-        const portalMesh = new THREE.Mesh(geometry, material);
+        const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+        baseMesh.rotation.x = Math.PI / 2; // Lay flat on the ground
+        portalGroup.add(baseMesh);
+        
+        // 2. Spiral cyclone effect
+        const cycloneMesh = this.createCycloneSpiral(portalRadius, color, emissiveColor);
+        portalGroup.add(cycloneMesh);
+        
+        // 3. Inner swirling ring - keep only this one
+        const innerRingMesh = this.createSwirlRing(portalRadius * 0.7, color, emissiveColor);
+        portalGroup.add(innerRingMesh);
+        
+        // Remove outer energy ring to clean up outer effects
+        
+        // Store references for animation
+        portalGroup.baseMesh = baseMesh;
+        portalGroup.cycloneMesh = cycloneMesh;
+        portalGroup.innerRingMesh = innerRingMesh;
         
         // Safely set position
         try {
-            portalMesh.position.copy(position);
+            portalGroup.position.copy(position);
         } catch (e) {
             console.warn('Error setting portal position:', e);
-            portalMesh.position.set(0, 0, 0);
+            portalGroup.position.set(0, 0, 0);
         }
         
-        portalMesh.rotation.x = Math.PI / 2; // Lay flat on the ground
-        
         // Add to scene
-        this.scene.add(portalMesh);
+        this.scene.add(portalGroup);
         
-        return portalMesh;
+        return portalGroup;
     }
     
     /**
-     * Create particles for a portal
+     * Create a spiral cyclone mesh effect - simplified and contained within portal
+     * @param {number} radius - Radius of the cyclone
+     * @param {number} color - Color of the cyclone
+     * @param {number} emissiveColor - Emissive color
+     * @returns {THREE.Mesh} - The cyclone mesh
+     */
+    createCycloneSpiral(radius, color, emissiveColor) {
+        // Create a simple flat spiral that stays within the portal
+        const spiralPoints = [];
+        const spiralTurns = 3; // Number of complete spiral turns
+        const pointsPerTurn = 12; // Reduced for better performance
+        const totalPoints = spiralTurns * pointsPerTurn;
+        
+        for (let i = 0; i <= totalPoints; i++) {
+            const progress = i / totalPoints; // 0 to 1
+            const angle = progress * Math.PI * 2 * spiralTurns; // Multiple turns
+            const spiralRadius = radius * (1 - progress * 0.7); // Spiral inward, leaving some outer radius
+            const y = Math.sin(progress * Math.PI * 2) * 0.2; // Small vertical wave motion
+            
+            const x = Math.cos(angle) * spiralRadius;
+            const z = Math.sin(angle) * spiralRadius;
+            
+            spiralPoints.push(new THREE.Vector3(x, y, z));
+        }
+        
+        // Create tube geometry along the spiral path - thinner and more optimized
+        const curve = new THREE.CatmullRomCurve3(spiralPoints);
+        const tubeGeometry = new THREE.TubeGeometry(curve, totalPoints, 0.05, 6, false);
+        
+        const cycloneMaterial = new THREE.MeshStandardMaterial({
+            color: color || this.portalColor,
+            transparent: true,
+            opacity: 0.6,
+            emissive: emissiveColor || this.portalEmissiveColor,
+            emissiveIntensity: this.portalEmissiveIntensity * 0.8,
+            side: THREE.DoubleSide
+        });
+        
+        const cycloneMesh = new THREE.Mesh(tubeGeometry, cycloneMaterial);
+        // Rotate the spiral 90 degrees to match the flat portal base surface
+        cycloneMesh.rotation.x = Math.PI / 2;
+        
+        return cycloneMesh;
+    }
+    
+    /**
+     * Create a swirling inner ring
+     * @param {number} radius - Radius of the ring
+     * @param {number} color - Color of the ring
+     * @param {number} emissiveColor - Emissive color
+     * @returns {THREE.Mesh} - The swirl ring mesh
+     */
+    createSwirlRing(radius, color, emissiveColor) {
+        const ringGeometry = new THREE.TorusGeometry(radius, radius * 0.1, 8, 32);
+        
+        const ringMaterial = new THREE.MeshStandardMaterial({
+            color: color || this.portalColor,
+            transparent: true,
+            opacity: 0.6,
+            emissive: emissiveColor || this.portalEmissiveColor,
+            emissiveIntensity: this.portalEmissiveIntensity * 0.8,
+            side: THREE.DoubleSide
+        });
+        
+        const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+        ringMesh.rotation.x = Math.PI / 2;
+        
+        return ringMesh;
+    }
+    
+    /**
+     * Create an outer energy ring
+     * @param {number} radius - Radius of the ring
+     * @param {number} color - Color of the ring
+     * @param {number} emissiveColor - Emissive color
+     * @returns {THREE.Mesh} - The energy ring mesh
+     */
+    createEnergyRing(radius, color, emissiveColor) {
+        const ringGeometry = new THREE.TorusGeometry(radius, radius * 0.05, 4, 24);
+        
+        const ringMaterial = new THREE.MeshStandardMaterial({
+            color: color || this.portalColor,
+            transparent: true,
+            opacity: 0.4,
+            emissive: emissiveColor || this.portalEmissiveColor,
+            emissiveIntensity: this.portalEmissiveIntensity * 1.5,
+            side: THREE.DoubleSide,
+            wireframe: true
+        });
+        
+        const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+        ringMesh.rotation.x = Math.PI / 2;
+        
+        return ringMesh;
+    }
+    
+    /**
+     * Create spiral particles for a portal
      * @param {THREE.Vector3} position - The position of the particles
      * @param {number} color - The color of the particles
      * @param {number} portalRadius - The radius of the portal
-     * @returns {THREE.Points} - The created particle system
+     * @returns {THREE.Group} - The created particle systems group
      */
     createPortalParticles(position, color, portalRadius) {
         // Validate position
@@ -97,20 +210,53 @@ export class PortalModelFactory {
         // Use provided radius or default, ensure it's a valid number
         const radius = (portalRadius && !isNaN(portalRadius)) ? portalRadius : this.portalRadius;
         
-        // Create particle geometry
-        const particleCount = 100;
+        // Create a group to hold multiple particle systems
+        const particleGroup = new THREE.Group();
+        
+        // Only keep spiral inward particles inside the portal
+        const spiralParticles = this.createSpiralParticles(position, color, radius);
+        particleGroup.add(spiralParticles);
+        
+        // Store references for animation
+        particleGroup.spiralParticles = spiralParticles;
+        
+        // Set position
+        particleGroup.position.copy(position);
+        
+        // Add to scene
+        this.scene.add(particleGroup);
+        
+        return particleGroup;
+    }
+    
+    /**
+     * Create spiral particles that move inward in a cyclone pattern - simplified and contained
+     * @param {THREE.Vector3} position - The position center
+     * @param {number} color - The color of the particles
+     * @param {number} radius - The radius of the effect
+     * @returns {THREE.Points} - The spiral particle system
+     */
+    createSpiralParticles(position, color, radius) {
+        const particleCount = 80; // Reduced for better performance
         const particleGeometry = new THREE.BufferGeometry();
         const particlePositions = new Float32Array(particleCount * 3);
+        const particleAngles = new Float32Array(particleCount); // Store initial angle for each particle
+        const particleSpeeds = new Float32Array(particleCount); // Store speed for each particle
         
-        // Initialize particle positions in a circle around the portal
+        // Initialize spiral particles
         for (let i = 0; i < particleCount; i++) {
-            const angle = (i / particleCount) * Math.PI * 2;
-            const particleRadius = radius * (0.5 + Math.random() * 0.5);
+            const spiralPosition = i / particleCount; // 0 to 1
+            const angle = spiralPosition * Math.PI * 4; // Reduced spiral turns
+            const particleRadius = radius * (1 - spiralPosition * 0.7); // Spiral inward
+            const height = (Math.random() - 0.5) * 0.8; // Much smaller height variation - contained within portal
             
-            // Calculate positions and ensure they're valid numbers
-            let x = position.x + Math.cos(angle) * particleRadius;
-            let y = position.y + Math.random() * this.portalHeight;
-            let z = position.z + Math.sin(angle) * particleRadius;
+            let x = Math.cos(angle) * particleRadius;
+            let y = height;
+            let z = Math.sin(angle) * particleRadius;
+            
+            // Store initial angle and speed for animation
+            particleAngles[i] = angle;
+            particleSpeeds[i] = 0.3 + Math.random() * 0.4; // Slightly slower for smoother effect
             
             // Safety check for NaN values
             if (isNaN(x)) x = 0;
@@ -123,24 +269,124 @@ export class PortalModelFactory {
         }
         
         particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        particleGeometry.setAttribute('angle', new THREE.BufferAttribute(particleAngles, 1));
+        particleGeometry.setAttribute('speed', new THREE.BufferAttribute(particleSpeeds, 1));
         
-        // Explicitly compute bounding sphere after setting attributes
+        // Compute bounding sphere
+        particleGeometry.computeBoundingSphere();
+        
+        // Create particle material with cyclone colors
+        const particleMaterial = new THREE.PointsMaterial({
+            color: color || this.portalColor,
+            size: 0.3, // Slightly smaller particles
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending,
+            vertexColors: false
+        });
+        
+        // Create particle system
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        
+        return particles;
+    }
+    
+    /**
+     * Create swirling outer particles
+     * @param {THREE.Vector3} position - The position center
+     * @param {number} color - The color of the particles
+     * @param {number} radius - The radius of the effect
+     * @returns {THREE.Points} - The swirl particle system
+     */
+    createSwirlParticles(position, color, radius) {
+        const particleCount = 80;
+        const particleGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        
+        // Initialize swirling particles in outer ring - contained within portal
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (i / particleCount) * Math.PI * 2;
+            const particleRadius = radius * (0.8 + Math.random() * 0.3); // Slightly less spread
+            const height = (Math.random() - 0.5) * 0.6; // Much smaller height - contained within portal
+            
+            let x = Math.cos(angle) * particleRadius;
+            let y = height;
+            let z = Math.sin(angle) * particleRadius;
+            
+            // Safety check for NaN values
+            if (isNaN(x)) x = 0;
+            if (isNaN(y)) y = 0;
+            if (isNaN(z)) z = 0;
+            
+            particlePositions[i * 3] = x;
+            particlePositions[i * 3 + 1] = y;
+            particlePositions[i * 3 + 2] = z;
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
         particleGeometry.computeBoundingSphere();
         
         // Create particle material
         const particleMaterial = new THREE.PointsMaterial({
             color: color || this.portalColor,
-            size: 0.3,
+            size: 0.2,
             transparent: true,
-            opacity: 0.7,
+            opacity: 0.6,
             blending: THREE.AdditiveBlending
         });
         
         // Create particle system
         const particles = new THREE.Points(particleGeometry, particleMaterial);
         
-        // Add to scene
-        this.scene.add(particles);
+        return particles;
+    }
+    
+    /**
+     * Create ambient floating particles - contained within portal area
+     * @param {THREE.Vector3} position - The position center
+     * @param {number} color - The color of the particles
+     * @param {number} radius - The radius of the effect
+     * @returns {THREE.Points} - The ambient particle system
+     */
+    createAmbientParticles(position, color, radius) {
+        const particleCount = 40; // Reduced for better performance
+        const particleGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        
+        // Initialize ambient particles randomly distributed within portal bounds
+        for (let i = 0; i < particleCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const particleRadius = Math.random() * radius * 1.2; // Slightly reduced spread
+            const height = (Math.random() - 0.5) * 1.0; // Much smaller height - contained within portal
+            
+            let x = Math.cos(angle) * particleRadius;
+            let y = height;
+            let z = Math.sin(angle) * particleRadius;
+            
+            // Safety check for NaN values
+            if (isNaN(x)) x = 0;
+            if (isNaN(y)) y = 0;
+            if (isNaN(z)) z = 0;
+            
+            particlePositions[i * 3] = x;
+            particlePositions[i * 3 + 1] = y;
+            particlePositions[i * 3 + 2] = z;
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        particleGeometry.computeBoundingSphere();
+        
+        // Create particle material
+        const particleMaterial = new THREE.PointsMaterial({
+            color: color || this.portalColor,
+            size: 0.15,
+            transparent: true,
+            opacity: 0.4,
+            blending: THREE.AdditiveBlending
+        });
+        
+        // Create particle system
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
         
         return particles;
     }

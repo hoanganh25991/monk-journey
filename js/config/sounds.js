@@ -60,15 +60,16 @@ export const SKILL_SOUNDS = {
     waveStrike: {
         id: 'waveStrike',
         file: 'wave_strike.mp3',
-        volume: 0.8,
+        volume: 1.0, // Increased from 0.8 to 1.0 for better audibility
         simulated: {
             frequency: 280,
-            duration: 0.3,
+            duration: 0.4, // Increased duration slightly for better audibility
             type: 'sine',
             decay: true,
-            slide: 50,
-            noise: 0.05,
-            filter: 'lowpass'
+            slide: 60, // Increased slide for more dramatic effect
+            noise: 0.08, // Increased noise for more watery sound
+            filter: 'lowpass',
+            vibrato: 8 // Added vibrato for wave-like effect
         }
     },
     waterImpact: {
@@ -703,6 +704,21 @@ export const UI_SOUNDS = {
             type: 'sine',
             decay: true,
             arpeggio: [1, 1.2]
+        }
+    },
+    dangerWarning: {
+        id: 'dangerWarning',
+        file: 'danger_warning.mp3',
+        volume: 0.8,
+        simulated: {
+            frequency: 800,
+            duration: 0.5,
+            type: 'sawtooth',
+            decay: false,
+            vibrato: 15,
+            tremolo: 10,
+            noise: 0.1,
+            filter: 'highpass'
         }
     }
 };

@@ -48,11 +48,11 @@ export class CameraControlUI extends UIComponent {
      * @returns {boolean} - True if initialization was successful
      */
     init() {
-        // Create visual indicator elements
-        this.createVisualIndicator();
+        // Create camera control button
+        this.createCameraControlButton();
         
-        // Set up event listeners
-        this.setupCameraControlEvents();
+        // Set up event listeners for the button
+        this.setupCameraControlButtonEvents();
         
         // Store initial camera position and rotation
         if (this.game && this.game.camera) {
@@ -81,7 +81,7 @@ export class CameraControlUI extends UIComponent {
                 console.debug("Loaded camera distance from settings:", this.cameraDistance);
                 
                 // Apply the camera distance immediately if the game and player are available
-                if (this.game && this.game.camera && this.game.player) {
+                if (this.validateGameComponents()) {
                     // If we have rotation values, update the camera orbit
                     if (this.cameraState.rotationX !== undefined && this.cameraState.rotationY !== undefined) {
                         this.updateCameraOrbit(this.cameraState.rotationX, this.cameraState.rotationY);
@@ -109,10 +109,51 @@ export class CameraControlUI extends UIComponent {
     }
     
     /**
-     * Get references to the visual indicator elements for camera control
+     * Validate that all required game components are available
+     * @returns {boolean} - True if all components are valid
      */
-    createVisualIndicator() {
-        // Get references to the existing elements in the DOM
+    validateGameComponents() {
+        if (!this.game) {
+            console.warn('Game instance not available in CameraControlUI');
+            return false;
+        }
+        
+        if (!this.game.camera) {
+            console.warn('Game camera not available in CameraControlUI');
+            return false;
+        }
+        
+        if (!this.game.renderer) {
+            console.warn('Game renderer not available in CameraControlUI');
+            return false;
+        }
+        
+        if (!this.game.scene) {
+            console.warn('Game scene not available in CameraControlUI');
+            return false;
+        }
+        
+        if (!this.game.player) {
+            console.warn('Game player not available in CameraControlUI');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Get reference to the camera control button (defined in HTML)
+     */
+    createCameraControlButton() {
+        // Get reference to the predefined camera control button
+        this.cameraButton = document.getElementById('camera-control-button');
+        
+        if (!this.cameraButton) {
+            console.error('Camera control button element not found in HTML');
+            return;
+        }
+        
+        // Get references to the existing visual indicator elements (if they exist)
         this.indicatorContainer = document.getElementById('camera-control-indicator');
         this.baseElement = document.getElementById('camera-control-base');
         this.handleElement = document.getElementById('camera-control-handle');
@@ -124,24 +165,20 @@ export class CameraControlUI extends UIComponent {
     }
     
     /**
-     * Set up camera control event listeners
+     * Set up camera control button event listeners
      */
-    setupCameraControlEvents() {
-        // Get the game canvas element
-        const canvas = document.getElementById('game-canvas');
-        if (!canvas) {
-            console.error('Game canvas not found');
+    setupCameraControlButtonEvents() {
+        if (!this.cameraButton) {
+            console.error('Camera control button not found');
             return;
         }
         
-        // Touch start event
-        canvas.addEventListener('touchstart', (event) => {
-            const touch = event.touches[0];
+        // Touch start event on button
+        this.cameraButton.addEventListener('touchstart', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             
-            // Only handle touches on the right half of the screen
-            if (touch.clientX < window.innerWidth / 2) {
-                return;
-            }
+            const touch = event.touches[0];
             
             // Store touch start position but don't activate camera control yet
             // We'll wait for movement to confirm it's a drag and not a tap
@@ -155,16 +192,14 @@ export class CameraControlUI extends UIComponent {
             // Store initial camera rotation for potential drag
             this.storeInitialCameraRotation();
             
-            // Prevent default to avoid scrolling
-            event.preventDefault();
+            // Visual feedback - make button slightly larger
+            this.cameraButton.style.transform = 'scale(0.95)';
         }, { passive: false });
         
-        // Mouse down event (for testing on desktop)
-        canvas.addEventListener('mousedown', (event) => {
-            // Only handle clicks on the right half of the screen
-            if (event.clientX < window.innerWidth / 2) {
-                return;
-            }
+        // Mouse down event on button (for testing on desktop)
+        this.cameraButton.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             
             // Store mouse start position but don't activate camera control yet
             // We'll wait for movement to confirm it's a drag and not a click
@@ -178,97 +213,118 @@ export class CameraControlUI extends UIComponent {
             // Store initial camera rotation for potential drag
             this.storeInitialCameraRotation();
             
+            // Visual feedback - make button slightly larger
+            this.cameraButton.style.transform = 'scale(0.95)';
+            
             // Add global mouse move and up events
             document.addEventListener('mousemove', this.handleMouseMove);
             document.addEventListener('mouseup', this.handleMouseUp);
         });
         
-        // Touch move event
-        canvas.addEventListener('touchmove', (event) => {
-            const touch = event.touches[0];
-            
-            // If we have a potential drag, check if it's moved enough to be considered a drag
-            if (this.cameraState.potentialDrag && !this.cameraState.active) {
-                const dragDistanceX = Math.abs(touch.clientX - this.cameraState.startX);
-                const dragDistanceY = Math.abs(touch.clientY - this.cameraState.startY);
-                const minDragDistance = 10; // Increased threshold to better distinguish drag from tap
+        // Touch move event on document (to allow dragging outside the button)
+        document.addEventListener('touchmove', (event) => {
+            if (this.cameraState.potentialDrag || this.cameraState.active) {
+                const touch = event.touches[0];
                 
-                // If moved enough, activate camera control
-                if (dragDistanceX > minDragDistance || dragDistanceY > minDragDistance) {
-                    this.cameraState.active = true;
-                    // Now show the visual indicator since we confirmed it's a drag
-                    this.showVisualIndicator(this.cameraState.startX, this.cameraState.startY);
-                    console.debug("Camera drag activated after movement threshold");
+                // If we have a potential drag, check if it's moved enough to be considered a drag
+                if (this.cameraState.potentialDrag && !this.cameraState.active) {
+                    const dragDistanceX = Math.abs(touch.clientX - this.cameraState.startX);
+                    const dragDistanceY = Math.abs(touch.clientY - this.cameraState.startY);
+                    const minDragDistance = 10; // Threshold to distinguish drag from tap
+                    
+                    // If moved enough, activate camera control
+                    if (dragDistanceX > minDragDistance || dragDistanceY > minDragDistance) {
+                        this.cameraState.active = true;
+                        // Show the visual indicator since we confirmed it's a drag
+                        this.showVisualIndicator(this.cameraState.startX, this.cameraState.startY);
+                        console.debug("Camera drag activated after movement threshold");
+                    }
                 }
-            }
-            
-            // Only handle move if camera control is active
-            if (this.cameraState.active) {
-                this.handleCameraControlMove(touch.clientX, touch.clientY);
-                // Prevent default to avoid scrolling
-                event.preventDefault();
+                
+                // Only handle move if camera control is active
+                if (this.cameraState.active) {
+                    this.handleCameraControlMove(touch.clientX, touch.clientY);
+                    // Prevent default to avoid scrolling
+                    event.preventDefault();
+                }
             }
         }, { passive: false });
         
-        // Touch end event
-        canvas.addEventListener('touchend', (event) => {
-            // If it was just a tap (not a drag), handle it as an interaction
-            if (this.cameraState.potentialDrag && !this.cameraState.active) {
-                this.handleTapInteraction(this.cameraState.startX, this.cameraState.startY);
-            } else {
-                // Otherwise handle as camera control end
-                this.handleCameraControlEnd();
+        // Touch end event on document
+        document.addEventListener('touchend', (event) => {
+            if (this.cameraState.potentialDrag || this.cameraState.active) {
+                // Reset button visual feedback
+                this.cameraButton.style.transform = 'scale(1)';
+                
+                // If it was just a tap (not a drag), handle it as a quick camera reset
+                if (this.cameraState.potentialDrag && !this.cameraState.active) {
+                    this.resetCameraToDefault();
+                } else {
+                    // Otherwise handle as camera control end
+                    this.handleCameraControlEnd();
+                }
+                
+                // Reset potential drag state
+                this.cameraState.potentialDrag = false;
             }
-            
-            // Reset potential drag state
-            this.cameraState.potentialDrag = false;
         });
         
-        // Touch cancel event
-        canvas.addEventListener('touchcancel', () => {
-            this.handleCameraControlEnd();
-            this.cameraState.potentialDrag = false;
+        // Touch cancel event on document
+        document.addEventListener('touchcancel', () => {
+            if (this.cameraState.potentialDrag || this.cameraState.active) {
+                // Reset button visual feedback
+                this.cameraButton.style.transform = 'scale(1)';
+                this.handleCameraControlEnd();
+                this.cameraState.potentialDrag = false;
+            }
         });
         
         // Mouse move handler (defined as property to allow removal)
         this.handleMouseMove = (event) => {
-            // If we have a potential drag, check if it's moved enough to be considered a drag
-            if (this.cameraState.potentialDrag && !this.cameraState.active) {
-                const dragDistanceX = Math.abs(event.clientX - this.cameraState.startX);
-                const dragDistanceY = Math.abs(event.clientY - this.cameraState.startY);
-                const minDragDistance = 10; // Increased threshold to better distinguish drag from click
-                
-                // If moved enough, activate camera control
-                if (dragDistanceX > minDragDistance || dragDistanceY > minDragDistance) {
-                    this.cameraState.active = true;
-                    // Now show the visual indicator since we confirmed it's a drag
-                    this.showVisualIndicator(this.cameraState.startX, this.cameraState.startY);
-                    console.debug("Camera drag activated after movement threshold");
+            if (this.cameraState.potentialDrag || this.cameraState.active) {
+                // If we have a potential drag, check if it's moved enough to be considered a drag
+                if (this.cameraState.potentialDrag && !this.cameraState.active) {
+                    const dragDistanceX = Math.abs(event.clientX - this.cameraState.startX);
+                    const dragDistanceY = Math.abs(event.clientY - this.cameraState.startY);
+                    const minDragDistance = 10; // Threshold to distinguish drag from click
+                    
+                    // If moved enough, activate camera control
+                    if (dragDistanceX > minDragDistance || dragDistanceY > minDragDistance) {
+                        this.cameraState.active = true;
+                        // Show the visual indicator since we confirmed it's a drag
+                        this.showVisualIndicator(this.cameraState.startX, this.cameraState.startY);
+                        console.debug("Camera drag activated after movement threshold");
+                    }
                 }
-            }
-            
-            // Only handle move if camera control is active
-            if (this.cameraState.active) {
-                this.handleCameraControlMove(event.clientX, event.clientY);
+                
+                // Only handle move if camera control is active
+                if (this.cameraState.active) {
+                    this.handleCameraControlMove(event.clientX, event.clientY);
+                }
             }
         };
         
         // Mouse up handler (defined as property to allow removal)
         this.handleMouseUp = (event) => {
-            // If it was just a click (not a drag), handle it as an interaction
-            if (this.cameraState.potentialDrag && !this.cameraState.active) {
-                this.handleTapInteraction(this.cameraState.startX, this.cameraState.startY);
-            } else {
-                // Otherwise handle as camera control end
-                this.handleCameraControlEnd();
+            if (this.cameraState.potentialDrag || this.cameraState.active) {
+                // Reset button visual feedback
+                this.cameraButton.style.transform = 'scale(1)';
+                
+                // If it was just a click (not a drag), handle it as a quick camera reset
+                if (this.cameraState.potentialDrag && !this.cameraState.active) {
+                    this.resetCameraToDefault();
+                } else {
+                    // Otherwise handle as camera control end
+                    this.handleCameraControlEnd();
+                }
+                
+                // Reset potential drag state
+                this.cameraState.potentialDrag = false;
+                
+                // Remove global mouse move and up events
+                document.removeEventListener('mousemove', this.handleMouseMove);
+                document.removeEventListener('mouseup', this.handleMouseUp);
             }
-            
-            // Reset potential drag state
-            this.cameraState.potentialDrag = false;
-            
-            // Remove global mouse move and up events
-            document.removeEventListener('mousemove', this.handleMouseMove);
-            document.removeEventListener('mouseup', this.handleMouseUp);
         };
     }
     
@@ -576,12 +632,16 @@ export class CameraControlUI extends UIComponent {
      */
     updateCameraOrbit(rotationX, rotationY) {
         console.debug("updateCameraOrbit", {rotationX, rotationY});
-        if (!this.game || !this.game.camera || !this.game.player) {
-            console.debug("Missing required references:", {
-                game: !!this.game,
-                camera: !!(this.game && this.game.camera),
-                player: !!(this.game && this.game.player)
-            });
+        
+        // Comprehensive validation of game components
+        if (!this.validateGameComponents()) {
+            console.debug("Game components validation failed, skipping camera orbit update");
+            return;
+        }
+        
+        // Additional validation for WebGL context
+        if (this.game.webglContextLost) {
+            console.debug("WebGL context is lost, skipping camera orbit update");
             return;
         }
         
@@ -692,7 +752,7 @@ export class CameraControlUI extends UIComponent {
         }
         
         // Force a render to update the scene
-        if (this.game.renderer) {
+        if (this.validateGameComponents() && this.game.renderer) {
             // Disable orbit controls temporarily to prevent them from overriding our camera position
             const orbitControlsEnabled = this.game.controls ? this.game.controls.enabled : false;
             if (this.game.controls) {
@@ -702,8 +762,17 @@ export class CameraControlUI extends UIComponent {
             // Force the camera to update its matrix
             this.game.camera.updateMatrixWorld(true);
             
-            // Force a render with our camera settings
-            this.game.renderer.render(this.game.scene, this.game.camera);
+            // Force a render with our camera settings using safe render
+            if (this.game.safeRender) {
+                this.game.safeRender(this.game.scene, this.game.camera);
+            } else {
+                // Fallback to direct render with error handling
+                try {
+                    this.game.renderer.render(this.game.scene, this.game.camera);
+                } catch (error) {
+                    console.warn('Render error in camera control:', error.message);
+                }
+            }
             
             // Restore orbit controls state
             if (this.game.controls) {
@@ -835,13 +904,37 @@ export class CameraControlUI extends UIComponent {
     }
     
     /**
+     * Reset camera to default position behind the player
+     */
+    resetCameraToDefault() {
+        console.debug("Resetting camera to default position");
+        
+        if (this.validateGameComponents()) {
+            // Set default rotation values
+            const defaultRotationX = 0.3; // Slight angle from horizontal
+            const defaultRotationY = Math.PI; // Behind the player
+            
+            // Store these as the current rotation values
+            this.cameraState.rotationX = defaultRotationX;
+            this.cameraState.rotationY = defaultRotationY;
+            
+            // Update the camera position
+            this.updateCameraOrbit(defaultRotationX, defaultRotationY);
+            
+            console.debug("Camera reset to default position");
+        }
+    }
+    
+    /**
      * Remove event listeners when component is disposed
      */
     removeEventListeners() {
-        const canvas = document.getElementById('game-canvas');
-        if (canvas) {
-            // We can't remove anonymous function listeners directly
-            // But we can ensure the indicator is hidden
+        // Remove camera button event listeners
+        if (this.cameraButton) {
+            // Remove camera button from DOM
+            if (this.cameraButton.parentNode) {
+                this.cameraButton.parentNode.removeChild(this.cameraButton);
+            }
         }
         
         // We can remove the named handlers we stored as properties

@@ -74,6 +74,11 @@ export class Game {
         
         // Default difficulty (will be updated in init)
         this.difficulty = 'medium';
+        
+        // WebGL state tracking
+        this.webglContextLost = false;
+        this.lastMaterialValidation = 0;
+        this.materialValidationInterval = 5000; // Validate materials every 5 seconds
     }
     
     /**
@@ -86,6 +91,12 @@ export class Game {
             const difficulty = await storageService.loadData(STORAGE_KEYS.DIFFICULTY);
             this.difficulty = difficulty || 'medium';
             console.debug(`Game initialized with difficulty: ${this.difficulty}`);
+            
+            // Load material quality setting (support 4 levels: high, medium, low, minimal)
+            const materialQuality = await storageService.loadData(STORAGE_KEYS.MATERIAL_QUALITY);
+            const validQualityLevels = ['high', 'medium', 'low', 'minimal'];
+            this.materialQuality = validQualityLevels.includes(materialQuality) ? materialQuality : 'high';
+            console.debug(`Game initialized with material quality: ${this.materialQuality}`);
         } catch (error) {
             console.error('Error loading initial settings:', error);
         }
@@ -188,8 +199,9 @@ export class Game {
             await this.loadInitialSettings();
 
             
-            // Initialize renderer with quality settings from localStorage or use 'ultra' as default
-            const qualityLevel = localStorage.getItem('monk_journey_quality_level') || 'ultra';
+            // Initialize renderer with quality settings from localStorage or use 'high' as default
+            // We align with material quality levels: high, medium, low, minimal
+            const qualityLevel = localStorage.getItem('monk_journey_quality_level') || 'high';
             this.renderer = this.createRenderer(qualityLevel);
             
             this.updateLoadingProgress(10, 'Creating game world...', 'Setting up scene');
@@ -315,6 +327,12 @@ export class Game {
             
             // Apply performance optimizations to the scene
             SceneOptimizer.optimizeScene(this.scene);
+            
+            // Apply material quality setting once during initialization
+            if (this.materialQuality) {
+                console.debug(`Applying material quality from settings: ${this.materialQuality}`);
+                this.applyInitialMaterialQuality(this.materialQuality);
+            }
             
             // Set up event listeners
             this.setupEventListeners();
@@ -711,8 +729,8 @@ export class Game {
         
         // If game is paused, only render the scene but don't update game logic
         if (this.state.isPaused()) {
-            // Just render the scene
-            this.renderer.render(this.scene, this.camera);
+            // Just render the scene using safe render
+            this.safeRender(this.scene, this.camera);
             return;
         }
         
@@ -753,8 +771,10 @@ export class Game {
             this.multiplayerManager.update(delta);
         }
         
-        // Render scene with potential optimizations
-        this.renderer.render(this.scene, this.camera);
+        // Render scene using safe render method
+        if (!this.safeRender(this.scene, this.camera)) {
+            console.warn("Safe render failed, skipping frame");
+        }
     }
     
     /**
@@ -784,25 +804,105 @@ export class Game {
         
         const config = RENDER_CONFIG[qualityLevel].init;
         
-        // Create renderer with the specified configuration
-        const renderer = new THREE.WebGLRenderer({
-            canvas: this.canvas,
-            antialias: config.antialias,
-            powerPreference: config.powerPreference,
-            precision: config.precision,
-            stencil: config.stencil,
-            logarithmicDepthBuffer: config.logarithmicDepthBuffer,
-            depth: config.depth,
-            alpha: config.alpha
+        try {
+            // Create renderer with the specified configuration
+            const renderer = new THREE.WebGLRenderer({
+                canvas: this.canvas,
+                antialias: config.antialias,
+                powerPreference: config.powerPreference,
+                precision: config.precision,
+                stencil: config.stencil,
+                logarithmicDepthBuffer: config.logarithmicDepthBuffer,
+                depth: config.depth,
+                alpha: config.alpha
+            });
+            
+            // Add WebGL context event listeners
+            this.setupWebGLContextHandlers(renderer);
+            
+            // Apply additional settings
+            this.applyRendererSettings(renderer, qualityLevel);
+            
+            // Set size (this is common for all quality levels)
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Validate WebGL context
+            const gl = renderer.getContext();
+            if (!gl || gl.isContextLost()) {
+                throw new Error('WebGL context is not available or lost');
+            }
+            
+            console.debug(`Renderer created successfully with ${qualityLevel} quality`);
+            return renderer;
+            
+        } catch (error) {
+            console.error('Failed to create WebGL renderer:', error);
+            
+            // Try to create a fallback renderer with minimal settings
+            try {
+                console.warn('Attempting to create fallback renderer with minimal settings');
+                const fallbackRenderer = new THREE.WebGLRenderer({
+                    canvas: this.canvas,
+                    antialias: false,
+                    powerPreference: 'default',
+                    precision: 'lowp'
+                });
+                
+                this.setupWebGLContextHandlers(fallbackRenderer);
+                fallbackRenderer.setSize(window.innerWidth, window.innerHeight);
+                
+                console.warn('Fallback renderer created successfully');
+                return fallbackRenderer;
+                
+            } catch (fallbackError) {
+                console.error('Failed to create fallback renderer:', fallbackError);
+                throw new Error('Unable to initialize WebGL renderer');
+            }
+        }
+    }
+    
+    /**
+     * Set up WebGL context event handlers for context loss/restoration
+     * @param {THREE.WebGLRenderer} renderer - The Three.js renderer
+     */
+    setupWebGLContextHandlers(renderer) {
+        const canvas = renderer.domElement;
+        
+        canvas.addEventListener('webglcontextlost', (event) => {
+            console.warn('WebGL context lost');
+            event.preventDefault();
+            
+            // Stop the animation loop
+            if (this.animationId) {
+                cancelAnimationFrame(this.animationId);
+                this.animationId = null;
+            }
+            
+            // Mark context as lost
+            this.webglContextLost = true;
         });
         
-        // Apply additional settings
-        this.applyRendererSettings(renderer, qualityLevel);
-        
-        // Set size (this is common for all quality levels)
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        
-        return renderer;
+        canvas.addEventListener('webglcontextrestored', (event) => {
+            console.log('WebGL context restored');
+            
+            // Mark context as restored
+            this.webglContextLost = false;
+            
+            // Reinitialize renderer settings
+            try {
+                const qualityLevel = localStorage.getItem('monk_journey_quality_level') || 'ultra';
+                this.applyRendererSettings(renderer, qualityLevel);
+                
+                // Restart the animation loop if the game is running
+                if (this.state.isRunning() && !this.animationId) {
+                    this.startAnimationLoop();
+                }
+                
+                console.log('WebGL context restoration completed');
+            } catch (error) {
+                console.error('Error during WebGL context restoration:', error);
+            }
+        });
     }
     
     /**
@@ -850,5 +950,401 @@ export class Game {
         }
         
         console.debug(`Applied ${qualityLevel} renderer settings`);
+    }
+    
+    /**
+     * Apply material quality settings to all objects in the scene once during initialization
+     * @param {string} quality - The quality level ('high', 'medium', 'low', or 'minimal')
+     */
+    applyInitialMaterialQuality(quality) {
+        if (!this.scene) {
+            console.warn('Cannot apply material quality: scene not available');
+            return;
+        }
+        
+        console.debug(`Applying initial material quality: ${quality}`);
+        
+        // Traverse all objects in the scene
+        this.scene.traverse(object => {
+            // Skip objects without materials
+            if (!object.material) return;
+            
+            // Handle arrays of materials
+            const isArray = Array.isArray(object.material);
+            const materials = isArray ? object.material : [object.material];
+            const newMaterials = [];
+            
+            materials.forEach((material, index) => {
+                // Skip materials that don't need modification
+                if (!material || material.userData.isUI) {
+                    newMaterials.push(material);
+                    return;
+                }
+                
+                let newMaterial;
+                
+                // Apply quality settings based on the 4 quality levels
+                switch (quality) {
+                    case 'high':
+                        // Keep original material (highest quality)
+                        newMaterial = material;
+                        break;
+                        
+                    case 'medium':
+                        // Create MeshPhongMaterial (good balance between quality and performance)
+                        newMaterial = this.createPhongMaterial(material);
+                        break;
+                        
+                    case 'low':
+                        // Create MeshLambertMaterial (performance-focused with lighting)
+                        newMaterial = this.createLambertMaterial(material);
+                        break;
+                        
+                    case 'minimal':
+                        // Create MeshBasicMaterial (maximum performance)
+                        newMaterial = this.createBasicMaterial(material);
+                        break;
+                        
+                    default:
+                        console.warn(`Unknown material quality: ${quality}, using medium quality`);
+                        newMaterial = this.createPhongMaterial(material);
+                }
+                
+                // Mark the material as processed to prevent re-processing
+                newMaterial.userData.qualityProcessed = true;
+                newMaterial.userData.qualityLevel = quality;
+                
+                newMaterials.push(newMaterial);
+            });
+            
+            // Replace materials on the object
+            if (isArray) {
+                object.material = newMaterials;
+            } else {
+                object.material = newMaterials[0];
+            }
+        });
+        
+        // Force renderer to update
+        if (this.renderer) {
+            this.renderer.renderLists.dispose();
+        }
+        
+        console.debug(`Initial material quality '${quality}' applied successfully. Total objects processed: ${this.scene.children.length}`);
+    }
+    
+    /**
+     * Restore original material properties
+     * @param {THREE.Material} material - The material to restore
+     * @private
+     */
+    restoreOriginalMaterial(material) {
+        if (!material.userData.originalType) return;
+        
+        // No need to change if already the correct type
+        if (material.type === material.userData.originalType) return;
+        
+        // Create new material of original type
+        const originalType = material.userData.originalType;
+        let newMaterial;
+        
+        // Create appropriate material based on original type
+        switch (originalType) {
+            case 'MeshStandardMaterial':
+                newMaterial = new THREE.MeshStandardMaterial();
+                break;
+            case 'MeshPhysicalMaterial':
+                newMaterial = new THREE.MeshPhysicalMaterial();
+                break;
+            case 'MeshPhongMaterial':
+                newMaterial = new THREE.MeshPhongMaterial();
+                break;
+            case 'MeshLambertMaterial':
+                newMaterial = new THREE.MeshLambertMaterial();
+                break;
+            default:
+                console.warn(`Unknown original material type: ${originalType}`);
+                return;
+        }
+        
+        // Copy basic properties
+        newMaterial.name = material.name;
+        newMaterial.transparent = material.transparent;
+        newMaterial.opacity = material.opacity;
+        newMaterial.side = material.side;
+        
+        // Restore maps
+        if (material.userData.map) newMaterial.map = material.userData.map;
+        if (material.userData.normalMap) newMaterial.normalMap = material.userData.normalMap;
+        if (material.userData.roughnessMap) newMaterial.roughnessMap = material.userData.roughnessMap;
+        if (material.userData.metalnessMap) newMaterial.metalnessMap = material.userData.metalnessMap;
+        if (material.userData.emissiveMap) newMaterial.emissiveMap = material.userData.emissiveMap;
+        if (material.userData.aoMap) newMaterial.aoMap = material.userData.aoMap;
+        
+        // Restore colors
+        if (material.userData.color) newMaterial.color.copy(material.userData.color);
+        if (material.userData.emissive) newMaterial.emissive.copy(material.userData.emissive);
+        
+        // Copy userData
+        newMaterial.userData = material.userData;
+        
+        // Replace material
+        Object.assign(material, newMaterial);
+    }
+    
+    /**
+     * Create a new MeshLambertMaterial based on an existing material (low quality with lighting)
+     * @param {THREE.Material} originalMaterial - The original material to base the new one on
+     * @returns {THREE.MeshLambertMaterial} - The new Lambert material
+     * @private
+     */
+    createLambertMaterial(originalMaterial) {
+        // Create new Lambert material (simple lighting, good performance)
+        const lambertMaterial = new THREE.MeshLambertMaterial({
+            fog: true // Ensure fog works properly
+        });
+        
+        // Copy essential properties
+        lambertMaterial.name = originalMaterial.name + '_lambert';
+        lambertMaterial.transparent = originalMaterial.transparent;
+        lambertMaterial.opacity = originalMaterial.opacity;
+        lambertMaterial.side = originalMaterial.side;
+        
+        // Copy supported texture maps
+        if (originalMaterial.map) lambertMaterial.map = originalMaterial.map;
+        if (originalMaterial.emissiveMap) lambertMaterial.emissiveMap = originalMaterial.emissiveMap;
+        
+        // Copy colors
+        if (originalMaterial.color) {
+            lambertMaterial.color.copy(originalMaterial.color);
+        } else {
+            lambertMaterial.color.set(0xffffff); // Default white
+        }
+        
+        if (originalMaterial.emissive) {
+            lambertMaterial.emissive.copy(originalMaterial.emissive);
+        }
+        
+        // Copy relevant userData
+        lambertMaterial.userData = { 
+            ...originalMaterial.userData,
+            isLowQuality: true,
+            originalType: originalMaterial.type
+        };
+        
+        return lambertMaterial;
+    }
+
+    /**
+     * Create a new MeshBasicMaterial based on an existing material (minimal quality)
+     * @param {THREE.Material} originalMaterial - The original material to base the new one on
+     * @returns {THREE.MeshBasicMaterial} - The new basic material
+     * @private
+     */
+    createBasicMaterial(originalMaterial) {
+        // Create new basic material with fog support
+        const basicMaterial = new THREE.MeshBasicMaterial({
+            fog: true // Ensure fog works with basic materials
+        });
+        
+        // Copy essential properties
+        basicMaterial.name = originalMaterial.name + '_basic';
+        basicMaterial.transparent = originalMaterial.transparent;
+        basicMaterial.opacity = originalMaterial.opacity;
+        basicMaterial.side = originalMaterial.side;
+        
+        // Copy texture maps (basic material only supports diffuse map)
+        if (originalMaterial.map) {
+            basicMaterial.map = originalMaterial.map;
+        }
+        
+        // Handle color properly - MeshBasicMaterial shows colors as-is without lighting
+        if (originalMaterial.color) {
+            // Make the color moderately brighter since basic materials don't respond to lighting
+            const brightColor = originalMaterial.color.clone();
+            brightColor.multiplyScalar(1.5); // Brighten by 50% to compensate for no lighting
+            // Clamp to prevent over-saturation
+            brightColor.r = Math.min(brightColor.r, 1.0);
+            brightColor.g = Math.min(brightColor.g, 1.0);
+            brightColor.b = Math.min(brightColor.b, 1.0);
+            basicMaterial.color.copy(brightColor);
+        } else {
+            // Set a default visible color if no color is present
+            basicMaterial.color.set(0xcccccc); // Light gray - brighter than before
+        }
+        
+        // Copy relevant userData
+        basicMaterial.userData = { 
+            ...originalMaterial.userData,
+            isMinimalQuality: true,
+            originalType: originalMaterial.type
+        };
+        
+        return basicMaterial;
+    }
+    
+    /**
+     * Create a new MeshPhongMaterial based on an existing material (medium quality)
+     * @param {THREE.Material} originalMaterial - The original material to base the new one on
+     * @returns {THREE.MeshPhongMaterial} - The new phong material
+     * @private
+     */
+    createPhongMaterial(originalMaterial) {
+        // Create new phong material
+        const phongMaterial = new THREE.MeshPhongMaterial();
+        
+        // Copy essential properties
+        phongMaterial.name = originalMaterial.name + '_phong';
+        phongMaterial.transparent = originalMaterial.transparent;
+        phongMaterial.opacity = originalMaterial.opacity;
+        phongMaterial.side = originalMaterial.side;
+        
+        // Copy supported texture maps
+        if (originalMaterial.map) phongMaterial.map = originalMaterial.map;
+        if (originalMaterial.normalMap) phongMaterial.normalMap = originalMaterial.normalMap;
+        if (originalMaterial.emissiveMap) phongMaterial.emissiveMap = originalMaterial.emissiveMap;
+        
+        // Copy colors
+        if (originalMaterial.color) phongMaterial.color.copy(originalMaterial.color);
+        if (originalMaterial.emissive) phongMaterial.emissive.copy(originalMaterial.emissive);
+        
+        // Set reasonable shininess
+        phongMaterial.shininess = 30;
+        
+        // Copy relevant userData
+        phongMaterial.userData = { 
+            ...originalMaterial.userData,
+            isMediumQuality: true,
+            originalType: originalMaterial.type
+        };
+        
+        return phongMaterial;
+    }
+    
+    /**
+     * Validate materials in the scene and fix potential shader issues
+     * @param {THREE.Scene} scene - The scene to validate
+     */
+    validateSceneMaterials(scene) {
+        if (!scene) return;
+        
+        scene.traverse((object) => {
+            if (object.material) {
+                const materials = Array.isArray(object.material) ? object.material : [object.material];
+                
+                materials.forEach((material, index) => {
+                    if (!material) return;
+                    
+                    // Check if material needs to be compiled
+                    if (material.needsUpdate) {
+                        try {
+                            // Force material compilation
+                            if (this.renderer) {
+                                this.renderer.compile(scene, this.camera);
+                            }
+                        } catch (error) {
+                            console.warn(`Material compilation failed for object ${object.name || 'unnamed'}:`, error.message);
+                            
+                            // Replace with a basic material as fallback
+                            const fallbackMaterial = new THREE.MeshBasicMaterial({ 
+                                color: 0x808080,
+                                transparent: material.transparent,
+                                opacity: material.opacity || 1
+                            });
+                            
+                            if (Array.isArray(object.material)) {
+                                object.material[index] = fallbackMaterial;
+                            } else {
+                                object.material = fallbackMaterial;
+                            }
+                            
+                            console.warn(`Replaced problematic material with fallback for object ${object.name || 'unnamed'}`);
+                        }
+                    }
+                });
+            }
+        });
+    }
+    
+    /**
+     * Safe render method that checks for WebGL context and renderer state
+     * @param {THREE.Scene} scene - The scene to render
+     * @param {THREE.Camera} camera - The camera to use for rendering
+     * @returns {boolean} - True if render was successful, false otherwise
+     */
+    safeRender(scene, camera) {
+        // Check if renderer exists
+        if (!this.renderer) {
+            console.warn('Renderer not available for safe render');
+            return false;
+        }
+        
+        // Check if WebGL context is lost
+        if (this.webglContextLost) {
+            console.warn('WebGL context is lost, skipping render');
+            return false;
+        }
+        
+        // Check if scene and camera are valid
+        if (!scene || !camera) {
+            console.warn('Invalid scene or camera for rendering');
+            return false;
+        }
+        
+        try {
+            // Check WebGL context state
+            const gl = this.renderer.getContext();
+            if (!gl || gl.isContextLost()) {
+                console.warn('WebGL context is lost, marking as lost');
+                this.webglContextLost = true;
+                return false;
+            }
+            
+            // Validate scene materials periodically or when forced
+            const now = Date.now();
+            if (now - this.lastMaterialValidation > this.materialValidationInterval) {
+                this.validateSceneMaterials(scene);
+                this.lastMaterialValidation = now;
+            }
+            
+            // Perform the render
+            this.renderer.render(scene, camera);
+            return true;
+            
+        } catch (error) {
+            // Handle shader/WebGL errors gracefully
+            if (error.message && (
+                error.message.includes("Cannot set properties of undefined") ||
+                error.message.includes("Cannot read properties of undefined") ||
+                error.message.includes("WebGL") ||
+                error.message.includes("uniform")
+            )) {
+                console.warn('WebGL render error caught:', error.message);
+                
+                // Try to recover by clearing and recreating programs
+                try {
+                    if (this.renderer.state) {
+                        this.renderer.state.reset();
+                    }
+                    if (this.renderer.info && this.renderer.info.programs) {
+                        this.renderer.info.programs.forEach(program => {
+                            if (program && program.destroy) {
+                                program.destroy();
+                            }
+                        });
+                    }
+                    
+                    // Force material validation on next render
+                    this.lastMaterialValidation = 0;
+                } catch (recoveryError) {
+                    console.warn('Error during render recovery:', recoveryError.message);
+                }
+                
+                return false;
+            } else {
+                // Re-throw non-WebGL errors
+                throw error;
+            }
+        }
     }
 }

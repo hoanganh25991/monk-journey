@@ -4,6 +4,42 @@
  * This file contains styles for the camera control interface
  */
 
+/* Camera Control Button */
+#camera-control-button {
+    width: 65px;
+    height: 65px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid #6b4c2a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+    box-shadow: 0 0 10px rgba(255, 150, 0, 0.3);
+    transition: all 0.2s ease;
+    pointer-events: auto;
+    z-index: 50;
+}
+
+#camera-control-button:hover {
+    background-color: rgba(30, 30, 30, 0.9);
+    border-color: #ff9600;
+    box-shadow: 0 0 15px rgba(255, 150, 0, 0.5);
+}
+
+#camera-control-button:active {
+    transform: scale(0.95);
+}
+
+.camera-icon {
+    font-size: 24px;
+    color: #ffcc66;
+    text-shadow: 1px 1px 2px black;
+    pointer-events: none;
+}
+
 /* Camera Control Indicator */
 #camera-control-indicator {
     position: absolute;

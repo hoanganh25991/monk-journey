@@ -158,6 +158,11 @@
 
         <!-- Right Side UI (Skills) -->
         <div id="right-side-ui">
+            <!-- Camera Control Button -->
+            <div id="camera-control-button">
+                <div class="camera-icon">🎥</div>
+            </div>
+            
             <!-- Skills UI -->
             <div id="skills-container"></div>
         </div>
@@ -622,6 +627,16 @@
                                 </div>
                             </div>
                             <div class="settings-description">Adjust camera distance (higher values = further away)</div>
+                        </div>
+                        
+                        <!-- Material Quality Settings -->
+                        <div id="material-quality-container" class="setting-item">
+                            <h3>Graphics Quality</h3>
+                            <div class="setting-row">
+                                <label for="material-quality-select" class="settings-label">Material Quality</label>
+                                <select id="material-quality-select" class="settings-select"></select>
+                            </div>
+                            <div class="settings-description">Adjust the quality of game materials (affects performance)</div>
                         </div>
                         
                         <!-- Game Control -->
