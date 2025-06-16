@@ -11,7 +11,7 @@ export const STORAGE_KEYS = {
     SFX_VOLUME: 'monk_journey_sfx_volume',
     
     // Performance and quality settings
-    QUALITY_LEVEL: 'monk_journey_quality_level',
+    QUALITY_LEVEL: 'monk_journey_quality_level', // Single source of truth for quality settings
     ADAPTIVE_QUALITY: 'monk_journey_adaptive_quality',
     TARGET_FPS: 'monk_journey_target_fps',
     SHOW_PERFORMANCE_INFO: 'monk_journey_show_performance_info',
@@ -40,7 +40,7 @@ export const STORAGE_KEYS = {
     SELECTED_ITEM_RARITY: 'monk_journey_selected_item_rarity',
     CUSTOM_SKILLS: 'monk_journey_custom_skills',
     CAMERA_ZOOM: 'monk_journey_camera_zoom',
-    MATERIAL_QUALITY: 'monk_journey_material_quality',
+    // MATERIAL_QUALITY key removed - using QUALITY_LEVEL instead
     
     // Save system keys
     SAVE_DATA: 'monk_journey_save',

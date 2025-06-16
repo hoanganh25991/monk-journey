@@ -199,9 +199,9 @@ export class Game {
             await this.loadInitialSettings();
 
             
-            // Initialize renderer with quality settings from storage service to match material quality
-            // Use materialQuality if available, otherwise fall back to localStorage or 'high' as default
-            const qualityLevel = this.materialQuality || localStorage.getItem('monk_journey_quality_level') || 'high';
+            // Initialize renderer with quality settings from storage
+            // Use stored quality level or 'high' as default
+            const qualityLevel = localStorage.getItem('monk_journey_quality_level') || 'high';
             this.renderer = this.createRenderer(qualityLevel);
             
             this.updateLoadingProgress(10, 'Creating game world...', 'Setting up scene');
@@ -897,7 +897,7 @@ export class Game {
             
             // Reinitialize renderer settings
             try {
-                const qualityLevel = this.materialQuality || localStorage.getItem('monk_journey_quality_level') || 'high';
+                const qualityLevel = localStorage.getItem('monk_journey_quality_level') || 'high';
                 this.applyRendererSettings(renderer, qualityLevel);
                 
                 // Restart the animation loop if the game is running

@@ -1,7 +1,14 @@
 /**
  * Renderer configuration for different quality levels
  * These settings are used by the PerformanceManager to adjust rendering quality
+ * 
+ * This file combines all rendering and quality-related configurations in one place:
+ * - FOG_CONFIG: Controls fog appearance and density for different quality levels
+ * - RENDER_CONFIG: Controls renderer initialization and settings
+ * - QUALITY_LEVELS: Imported from quality-levels.js for material and object quality settings
  */
+
+import QUALITY_LEVELS from './quality-levels.js';
 export const FOG_CONFIG = {
     // Base fog settings
     enabled: true,
@@ -124,4 +131,14 @@ export const RENDER_CONFIG = {
             outputColorSpace: 'LinearSRGBColorSpace' // Changed to linear for performance
         }
     }
+};
+
+/**
+ * Combined configuration object that includes all quality-related settings
+ * This is the recommended way to access all quality settings in one place
+ */
+export const COMBINED_QUALITY_CONFIG = {
+    QUALITY_LEVELS,
+    RENDER_CONFIG,
+    FOG_CONFIG
 };

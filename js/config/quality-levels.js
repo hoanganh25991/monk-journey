@@ -1,6 +1,7 @@
 /**
- * Quality level configurations for the game's rendering settings.
- * These settings control various aspects of the game's visual quality and performance.
+ * Quality level configurations for the game's material and object settings.
+ * These settings control various aspects of the game's visual quality and performance
+ * related to materials, objects, and draw distances.
  * 
  * Device targeting:
  * - ultra: High-end desktops and powerful machines
@@ -9,8 +10,10 @@
  * - low: Tablets and mid-range mobile devices
  * - minimal: Any low-end device to achieve playable FPS
  * 
- * Note: Renderer-specific settings like antialiasing, pixelRatio, and shadows
- * have been moved to render.js to avoid duplication.
+ * Note: This file is imported by render.js which combines all quality-related settings.
+ * For accessing all quality settings in one place, use COMBINED_QUALITY_CONFIG from render.js.
+ * 
+ * The quality level is stored in localStorage using the key 'monk_journey_quality_level'.
  */
 export const QUALITY_LEVELS = {
     ultra: {
