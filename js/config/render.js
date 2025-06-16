@@ -2,13 +2,57 @@
  * Renderer configuration for different quality levels
  * These settings are used by the PerformanceManager to adjust rendering quality
  * 
- * This file combines all rendering and quality-related configurations in one place:
+ * This file contains all quality-related configurations in one place:
+ * - MATERIAL_QUALITY_LEVELS: Controls material and object quality settings
  * - FOG_CONFIG: Controls fog appearance and density for different quality levels
  * - RENDER_CONFIG: Controls renderer initialization and settings
- * - QUALITY_LEVELS: Imported from quality-levels.js for material and object quality settings
+ * 
+ * Device targeting:
+ * - high: Good desktop computers
+ * - medium: Slower desktops and good tablets
+ * - low: Tablets and mid-range mobile devices
+ * - minimal: Any low-end device to achieve playable FPS
+ * 
+ * The quality level is stored in localStorage using the key 'monk_journey_quality_level'.
  */
 
-import QUALITY_LEVELS from './quality-levels.js';
+/**
+ * Material and object quality settings for different quality levels
+ */
+export const MATERIAL_QUALITY_LEVELS = {
+    high: {
+        shadowMapSize: 1024,
+        particleCount: 0.8,
+        drawDistance: 0.8,
+        textureQuality: 0.8,
+        objectDetail: 0.9,
+        maxVisibleObjects: 500
+    },
+    medium: {
+        shadowMapSize: 512,
+        particleCount: 0.5,
+        drawDistance: 0.6,
+        textureQuality: 0.5,
+        objectDetail: 0.6,
+        maxVisibleObjects: 250
+    },
+    low: {
+        shadowMapSize: 256,
+        particleCount: 0.2,
+        drawDistance: 0.3,
+        textureQuality: 0.3,
+        objectDetail: 0.4,
+        maxVisibleObjects: 150
+    },
+    minimal: {
+        shadowMapSize: 0,
+        particleCount: 0.05,
+        drawDistance: 0.2,
+        textureQuality: 0.1,
+        objectDetail: 0.2,
+        maxVisibleObjects: 75
+    }
+};
 export const FOG_CONFIG = {
     // Base fog settings
     enabled: true,
@@ -28,8 +72,7 @@ export const FOG_CONFIG = {
     
     // Quality level adjustments - higher values = more fog = fewer objects to render = better performance
     qualityMultipliers: {
-        ultra: 0.8, // Reduced fog density for ultra quality (best visibility)
-        high: 1.0, // Standard fog density for high quality
+        high: 0.9, // Slightly reduced fog density for high quality (better visibility)
         medium: 1.5, // Moderately increased fog density for medium quality
         low: 2.2, // Significantly increased fog density for low quality (tablets)
         minimal: 3.0 // Very high fog density for minimal quality (low-end devices)
@@ -37,25 +80,6 @@ export const FOG_CONFIG = {
 };
 
 export const RENDER_CONFIG = {
-    // Ultra quality - for high-end desktops and powerful machines
-    ultra: {
-        init: {
-            antialias: true,
-            powerPreference: 'high-performance',
-            precision: 'highp',
-            stencil: false,
-            logarithmicDepthBuffer: false,
-            depth: true,
-            alpha: false
-        },
-        settings: {
-            pixelRatio: window.devicePixelRatio, // Full device pixel ratio
-            shadowMapEnabled: true,
-            shadowMapType: 'PCFSoftShadowMap',
-            outputColorSpace: 'SRGBColorSpace'
-        }
-    },
-    
     // High quality - for good desktop computers
     high: {
         init: {
@@ -138,7 +162,7 @@ export const RENDER_CONFIG = {
  * This is the recommended way to access all quality settings in one place
  */
 export const COMBINED_QUALITY_CONFIG = {
-    QUALITY_LEVELS,
+    MATERIAL_QUALITY_LEVELS,
     RENDER_CONFIG,
     FOG_CONFIG
 };
