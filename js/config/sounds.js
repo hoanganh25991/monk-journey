@@ -60,15 +60,16 @@ export const SKILL_SOUNDS = {
     waveStrike: {
         id: 'waveStrike',
         file: 'wave_strike.mp3',
-        volume: 0.8,
+        volume: 1.0, // Increased from 0.8 to 1.0 for better audibility
         simulated: {
             frequency: 280,
-            duration: 0.3,
+            duration: 0.4, // Increased duration slightly for better audibility
             type: 'sine',
             decay: true,
-            slide: 50,
-            noise: 0.05,
-            filter: 'lowpass'
+            slide: 60, // Increased slide for more dramatic effect
+            noise: 0.08, // Increased noise for more watery sound
+            filter: 'lowpass',
+            vibrato: 8 // Added vibrato for wave-like effect
         }
     },
     waterImpact: {
@@ -665,6 +666,114 @@ export const ENEMY_SOUNDS = {
             slide: -50,
             vibrato: 5
         }
+    },
+    bossSpawn: {
+        id: 'bossSpawn',
+        file: 'boss_spawn.mp3',
+        volume: 0.9,
+        simulated: {
+            frequency: 120,
+            duration: 0.8,
+            type: 'sawtooth',
+            decay: false,
+            slide: 80,
+            vibrato: 10,
+            tremolo: 6,
+            noise: 0.15,
+            distortion: 0.3,
+            filter: 'bandpass',
+            reverb: true
+        }
+    }
+};
+
+// Effect sounds (for status effects)
+export const EFFECT_SOUNDS = {
+    effect_defenseBoost: {
+        id: 'effect_defenseBoost',
+        file: 'effect_defense_boost.mp3',
+        volume: 0.7,
+        simulated: {
+            frequency: 320,
+            duration: 0.4,
+            type: 'sine',
+            decay: false,
+            reverb: true,
+            arpeggio: [1, 1.25, 1.5],
+            filter: 'lowpass'
+        }
+    },
+    effect_speedBoost: {
+        id: 'effect_speedBoost',
+        file: 'effect_speed_boost.mp3',
+        volume: 0.7,
+        simulated: {
+            frequency: 450,
+            duration: 0.3,
+            type: 'sine',
+            decay: false,
+            vibrato: 8,
+            arpeggio: [1, 1.5, 2],
+            filter: 'highpass'
+        }
+    },
+    effect_damageBoost: {
+        id: 'effect_damageBoost',
+        file: 'effect_damage_boost.mp3',
+        volume: 0.8,
+        simulated: {
+            frequency: 380,
+            duration: 0.4,
+            type: 'square',
+            decay: false,
+            attack: 0.01,
+            arpeggio: [1, 1.3, 1.6],
+            filter: 'bandpass'
+        }
+    },
+    effect_regeneration: {
+        id: 'effect_regeneration',
+        file: 'effect_regeneration.mp3',
+        volume: 0.6,
+        simulated: {
+            frequency: 280,
+            duration: 0.5,
+            type: 'sine',
+            decay: false,
+            reverb: true,
+            arpeggio: [1, 1.2, 1.4, 1.2],
+            filter: 'lowpass'
+        }
+    },
+    effect_invulnerability: {
+        id: 'effect_invulnerability',
+        file: 'effect_invulnerability.mp3',
+        volume: 0.8,
+        simulated: {
+            frequency: 520,
+            duration: 0.6,
+            type: 'triangle',
+            decay: false,
+            reverb: true,
+            vibrato: 12,
+            arpeggio: [1, 1.5, 2, 1.5],
+            filter: 'highpass'
+        }
+    },
+    effect_invulnerable: {
+        id: 'effect_invulnerable',
+        file: 'effect_invulnerable.mp3',
+        volume: 0.8,
+        simulated: {
+            frequency: 550,
+            duration: 0.5,
+            type: 'triangle',
+            decay: false,
+            reverb: true,
+            vibrato: 10,
+            arpeggio: [1, 1.3, 1.6, 2],
+            filter: 'highpass'
+        }
     }
 };
 
@@ -704,6 +813,21 @@ export const UI_SOUNDS = {
             decay: true,
             arpeggio: [1, 1.2]
         }
+    },
+    dangerWarning: {
+        id: 'dangerWarning',
+        file: 'danger_warning.mp3',
+        volume: 0.8,
+        simulated: {
+            frequency: 800,
+            duration: 0.5,
+            type: 'sawtooth',
+            decay: false,
+            vibrato: 15,
+            tremolo: 10,
+            noise: 0.1,
+            filter: 'highpass'
+        }
     }
 };
 
@@ -731,6 +855,23 @@ export const ENVIRONMENT_SOUNDS = {
             type: 'sine',
             decay: true,
             slide: -20
+        }
+    },
+    teleport: {
+        id: 'teleport',
+        file: 'teleport.mp3',
+        volume: 0.8,
+        simulated: {
+            frequency: 400,
+            duration: 0.6,
+            type: 'sine',
+            decay: true,
+            slide: 100,
+            vibrato: 15,
+            tremolo: 8,
+            reverb: true,
+            filter: 'highpass',
+            arpeggio: [1, 1.5, 2, 1.5, 1]
         }
     }
 };
@@ -791,6 +932,10 @@ export const ALL_SOUNDS = {
         return acc;
     }, {}),
     ...Object.values(ENEMY_SOUNDS).reduce((acc, sound) => {
+        acc[sound.id] = sound;
+        return acc;
+    }, {}),
+    ...Object.values(EFFECT_SOUNDS).reduce((acc, sound) => {
         acc[sound.id] = sound;
         return acc;
     }, {}),

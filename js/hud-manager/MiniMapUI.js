@@ -10,6 +10,7 @@ import * as THREE from 'three';
  * - Shows remote players
  * - Shows enemies
  * - Shows large structures (towers, villages)
+ * - Shows teleport portals with animated effects
  * - Includes grid and cardinal directions (N, E, S, W)
  */
 export class MiniMapUI extends UIComponent {
@@ -501,7 +502,7 @@ export class MiniMapUI extends UIComponent {
     }
     
     /**
-     * Draw large structures (towers, villages) on the mini map
+     * Draw large structures (towers, villages, teleports) on the mini map
      * @param {number} playerX - Player's X position in the world
      * @param {number} playerY - Player's Y position in the world (Z in 3D space)
      * @param {number} centerX - Center X of the mini map
@@ -509,6 +510,9 @@ export class MiniMapUI extends UIComponent {
      */
     drawLargeStructures(playerX, playerY, centerX, centerY) {
         const world = this.game.world;
+        
+        // Draw teleport portals first (underneath other structures)
+        this.drawTeleportPortals(playerX, playerY, centerX, centerY);
         
         // Draw buildings if available
         if (world.getBuildings) {
@@ -626,6 +630,89 @@ export class MiniMapUI extends UIComponent {
                         this.ctx.beginPath();
                         this.ctx.arc(screenX, screenY, size/3, 0, Math.PI * 2);
                         this.ctx.fill();
+                    }
+                });
+            }
+        }
+    }
+    
+    /**
+     * Draw teleport portals on the mini map
+     * @param {number} playerX - Player's X position in the world
+     * @param {number} playerY - Player's Y position in the world (Z in 3D space)
+     * @param {number} centerX - Center X of the mini map
+     * @param {number} centerY - Center Y of the mini map
+     */
+    drawTeleportPortals(playerX, playerY, centerX, centerY) {
+        const world = this.game.world;
+        
+        // Get teleport portals from the world
+        if (world && world.teleportManager && world.teleportManager.getPortals) {
+            const portals = world.teleportManager.getPortals();
+            
+            if (portals && portals.length > 0) {
+                portals.forEach(portal => {
+                    // Calculate position relative to player
+                    const relX = (portal.position.x - playerX) * this.scale;
+                    const relY = (portal.position.z - playerY) * this.scale;
+                    
+                    // Apply map offset
+                    const screenX = centerX + relX + this.mapOffsetX;
+                    const screenY = centerY + relY + this.mapOffsetY;
+                    
+                    // Calculate distance from center (for circular bounds check)
+                    const distFromCenter = Math.sqrt(
+                        Math.pow(screenX - centerX, 2) + 
+                        Math.pow(screenY - centerY, 2)
+                    );
+                    
+                    // Only draw if within circular mini map bounds
+                    if (distFromCenter <= (this.mapSize / 2 - 2)) {
+                        // Draw portal outer glow effect
+                        const size = 8;
+                        
+                        // Outer glow (larger, more transparent)
+                        this.ctx.fillStyle = 'rgba(0, 255, 255, 0.3)'; // Cyan glow
+                        this.ctx.beginPath();
+                        this.ctx.arc(screenX, screenY, size + 2, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        // Main portal circle
+                        this.ctx.fillStyle = 'rgba(0, 255, 255, 0.8)'; // Bright cyan
+                        this.ctx.beginPath();
+                        this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        // Inner core (white)
+                        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                        this.ctx.beginPath();
+                        this.ctx.arc(screenX, screenY, size/2, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        // Add animated ring effect
+                        const animationPhase = (Date.now() / 1000) % 2; // 2 second cycle
+                        const ringSize = size + (Math.sin(animationPhase * Math.PI) * 3);
+                        
+                        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.beginPath();
+                        this.ctx.arc(screenX, screenY, ringSize, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                        
+                        // Add portal symbol (diamond shape)
+                        this.ctx.fillStyle = 'rgba(0, 255, 255, 0.7)';
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(screenX, screenY - size/2);
+                        this.ctx.lineTo(screenX + size/2, screenY);
+                        this.ctx.lineTo(screenX, screenY + size/2);
+                        this.ctx.lineTo(screenX - size/2, screenY);
+                        this.ctx.closePath();
+                        this.ctx.fill();
+                        
+                        // Add white border to diamond
+                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                        this.ctx.lineWidth = 1;
+                        this.ctx.stroke();
                     }
                 });
             }

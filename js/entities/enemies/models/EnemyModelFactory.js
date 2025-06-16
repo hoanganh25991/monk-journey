@@ -71,6 +71,7 @@ export class EnemyModelFactory {
                 
             case 'swamp_witch':
             case 'blood_cultist':    // Added blood cultist (similar to witch)
+            case 'plague_lord':      // Added plague lord (similar to necromancer)
                 return new SwampWitchModel(enemy, modelGroup);
                 
             // Beast types

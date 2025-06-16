@@ -158,6 +158,11 @@
 
         <!-- Right Side UI (Skills) -->
         <div id="right-side-ui">
+            <!-- Camera Control Button -->
+            <div id="camera-control-button">
+                <div class="camera-icon">🎥</div>
+            </div>
+            
             <!-- Skills UI -->
             <div id="skills-container"></div>
         </div>
@@ -405,8 +410,26 @@
         <div id="notifications-container"></div>
         
         <!-- Level Up Container -->
+        <div id="level-up-container" style="display: none;">
+            <div class="level-up-content">
+                <div class="level-up-text">Level</div>
+                <div class="level-up-level"></div>
+            </div>
+        </div>
+
+        <!-- Teleport Countdown Container -->
+        <div id="teleport-countdown-container" style="display: none;">
+            <div class="teleport-countdown-content">
+                <div class="teleport-countdown-text">Teleporting in</div>
+                <div class="teleport-countdown-number"></div>
+            </div>
+        </div>
+
         <!-- Effects Container -->
         <div id="effects-container"></div>
+        
+        <!-- Status Effects Container -->
+        <div id="status-effects-container" class="status-effects-container"></div>
         
         <!-- Camera Control UI -->
         <div id="camera-control-indicator">
@@ -419,6 +442,23 @@
                 </div>
             </div>
             <div id="camera-control-handle"></div>
+        </div>
+    </div>
+
+    <!-- Teleport Spiral Effect -->
+    <div id="teleport-spiral-container" class="teleport-spiral-container" style="display: none;">
+        <div class="spiral-overlay">
+            <div class="spiral-center">
+                <div class="spiral-symbols">𖣐</div>
+                <div class="spiral-text">TELEPORTING...</div>
+            </div>
+            <div class="spiral-rings">
+                <div class="spiral-ring ring-1"></div>
+                <div class="spiral-ring ring-2"></div>
+                <div class="spiral-ring ring-3"></div>
+                <div class="spiral-ring ring-4"></div>
+            </div>
+            <div class="spiral-particles"></div>
         </div>
     </div>
 
@@ -622,6 +662,16 @@
                                 </div>
                             </div>
                             <div class="settings-description">Adjust camera distance (higher values = further away)</div>
+                        </div>
+                        
+                        <!-- Material Quality Settings -->
+                        <div id="material-quality-container" class="setting-item">
+                            <h3>Graphics Quality</h3>
+                            <div class="setting-row">
+                                <label for="material-quality-select" class="settings-label">Material Quality</label>
+                                <select id="material-quality-select" class="settings-select"></select>
+                            </div>
+                            <div class="settings-description">Adjust the quality of game materials (affects performance)</div>
                         </div>
                         
                         <!-- Game Control -->

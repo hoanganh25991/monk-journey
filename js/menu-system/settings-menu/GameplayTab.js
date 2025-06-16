@@ -35,6 +35,9 @@ export class GameplayTab extends SettingsTab {
         this.cameraZoomSlider = document.getElementById('camera-zoom-slider');
         this.cameraZoomValue = document.getElementById('camera-zoom-value');
         
+        // Material quality settings
+        this.materialQualitySelect = document.getElementById('material-quality-select');
+        
         // New Game button
         this.newGameButton = document.getElementById('new-game-button');
         
@@ -60,6 +63,9 @@ export class GameplayTab extends SettingsTab {
         this.initializeDifficultySettings();
         this.initializeReleaseSettings();
         
+        // Material quality is now applied only during game initialization
+        // No need to apply it here as it's handled during game startup
+        
         return true;
     }
     
@@ -81,6 +87,8 @@ export class GameplayTab extends SettingsTab {
             if (this.cameraZoomValue) {
                 this.cameraZoomValue.textContent = zoomValue;
             }
+        } else if (key === STORAGE_KEYS.MATERIAL_QUALITY && this.materialQualitySelect) {
+            this.materialQualitySelect.value = newValue || 'high';
         }
     }
     
@@ -260,6 +268,55 @@ export class GameplayTab extends SettingsTab {
             });
         }
         
+        // Initialize material quality select if it exists
+        if (this.materialQualitySelect) {
+            // Clear existing options
+            while (this.materialQualitySelect.options.length > 0) {
+                this.materialQualitySelect.remove(0);
+            }
+            
+            // Define material quality options (4 levels)
+            const materialQualityOptions = [
+                { value: 'high', name: 'High Quality (PBR Materials)' },
+                { value: 'medium', name: 'Medium Quality (Phong Materials)' },
+                { value: 'low', name: 'Low Quality (Lambert Materials)' },
+                { value: 'minimal', name: 'Minimal Quality (Basic Materials)' }
+            ];
+            
+            // Add material quality options
+            for (const option of materialQualityOptions) {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.name;
+                this.materialQualitySelect.appendChild(optionElement);
+            }
+            
+            // Set current material quality (default to 'high')
+            const currentMaterialQuality = this.loadSettingSync(STORAGE_KEYS.MATERIAL_QUALITY, 'high');
+            
+            console.debug(`Loading material quality setting: ${currentMaterialQuality}`);
+            this.materialQualitySelect.value = currentMaterialQuality;
+            
+            // If the value wasn't set correctly, explicitly set it to 'high'
+            if (!this.materialQualitySelect.value) {
+                console.debug('Invalid material quality setting detected, defaulting to high');
+                this.materialQualitySelect.value = 'high';
+                this.saveSetting(STORAGE_KEYS.MATERIAL_QUALITY, 'high');
+            }
+            
+            // Add change event listener
+            this.materialQualitySelect.addEventListener('change', () => {
+                const selectedQuality = this.materialQualitySelect.value;
+                // Store the value using storage service
+                this.saveSetting(STORAGE_KEYS.MATERIAL_QUALITY, selectedQuality);
+                
+                // Show notification that changes will apply on game restart
+                if (this.game && this.game.hudManager) {
+                    this.game.hudManager.showNotification(`Material quality will be applied on next game start`);
+                }
+            });
+        }
+        
         // Initialize New Game button if it exists
         if (this.newGameButton) {
             this.newGameButton.addEventListener('click', () => {
@@ -425,6 +482,14 @@ export class GameplayTab extends SettingsTab {
             savePromises.push(this.saveSetting(STORAGE_KEYS.CAMERA_ZOOM, parseInt(this.cameraZoomSlider.value).toString()));
         }
         
+        if (this.materialQualitySelect) {
+            const materialQuality = this.materialQualitySelect.value || 'high';
+            savePromises.push(this.saveSetting(STORAGE_KEYS.MATERIAL_QUALITY, materialQuality));
+            
+            // Material quality will be applied on next game start
+            // No need to apply it dynamically here
+        }
+        
         // Wait for all saves to complete
         await Promise.all(savePromises);
         return true;
@@ -451,6 +516,10 @@ export class GameplayTab extends SettingsTab {
             if (this.cameraZoomValue) {
                 this.cameraZoomValue.textContent = 20;
             }
+        }
+        
+        if (this.materialQualitySelect) {
+            this.materialQualitySelect.value = 'high'; // Default to high quality
         }
         
         // Save all the reset values
@@ -504,6 +573,216 @@ export class GameplayTab extends SettingsTab {
                     }
                 });
         }
+    }
+    
+    /**
+     * Apply material quality settings to all objects in the scene
+     * @param {string} quality - The quality level ('high', 'medium', or 'low')
+     * @private
+     */
+    applyMaterialQuality(quality) {
+        if (!this.game || !this.game.scene) {
+            console.warn('Cannot apply material quality: game or scene not available');
+            return;
+        }
+        
+        console.debug(`Applying material quality: ${quality}`);
+        
+        // Traverse all objects in the scene
+        this.game.scene.traverse(object => {
+            // Skip objects without materials
+            if (!object.material) return;
+            
+            // Handle arrays of materials
+            const materials = Array.isArray(object.material) ? object.material : [object.material];
+            
+            materials.forEach(material => {
+                // Skip materials that don't need modification
+                if (!material || material.userData.isUI) return;
+                
+                // Store original material type if not already stored
+                if (!material.userData.originalType) {
+                    material.userData.originalType = material.type;
+                    
+                    // Store original material properties
+                    if (material.map) material.userData.map = material.map;
+                    if (material.normalMap) material.userData.normalMap = material.normalMap;
+                    if (material.roughnessMap) material.userData.roughnessMap = material.roughnessMap;
+                    if (material.metalnessMap) material.userData.metalnessMap = material.metalnessMap;
+                    if (material.emissiveMap) material.userData.emissiveMap = material.emissiveMap;
+                    if (material.aoMap) material.userData.aoMap = material.aoMap;
+                    
+                    // Store original colors
+                    if (material.color) material.userData.color = material.color.clone();
+                    if (material.emissive) material.userData.emissive = material.emissive.clone();
+                }
+                
+                // Apply quality settings
+                switch (quality) {
+                    case 'high':
+                        // Restore original material type and properties
+                        this.restoreOriginalMaterial(material);
+                        break;
+                        
+                    case 'medium':
+                        // Convert to MeshPhongMaterial (simpler than PBR but still has specular highlights)
+                        this.convertToPhongMaterial(material);
+                        break;
+                        
+                    case 'low':
+                        // Convert to MeshBasicMaterial (no lighting calculations)
+                        this.convertToBasicMaterial(material);
+                        break;
+                        
+                    default:
+                        console.warn(`Unknown material quality: ${quality}`);
+                }
+                
+                // Mark material for update
+                material.needsUpdate = true;
+            });
+        });
+        
+        // Force renderer to update
+        if (this.game.renderer) {
+            this.game.renderer.renderLists.dispose();
+        }
+    }
+    
+    /**
+     * Restore original material properties
+     * @param {THREE.Material} material - The material to restore
+     * @private
+     */
+    restoreOriginalMaterial(material) {
+        if (!material.userData.originalType) return;
+        
+        // No need to change if already the correct type
+        if (material.type === material.userData.originalType) return;
+        
+        // Create new material of original type
+        const originalType = material.userData.originalType;
+        let newMaterial;
+        
+        // Import THREE dynamically
+        import('three').then(THREE => {
+            // Create appropriate material based on original type
+            switch (originalType) {
+                case 'MeshStandardMaterial':
+                    newMaterial = new THREE.MeshStandardMaterial();
+                    break;
+                case 'MeshPhysicalMaterial':
+                    newMaterial = new THREE.MeshPhysicalMaterial();
+                    break;
+                case 'MeshPhongMaterial':
+                    newMaterial = new THREE.MeshPhongMaterial();
+                    break;
+                case 'MeshLambertMaterial':
+                    newMaterial = new THREE.MeshLambertMaterial();
+                    break;
+                default:
+                    console.warn(`Unknown original material type: ${originalType}`);
+                    return;
+            }
+            
+            // Copy basic properties
+            newMaterial.name = material.name;
+            newMaterial.transparent = material.transparent;
+            newMaterial.opacity = material.opacity;
+            newMaterial.side = material.side;
+            
+            // Restore maps
+            if (material.userData.map) newMaterial.map = material.userData.map;
+            if (material.userData.normalMap) newMaterial.normalMap = material.userData.normalMap;
+            if (material.userData.roughnessMap) newMaterial.roughnessMap = material.userData.roughnessMap;
+            if (material.userData.metalnessMap) newMaterial.metalnessMap = material.userData.metalnessMap;
+            if (material.userData.emissiveMap) newMaterial.emissiveMap = material.userData.emissiveMap;
+            if (material.userData.aoMap) newMaterial.aoMap = material.userData.aoMap;
+            
+            // Restore colors
+            if (material.userData.color) newMaterial.color.copy(material.userData.color);
+            if (material.userData.emissive) newMaterial.emissive.copy(material.userData.emissive);
+            
+            // Copy userData
+            newMaterial.userData = material.userData;
+            
+            // Replace material
+            Object.assign(material, newMaterial);
+        });
+    }
+    
+    /**
+     * Convert material to MeshPhongMaterial (medium quality)
+     * @param {THREE.Material} material - The material to convert
+     * @private
+     */
+    convertToPhongMaterial(material) {
+        // No need to change if already a phong material
+        if (material.type === 'MeshPhongMaterial') return;
+        
+        // Import THREE dynamically
+        import('three').then(THREE => {
+            // Create new phong material
+            const phongMaterial = new THREE.MeshPhongMaterial();
+            
+            // Copy basic properties
+            phongMaterial.name = material.name;
+            phongMaterial.transparent = material.transparent;
+            phongMaterial.opacity = material.opacity;
+            phongMaterial.side = material.side;
+            
+            // Copy maps (only those supported by MeshPhongMaterial)
+            if (material.map) phongMaterial.map = material.map;
+            if (material.normalMap) phongMaterial.normalMap = material.normalMap;
+            if (material.emissiveMap) phongMaterial.emissiveMap = material.emissiveMap;
+            
+            // Copy colors
+            if (material.color) phongMaterial.color.copy(material.color);
+            if (material.emissive) phongMaterial.emissive.copy(material.emissive);
+            
+            // Set reasonable shininess
+            phongMaterial.shininess = 30;
+            
+            // Copy userData
+            phongMaterial.userData = material.userData;
+            
+            // Replace material
+            Object.assign(material, phongMaterial);
+        });
+    }
+    
+    /**
+     * Convert material to MeshBasicMaterial (low quality)
+     * @param {THREE.Material} material - The material to convert
+     * @private
+     */
+    convertToBasicMaterial(material) {
+        // No need to change if already a basic material
+        if (material.type === 'MeshBasicMaterial') return;
+        
+        // Import THREE dynamically
+        import('three').then(THREE => {
+            // Create new basic material
+            const basicMaterial = new THREE.MeshBasicMaterial();
+            
+            // Copy basic properties
+            basicMaterial.name = material.name;
+            basicMaterial.transparent = material.transparent;
+            basicMaterial.opacity = material.opacity;
+            basicMaterial.side = material.side;
+            
+            // Only use color map
+            if (material.map) basicMaterial.map = material.map;
+            
+            // Copy color
+            if (material.color) basicMaterial.color.copy(material.color);
+            
+            // Copy userData
+            basicMaterial.userData = material.userData;
+            
+            // Replace material
+            Object.assign(material, basicMaterial);
+        });
     }
     
     /**

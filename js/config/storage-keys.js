@@ -40,6 +40,7 @@ export const STORAGE_KEYS = {
     SELECTED_ITEM_RARITY: 'monk_journey_selected_item_rarity',
     CUSTOM_SKILLS: 'monk_journey_custom_skills',
     CAMERA_ZOOM: 'monk_journey_camera_zoom',
+    MATERIAL_QUALITY: 'monk_journey_material_quality',
     
     // Save system keys
     SAVE_DATA: 'monk_journey_save',

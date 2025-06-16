@@ -15,7 +15,7 @@ export const PRIMARY_ATTACKS = [
         damage: 15, // Balanced primary attack damage
         manaCost: 0,
         cooldown: 0.2, // Very short cooldown for basic attack
-        range: 13, // Teleport range
+        range: 15, // Teleport range
         radius: 3, // Increased area of effect for more reliable hits
         duration: 0.5, // Short duration
         get color() { return SKILL_ICONS[this.name].color; },
@@ -34,7 +34,7 @@ export const PRIMARY_ATTACKS = [
         damage: 10, // Keeping this the same as it's already balanced
         manaCost: 0,
         cooldown: 0.2,
-        range: 25, // Increased range for a proper ranged attack
+        range: 20, // Increased range for a proper ranged attack
         radius: 1, // Small area of effect at impact point
         duration: 1.5, // Duration for the beam to extend and retract
         get color() { return SKILL_ICONS[this.name].color; },

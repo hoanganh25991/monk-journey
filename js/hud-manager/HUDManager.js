@@ -246,6 +246,78 @@ export class HUDManager {
     }
     
     /**
+     * Show a DOM-based countdown for teleport
+     * @param {number} startCount - Starting countdown number (e.g., 3)
+     * @param {function} onComplete - Callback when countdown reaches 0
+     * @param {string} message - Optional message to show with countdown
+     * @param {boolean} cancellable - Whether the countdown can be cancelled by movement
+     */
+    showCountdown(startCount = 3, onComplete = null, message = 'Portal created! Auto-teleport in', cancellable = true) {
+        console.debug(`Starting teleport countdown: ${startCount}`);
+        
+        // Get the countdown container and elements
+        const countdownContainer = document.getElementById('teleport-countdown-container');
+        const countdownNumber = document.querySelector('.teleport-countdown-number');
+        
+        if (!countdownContainer || !countdownNumber) {
+            console.warn('Countdown DOM elements not found, falling back to notification');
+            const cancelText = cancellable ? ' (move to cancel)' : '';
+            this.showNotification(`${message} ${startCount}s${cancelText}`);
+            
+            // Manual countdown with setTimeout
+            let currentCount = startCount;
+            const countdownInterval = setInterval(() => {
+                currentCount--;
+                if (currentCount > 0) {
+                    this.showNotification(`${message} ${currentCount}s${cancelText}`);
+                } else {
+                    clearInterval(countdownInterval);
+                    if (onComplete) {
+                        onComplete();
+                    }
+                }
+            }, 1000);
+            return;
+        }
+        
+        // Start countdown
+        let currentCount = startCount;
+        
+        // Show the countdown container
+        countdownContainer.style.display = 'flex';
+        
+        // Function to update countdown display
+        const updateCountdown = () => {
+            if (currentCount > 0) {
+                // Update the number display
+                countdownNumber.textContent = currentCount;
+                
+                // Reset animation by removing and re-adding the class
+                countdownNumber.style.animation = 'none';
+                countdownNumber.offsetHeight; // Trigger reflow
+                countdownNumber.style.animation = 'teleportNumberPulse 1s ease-in-out';
+                
+                currentCount--;
+                
+                // Schedule next update
+                setTimeout(updateCountdown, 1000);
+            } else {
+                // Hide countdown container
+                countdownContainer.style.display = 'none';
+                
+                // Execute completion callback
+                if (onComplete) {
+                    console.debug('Teleport countdown completed, executing callback');
+                    onComplete();
+                }
+            }
+        };
+        
+        // Start the countdown
+        updateCountdown();
+    }
+    
+    /**
      * Update the quest log with active quests
      * @param {Array} activeQuests - Array of active quests
      */
@@ -400,15 +472,15 @@ export class HUDManager {
      * @param {string} effectType - Type of status effect (e.g., 'slow', 'stun', 'poison', 'invulnerable')
      */
     showStatusEffect(effectType) {
-        // Create or update status effect indicator
-        let statusContainer = document.getElementById('status-effects-container');
+        // Get the pre-defined status effects container
+        const statusContainer = document.getElementById('status-effects-container');
         if (!statusContainer) {
-            // Create container if it doesn't exist
-            statusContainer = document.createElement('div');
-            statusContainer.id = 'status-effects-container';
-            statusContainer.className = 'status-effects-container';
-            document.body.appendChild(statusContainer);
+            console.warn('Status effects container not found in DOM');
+            return;
         }
+        
+        // Make sure the container is visible
+        statusContainer.style.display = 'block';
         
         // Check if this effect already has an indicator
         let effectElement = document.getElementById(`status-effect-${effectType}`);
@@ -474,10 +546,10 @@ export class HUDManager {
             effectElement.remove();
         }
         
-        // Check if container is empty and remove it if so
+        // Check if container is empty and hide it if so
         const statusContainer = document.getElementById('status-effects-container');
         if (statusContainer && statusContainer.children.length === 0) {
-            statusContainer.remove();
+            statusContainer.style.display = 'none';
         }
     }
     

@@ -877,6 +877,15 @@ export class EnvironmentFactory {
     }
     
     /**
+     * Check if the factory has a specific type registered
+     * @param {string} type - The type to check
+     * @returns {boolean} - True if the type is registered
+     */
+    has(type) {
+        return this.registry.has(type);
+    }
+    
+    /**
      * Get all registered environment object types
      * @returns {Array<string>} - Array of registered types
      */

@@ -6,6 +6,7 @@
 import { Game } from './game/Game.js';
 import { DEFAULT_CHARACTER_MODEL } from './config/player-models.js';
 import { STORAGE_KEYS } from './config/storage-keys.js';
+import * as THREE from 'three';
 
 // Set up console warning filter to suppress specific THREE.js warnings
 (function setupConsoleFilter() {
@@ -26,6 +27,65 @@ import { STORAGE_KEYS } from './config/storage-keys.js';
         
         // Pass other warnings to the original console.warn
         return originalWarn.apply(console, args);
+    };
+    
+    // Store the original error method
+    const originalError = console.error;
+    
+    // Override console.error to catch and handle specific shader errors
+    console.error = function(...args) {
+        // Check if this is a shader-related error we want to handle
+        if (args[0] && typeof args[0] === 'string' && 
+            (args[0].includes("Cannot set properties of undefined (setting 'value')") ||
+             args[0].includes("WebGL: INVALID_OPERATION: uniform") ||
+             args[0].includes("WebGL: INVALID_VALUE: uniformMatrix") ||
+             args[0].includes("WebGL: INVALID_OPERATION: uniformMatrix"))) {
+            
+            console.warn("Caught WebGL shader error:", args[0]);
+            // Return without crashing
+            return;
+        }
+        
+        // Pass other errors to the original console.error
+        return originalError.apply(console, args);
+    };
+    
+    // Patch THREE.WebGLRenderer.prototype.render to catch shader errors
+    const originalRender = THREE.WebGLRenderer.prototype.render;
+    THREE.WebGLRenderer.prototype.render = function(scene, camera) {
+        try {
+            // Check WebGL context before rendering
+            const gl = this.getContext();
+            if (!gl || gl.isContextLost()) {
+                console.warn("WebGL context lost, skipping render");
+                return;
+            }
+            
+            return originalRender.call(this, scene, camera);
+        } catch (error) {
+            if (error.message && (
+                error.message.includes("Cannot set properties of undefined (setting 'value')") ||
+                error.message.includes("Cannot read properties of undefined") ||
+                error.message.includes("WebGL: INVALID_OPERATION") ||
+                error.message.includes("uniform") ||
+                error.message.includes("getUniformLocation")
+            )) {
+                console.warn("Caught WebGL render error:", error.message);
+                
+                // Try to reset WebGL state
+                try {
+                    if (this.state) {
+                        this.state.reset();
+                    }
+                } catch (resetError) {
+                    console.warn("Failed to reset WebGL state:", resetError.message);
+                }
+                
+                // Continue without crashing
+                return;
+            }
+            throw error; // Re-throw other errors
+        }
     };
 })();
 

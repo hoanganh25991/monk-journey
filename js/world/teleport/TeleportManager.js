@@ -25,10 +25,11 @@ export class TeleportManager {
         // Array to store all teleport portals
         this.portals = [];
         
-        // Portal animation properties
+        // Portal animation properties - enhanced for spiral effects
         this.animationSpeed = 1.5;
         this.hoverHeight = 0.5;
-        this.rotationSpeed = 0.01;
+        this.rotationSpeed = 0.02; // Increased for more dramatic spiral effect
+        this.spiralIntensity = 2.0; // New property for spiral effect strength
         
         // Portal interaction properties
         this.interactionRadius = 4; // Player must be within this distance to trigger teleport
@@ -507,43 +508,89 @@ export class TeleportManager {
     }
     
     /**
-     * Animate a portal
+     * Animate a portal with enhanced spiral/cyclone effects
      * @param {Object} portal - The portal to animate
      * @param {number} time - Current time in seconds
      */
     animatePortal(portal, time) {
         if (!portal.mesh) return;
         
-        // Hover animation
-        portal.mesh.position.y = portal.sourcePosition.y + 
-            Math.sin(time * this.animationSpeed) * this.hoverHeight;
+        // Enhanced hover animation with slight wobble
+        const hoverOffset = Math.sin(time * this.animationSpeed) * this.hoverHeight;
+        const wobbleOffset = Math.cos(time * this.animationSpeed * 2.3) * 0.1;
+        portal.mesh.position.y = portal.sourcePosition.y + hoverOffset + wobbleOffset;
         
-        // Rotation animation
-        // portal.mesh.rotation.z += this.rotationSpeed;
-        
-        // Animate particles
-        if (portal.particles) {
-            const positions = portal.particles.geometry.attributes.position.array;
-            const particleCount = positions.length / 3;
+        // Animate the portal mesh components if it's a group
+        if (portal.mesh.cycloneMesh) {
+            // Cyclone spiral rotation - only rotate on Y-axis (around the portal's flat surface)
+            portal.mesh.cycloneMesh.rotation.y += this.rotationSpeed * 3;
             
-            for (let i = 0; i < particleCount; i++) {
-                const ix = i * 3;
-                const iy = i * 3 + 1;
-                const iz = i * 3 + 2;
-                
-                // Calculate angle and radius for this particle
-                const angle = (i / particleCount) * Math.PI * 2 + time * this.animationSpeed;
-                const radius = this.portalRadius * (0.5 + Math.sin(time + i) * 0.2);
-                
-                // Update particle position
-                positions[ix] = portal.sourcePosition.x + Math.cos(angle) * radius;
-                positions[iy] = portal.sourcePosition.y + 0.5 + Math.sin(time * 2 + i) * 0.3;
-                positions[iz] = portal.sourcePosition.z + Math.sin(angle) * radius;
-            }
-            
-            // Mark the attribute as needing an update
-            portal.particles.geometry.attributes.position.needsUpdate = true;
+            // Add pulsing scale effect
+            const pulseScale = 1 + Math.sin(time * 2) * 0.1;
+            portal.mesh.cycloneMesh.scale.set(pulseScale, pulseScale, pulseScale);
         }
+        
+        if (portal.mesh.innerRingMesh) {
+            // Inner ring counter-rotation - only rotate on Y-axis (around the portal's flat surface)
+            portal.mesh.innerRingMesh.rotation.y -= this.rotationSpeed * 2;
+            
+            // Add breathing effect
+            const breatheScale = 1 + Math.sin(time * 1.5) * 0.15;
+            portal.mesh.innerRingMesh.scale.set(breatheScale, breatheScale, breatheScale);
+        }
+        
+        // Outer ring removed for cleaner look
+        
+        // Enhanced particle animations
+        this.animatePortalParticles(portal, time);
+    }
+    
+    /**
+     * Animate portal particles with spiral effects
+     * @param {Object} portal - The portal object
+     * @param {number} time - Current time in seconds
+     */
+    animatePortalParticles(portal, time) {
+        if (!portal.particles) return;
+        
+        // Animate spiral particles (main cyclone effect)
+        if (portal.particles.spiralParticles) {
+            const spiralGeometry = portal.particles.spiralParticles.geometry;
+            const positions = spiralGeometry.attributes.position;
+            const angles = spiralGeometry.attributes.angle;
+            const speeds = spiralGeometry.attributes.speed;
+            
+            if (positions && angles && speeds) {
+                const posArray = positions.array;
+                const angleArray = angles.array;
+                const speedArray = speeds.array;
+                const particleCount = posArray.length / 3;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const ix = i * 3;
+                    const iy = i * 3 + 1;
+                    const iz = i * 3 + 2;
+                    
+                    // Update angle for spiral motion
+                    angleArray[i] += speedArray[i] * 0.02;
+                    
+                    // Calculate spiral position
+                    const spiralPosition = (i / particleCount);
+                    const currentAngle = angleArray[i] + time * this.animationSpeed * 2;
+                    const spiralRadius = this.portalRadius * (1 - spiralPosition * 0.8) * (0.8 + Math.sin(time + i) * 0.2);
+                    
+                    // Spiral inward motion - keep particles on the flat surface
+                    posArray[ix] = Math.cos(currentAngle) * spiralRadius;
+                    posArray[iy] = Math.sin(time * 2 + i) * 0.2; // Reduced vertical movement to keep particles on surface
+                    posArray[iz] = Math.sin(currentAngle) * spiralRadius;
+                }
+                
+                positions.needsUpdate = true;
+                angles.needsUpdate = true;
+            }
+        }
+        
+        // Outer and ambient particles removed for cleaner portal effect
     }
     
     /**
@@ -578,10 +625,12 @@ export class TeleportManager {
                 if (currentTime - portal.lastInteractionTime > 1000) {
                     portal.lastInteractionTime = currentTime;
                     
-                    // Show teleport prompt
+                    // Show teleport prompt with spiral symbols
                     if (this.game && this.game.hudManager) {
+                        const spiralSymbols = ['🌀', '🍥', '𖦹', '𖣐'];
+                        const randomSpiral = spiralSymbols[Math.floor(Math.random() * spiralSymbols.length)];
                         this.game.hudManager.showNotification(
-                            `${portal.targetName}`,
+                            `${randomSpiral} ${portal.targetName} ${randomSpiral}`,
                             5000
                         );
                     }
@@ -729,17 +778,19 @@ export class TeleportManager {
                     console.debug('Forced camera update after teleport');
                 }
                 
-                // Show arrival notification
+                // Show arrival notification with spiral effects
                 if (this.game && this.game.hudManager) {
+                    const spiralSymbols = ['🌀', '🍥', '𖦹', '𖣐'];
+                    const randomSpiral = spiralSymbols[Math.floor(Math.random() * spiralSymbols.length)];
                     this.game.hudManager.showNotification(
-                        `Arrived at ${portal.targetName}`,
+                        `✨ Teleported to ${portal.targetName} ${randomSpiral}`,
                         3000
                     );
                     
                     // If this is a multiplier portal, show additional notification
                     if (isMultiplierPortal) {
                         this.game.hudManager.showNotification(
-                            `Enemy spawn rate: ${portal.multiplier}x`,
+                            `⚡ Enemy spawn rate: ${portal.multiplier}x ${randomSpiral}`,
                             5000
                         );
                     }
@@ -1284,7 +1335,7 @@ export class TeleportManager {
     }
     
     /**
-     * Show teleport effect
+     * Show enhanced spiral teleport effect
      * @param {Object} portal - The portal being used
      */
     showTeleportEffect(portal) {
@@ -1298,78 +1349,38 @@ export class TeleportManager {
         
         console.debug(`Teleport distance: ${distance.toFixed(2)}, long: ${isLongDistance}, extreme: ${isExtremeDistance}`);
         
-        // Create a flash effect
-        if (this.game.hudManager) {
-            // Create a full-screen flash element
-            const flash = document.createElement('div');
-            flash.className = 'teleport-flash';
-            flash.style.transition = `background-color ${this.fadeOutDuration / 1000}s ease-in-out`;
-            
-            // Add to DOM
-            document.body.appendChild(flash);
-            
-            // For extreme distances, add a more dramatic effect
-            if (isExtremeDistance) {
-                // Add pulsing stars for extreme distances
-                const starsContainer = document.createElement('div');
-                starsContainer.className = 'stars-container';
-                
-                // Create 100 stars
-                for (let i = 0; i < 100; i++) {
-                    const star = document.createElement('div');
-                    star.className = 'teleport-star';
-                    star.style.width = `${Math.random() * 4 + 1}px`;
-                    star.style.height = star.style.width;
-                    star.style.left = `${Math.random() * 100}%`;
-                    star.style.top = `${Math.random() * 100}%`;
-                    star.style.animation = `starPulse ${Math.random() * 1 + 0.5}s ease-in-out infinite alternate`;
-                    
-                    starsContainer.appendChild(star);
-                }
-                
-                document.body.appendChild(starsContainer);
-                
-                // Remove stars after effect
-                setTimeout(() => {
-                    document.body.removeChild(starsContainer);
-                }, this.effectDuration + 500);
-            }
-            
-            // Fade in with color based on distance
-            setTimeout(() => {
-                if (isExtremeDistance) {
-                    flash.classList.add('extreme-distance');
-                } else if (isLongDistance) {
-                    flash.classList.add('long-distance');
-                } else {
-                    flash.classList.add('short-distance');
-                }
-            }, 10);
-            
-            // Fade out
-            setTimeout(() => {
-                flash.classList.remove('extreme-distance', 'long-distance', 'short-distance');
-                
-                // Remove after fade out
-                setTimeout(() => {
-                    document.body.removeChild(flash);
-                }, this.fadeInDuration);
-            }, this.fadeOutDuration);
-        }
+        // Show enhanced spiral effect using pre-defined HTML element
+        this.showTeleportSpiralEffect(isExtremeDistance);
         
-        // Play teleport sound if available
+        // Play teleport sound with spiral effect
         if (this.game.audioManager) {
             // Adjust volume based on distance
             const volume = isExtremeDistance ? 0.8 : (isLongDistance ? 0.7 : 0.5);
             this.game.audioManager.playSound('teleport', volume);
             
-            // For extreme distances, add a second sound effect
+            // For extreme distances, add multiple sound layers
             if (isExtremeDistance && this.game.audioManager.playSound) {
                 setTimeout(() => {
                     this.game.audioManager.playSound('teleport', 0.4);
                 }, 300);
+                setTimeout(() => {
+                    this.game.audioManager.playSound('teleport', 0.2);
+                }, 600);
             }
         }
+        
+        // Temporarily boost portal animation during teleport
+        const originalAnimationSpeed = this.animationSpeed;
+        const originalRotationSpeed = this.rotationSpeed;
+        
+        this.animationSpeed *= 3;
+        this.rotationSpeed *= 5;
+        
+        // Reset animation speeds after effect
+        setTimeout(() => {
+            this.animationSpeed = originalAnimationSpeed;
+            this.rotationSpeed = originalRotationSpeed;
+        }, this.effectDuration);
     }
     
     /**
@@ -1384,6 +1395,54 @@ export class TeleportManager {
             targetName: portal.targetName,
             type: 'portal'
         }));
+    }
+    
+    /**
+     * Create a temporary portal for teleport-to-origin functionality
+     * @param {THREE.Vector3} sourcePosition - The position of the source portal
+     * @param {THREE.Vector3} targetPosition - The position to teleport to (default: origin)
+     * @param {number} duration - Portal duration in milliseconds (default: 10 seconds)
+     * @returns {Object} - The created temporary portal object
+     */
+    createTemporaryPortal(sourcePosition, targetPosition = null, duration = 10000) {
+        // Default target position is origin (0, 0, 0)
+        if (!targetPosition) {
+            targetPosition = new THREE.Vector3(0, 0, 0);
+            // Adjust target Y position based on terrain height
+            try {
+                if (this.worldManager && this.worldManager.getTerrainHeight) {
+                    targetPosition.y = this.worldManager.getTerrainHeight(0, 0) + 0.5;
+                }
+            } catch (e) {
+                console.warn('Error adjusting target portal height:', e);
+                targetPosition.y = 0.5;
+            }
+        }
+        
+        // Create the portal with custom colors for temporary portals
+        const temporaryPortal = this.createPortal(
+            sourcePosition,
+            targetPosition,
+            'Origin Portal',
+            'Starting Area',
+            0x00ffff, // Cyan color for origin portals
+            0x0099ff, // Blue emissive
+            1.5       // Slightly larger size
+        );
+        
+        // Mark as temporary
+        temporaryPortal.isTemporary = true;
+        temporaryPortal.expirationTime = Date.now() + duration;
+        
+        console.debug(`Created temporary portal at (${sourcePosition.x.toFixed(1)}, ${sourcePosition.y.toFixed(1)}, ${sourcePosition.z.toFixed(1)}) for ${duration}ms`);
+        
+        // Auto-remove after duration
+        setTimeout(() => {
+            this.removePortal(temporaryPortal.id);
+            console.debug('Temporary portal expired and removed');
+        }, duration);
+        
+        return temporaryPortal;
     }
     
     /**
@@ -1467,5 +1526,46 @@ export class TeleportManager {
         this.activePortal = null;
         
         console.debug("Cleared all teleport portals");
+    }
+    
+    /**
+     * Show the teleport spiral effect using pre-defined HTML element
+     * @param {boolean} isExtremeDistance - Whether this is an extreme distance teleport
+     */
+    showTeleportSpiralEffect(isExtremeDistance = false) {
+        // Get the pre-defined spiral container element
+        const spiralContainer = document.getElementById('teleport-spiral-container');
+        
+        if (!spiralContainer) {
+            console.warn('Teleport spiral container not found in DOM');
+            return;
+        }
+        
+        // Reset any previous state
+        spiralContainer.classList.remove('extreme-spiral');
+        spiralContainer.style.animation = '';
+        
+        // Show the container
+        spiralContainer.style.display = 'block';
+        
+        // Enhanced effect for extreme distances
+        if (isExtremeDistance) {
+            spiralContainer.classList.add('extreme-spiral');
+        }
+        
+        // Hide spiral effect after duration
+        setTimeout(() => {
+            // Add fade out animation
+            spiralContainer.style.animation = 'spiralFadeOut 0.8s ease-in forwards';
+            
+            setTimeout(() => {
+                // Hide the container
+                spiralContainer.style.display = 'none';
+                // Reset animation for next use
+                spiralContainer.style.animation = '';
+                // Remove extreme class for next use
+                spiralContainer.classList.remove('extreme-spiral');
+            }, 800);
+        }, this.effectDuration - 800);
     }
 }

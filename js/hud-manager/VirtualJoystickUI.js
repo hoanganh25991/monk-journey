@@ -57,71 +57,38 @@ export class VirtualJoystickUI extends UIComponent {
         this.joystickBase = document.getElementById('virtual-joystick-base');
         this.joystickHandle = document.getElementById('virtual-joystick-handle');
         
-        // Create a full-screen overlay for joystick input that only responds to the left half of the screen
-        this.createJoystickOverlay();
-        
-        // Set up touch event listeners
+        // Set up touch event listeners directly on the joystick
         this.setupJoystickEvents();
         
         return true;
     }
     
-    /**
-     * Create a full-screen overlay for joystick input
-     * This overlay will only respond to touch events on the left half of the screen
-     */
-    createJoystickOverlay() {
-        // Create overlay element if it doesn't exist
-        if (!document.getElementById('joystick-overlay')) {
-            this.joystickOverlay = document.createElement('div');
-            this.joystickOverlay.id = 'joystick-overlay';
-            this.joystickOverlay.style.position = 'fixed';
-            this.joystickOverlay.style.top = '0';
-            this.joystickOverlay.style.left = '0';
-            this.joystickOverlay.style.width = '50%'; // Only cover the left half of the screen
-            this.joystickOverlay.style.height = '100%';
-            this.joystickOverlay.style.zIndex = '150'; // Higher z-index to be above skill buttons but below modals
-            this.joystickOverlay.style.pointerEvents = 'auto';
-            this.joystickOverlay.style.touchAction = 'none';
-            this.joystickOverlay.style.background = 'transparent'; // Make it invisible
-            
-            // Add to document body
-            document.body.appendChild(this.joystickOverlay);
-        } else {
-            this.joystickOverlay = document.getElementById('joystick-overlay');
-        }
-    }
+
     
     /**
      * Set up joystick event listeners
      */
     setupJoystickEvents() {
-        // Use the overlay for touch events instead of the joystick container
-        // This allows the joystick to respond to touches anywhere on the left half of the screen
-        
-        // Touch start event on overlay
-        this.joystickOverlay.addEventListener('touchstart', (event) => {
+        // Touch start event directly on joystick container
+        this.container.addEventListener('touchstart', (event) => {
             event.preventDefault();
             event.stopPropagation();
             
             // Only respond if joystick is not already active
             if (!this.joystickState.active) {
                 const touch = event.touches[0];
-                // Only respond to touches on the left half of the screen
-                if (this.isOnLeftHalfOfScreen(touch.clientX)) {
-                    this.joystickState.touchId = touch.identifier;
-                    this.handleJoystickStart(touch.clientX, touch.clientY);
-                }
+                this.joystickState.touchId = touch.identifier;
+                this.handleJoystickStart(touch.clientX, touch.clientY);
             }
         });
         
-        // Mouse down event on overlay (for testing on desktop)
-        this.joystickOverlay.addEventListener('mousedown', (event) => {
+        // Mouse down event directly on joystick container (for testing on desktop)
+        this.container.addEventListener('mousedown', (event) => {
             event.preventDefault();
             event.stopPropagation();
             
-            // Only respond if joystick is not already active and click is on left half
-            if (!this.joystickState.active && this.isOnLeftHalfOfScreen(event.clientX)) {
+            // Only respond if joystick is not already active
+            if (!this.joystickState.active) {
                 this.handleJoystickStart(event.clientX, event.clientY);
                 
                 // Add global mouse move and up events
@@ -130,7 +97,7 @@ export class VirtualJoystickUI extends UIComponent {
             }
         });
         
-        // Touch move event on document (to ensure smooth movement even when finger moves outside overlay)
+        // Touch move event on document (to ensure smooth movement even when finger moves outside joystick)
         document.addEventListener('touchmove', (event) => {
             if (this.joystickState.active && this.joystickState.touchId !== null) {
                 // Find the touch that corresponds to our joystick
@@ -191,14 +158,7 @@ export class VirtualJoystickUI extends UIComponent {
         };
     }
     
-    /**
-     * Check if a position is on the left half of the screen
-     * @param {number} clientX - X position to check
-     * @returns {boolean} - True if position is on left half of screen
-     */
-    isOnLeftHalfOfScreen(clientX) {
-        return clientX < window.innerWidth / 2;
-    }
+
     
     /**
      * Handle joystick start event
@@ -288,15 +248,10 @@ export class VirtualJoystickUI extends UIComponent {
      * Override from UIComponent
      */
     removeEventListeners() {
-        // Remove overlay event listeners
-        if (this.joystickOverlay) {
-            this.joystickOverlay.removeEventListener('touchstart', this.handleTouchStart);
-            this.joystickOverlay.removeEventListener('mousedown', this.handleMouseDown);
-            
-            // Remove overlay from DOM
-            if (this.joystickOverlay.parentNode) {
-                this.joystickOverlay.parentNode.removeChild(this.joystickOverlay);
-            }
+        // Remove container event listeners
+        if (this.container) {
+            this.container.removeEventListener('touchstart', this.handleTouchStart);
+            this.container.removeEventListener('mousedown', this.handleMouseDown);
         }
         
         // Remove document event listeners
