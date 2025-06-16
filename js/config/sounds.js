@@ -687,6 +687,81 @@ export const ENEMY_SOUNDS = {
     }
 };
 
+// Effect sounds (for status effects)
+export const EFFECT_SOUNDS = {
+    effect_defenseBoost: {
+        id: 'effect_defenseBoost',
+        file: 'effect_defense_boost.mp3',
+        volume: 0.7,
+        simulated: {
+            frequency: 320,
+            duration: 0.4,
+            type: 'sine',
+            decay: false,
+            reverb: true,
+            arpeggio: [1, 1.25, 1.5],
+            filter: 'lowpass'
+        }
+    },
+    effect_speedBoost: {
+        id: 'effect_speedBoost',
+        file: 'effect_speed_boost.mp3',
+        volume: 0.7,
+        simulated: {
+            frequency: 450,
+            duration: 0.3,
+            type: 'sine',
+            decay: false,
+            vibrato: 8,
+            arpeggio: [1, 1.5, 2],
+            filter: 'highpass'
+        }
+    },
+    effect_damageBoost: {
+        id: 'effect_damageBoost',
+        file: 'effect_damage_boost.mp3',
+        volume: 0.8,
+        simulated: {
+            frequency: 380,
+            duration: 0.4,
+            type: 'square',
+            decay: false,
+            attack: 0.01,
+            arpeggio: [1, 1.3, 1.6],
+            filter: 'bandpass'
+        }
+    },
+    effect_regeneration: {
+        id: 'effect_regeneration',
+        file: 'effect_regeneration.mp3',
+        volume: 0.6,
+        simulated: {
+            frequency: 280,
+            duration: 0.5,
+            type: 'sine',
+            decay: false,
+            reverb: true,
+            arpeggio: [1, 1.2, 1.4, 1.2],
+            filter: 'lowpass'
+        }
+    },
+    effect_invulnerability: {
+        id: 'effect_invulnerability',
+        file: 'effect_invulnerability.mp3',
+        volume: 0.8,
+        simulated: {
+            frequency: 520,
+            duration: 0.6,
+            type: 'triangle',
+            decay: false,
+            reverb: true,
+            vibrato: 12,
+            arpeggio: [1, 1.5, 2, 1.5],
+            filter: 'highpass'
+        }
+    }
+};
+
 // UI sounds
 export const UI_SOUNDS = {
     buttonClick: {
@@ -825,6 +900,10 @@ export const ALL_SOUNDS = {
         return acc;
     }, {}),
     ...Object.values(ENEMY_SOUNDS).reduce((acc, sound) => {
+        acc[sound.id] = sound;
+        return acc;
+    }, {}),
+    ...Object.values(EFFECT_SOUNDS).reduce((acc, sound) => {
         acc[sound.id] = sound;
         return acc;
     }, {}),

@@ -10,6 +10,7 @@ const {
     PLAYER_SOUNDS, 
     SKILL_SOUNDS, 
     ENEMY_SOUNDS, 
+    EFFECT_SOUNDS,
     UI_SOUNDS, 
     ENVIRONMENT_SOUNDS, 
     MUSIC 
@@ -42,6 +43,7 @@ function buildSoundDefinitions() {
     processCategory(PLAYER_SOUNDS);
     processCategory(SKILL_SOUNDS);
     processCategory(ENEMY_SOUNDS);
+    processCategory(EFFECT_SOUNDS);
     processCategory(UI_SOUNDS);
     processCategory(ENVIRONMENT_SOUNDS);
     processCategory(MUSIC);
