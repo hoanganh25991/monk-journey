@@ -16,7 +16,7 @@ import { GameState } from './GameState.js';
 import { GameEvents } from './GameEvents.js';
 import { SceneOptimizer } from './SceneOptimizer.js';
 import { LoadingManager } from './LoadingManager.js';
-import { RENDER_CONFIG } from '../config/render.js';
+import { RENDER_CONFIG, MATERIAL_QUALITY_LEVELS } from '../config/render.js';
 import { MenuManager } from '../menu-system/MenuManager.js';
 import { InteractionSystem } from '../interaction/InteractionSystem.js';
 import { MultiplayerManager } from '../multiplayer/MultiplayerManager.js';
@@ -93,7 +93,7 @@ export class Game {
             console.debug(`Game initialized with difficulty: ${this.difficulty}`);
             
             // Load material quality setting (support 4 levels: high, medium, low, minimal)
-            const materialQuality = await storageService.loadData(STORAGE_KEYS.MATERIAL_QUALITY);
+            const materialQuality = await storageService.loadData(STORAGE_KEYS.QUALITY_LEVEL);
             const validQualityLevels = ['high', 'medium', 'low', 'minimal'];
             this.materialQuality = validQualityLevels.includes(materialQuality) ? materialQuality : 'high';
             console.debug(`Game initialized with material quality: ${this.materialQuality}`);
@@ -201,7 +201,7 @@ export class Game {
             
             // Initialize renderer with quality settings from storage
             // Use stored quality level or 'high' as default
-            const qualityLevel = localStorage.getItem('monk_journey_quality_level') || 'high';
+            const qualityLevel = await storageService.loadData(STORAGE_KEYS.QUALITY_LEVEL) || 'high';
             this.renderer = this.createRenderer(qualityLevel);
             
             this.updateLoadingProgress(10, 'Creating game world...', 'Setting up scene');
@@ -956,6 +956,32 @@ export class Game {
                 renderer.outputColorSpace = THREE.SRGBColorSpace;
         }
         
+        // Apply special 8-bit mode settings for minimal quality
+        if (qualityLevel === 'minimal' && settings.pixelatedMode) {
+            console.debug('Applying 8-bit retro mode settings');
+            
+            // Enable dithering for retro look
+            renderer.dithering = true;
+            
+            // Apply pixelated rendering by setting a very low pixel ratio
+            // This is already done above with setPixelRatio
+            
+            // Apply post-processing for 8-bit look if available
+            if (this.composer && this.effectComposer) {
+                console.debug('Setting up 8-bit post-processing effects');
+                // This would be implemented if you have a post-processing system
+            }
+            
+            // Apply additional optimizations for low-end devices
+            renderer.sortObjects = false; // Disable object sorting for performance
+        }
+        
+        // Apply optimized rendering for low quality
+        if (qualityLevel === 'low' && settings.optimizedRendering) {
+            console.debug('Applying optimized rendering for low-end devices');
+            renderer.sortObjects = false; // Disable object sorting for performance
+        }
+        
         console.debug(`Applied ${qualityLevel} renderer settings`);
     }
     
@@ -980,6 +1006,16 @@ export class Game {
         
         // Apply to existing scene objects
         this.applyInitialMaterialQuality(quality);
+        
+        // Apply scene-wide optimizations based on quality level
+        if (this.scene) {
+            // Import SceneOptimizer dynamically to avoid circular dependencies
+            import('./SceneOptimizer.js').then(({ SceneOptimizer }) => {
+                // Apply optimizations with the current quality level
+                SceneOptimizer.optimizeScene(this.scene, quality);
+                console.debug(`Applied scene-wide optimizations for ${quality} quality level`);
+            });
+        }
         
         // Update LOD settings if LOD manager exists
         if (this.world && this.world.lodManager) {
@@ -1152,9 +1188,46 @@ export class Game {
         lambertMaterial.opacity = originalMaterial.opacity;
         lambertMaterial.side = originalMaterial.side;
         
-        // Copy supported texture maps
-        if (originalMaterial.map) lambertMaterial.map = originalMaterial.map;
-        if (originalMaterial.emissiveMap) lambertMaterial.emissiveMap = originalMaterial.emissiveMap;
+        // Copy and optimize supported texture maps
+        if (originalMaterial.map) {
+            // Store original texture for potential restoration
+            const originalTexture = originalMaterial.map;
+            
+            // Check if we need to create a downscaled version of the texture
+            if (!originalTexture.userData || !originalTexture.userData.isDownscaled) {
+                // Get the texture quality level from config
+                const textureQuality = MATERIAL_QUALITY_LEVELS.low.textureQuality;
+                
+                // Only downscale if quality is below threshold
+                if (textureQuality < 0.5) {
+                    // Create a downscaled texture for low quality
+                    const downscaledTexture = this.createDownscaledTexture(originalTexture, textureQuality);
+                    
+                    // Use the downscaled texture
+                    lambertMaterial.map = downscaledTexture;
+                    
+                    // Store reference to original texture for potential restoration
+                    lambertMaterial.userData.originalTexture = originalTexture;
+                } else {
+                    // Use original texture but optimize settings
+                    lambertMaterial.map = originalTexture;
+                    
+                    // Optimize texture settings
+                    originalTexture.anisotropy = 1;
+                    originalTexture.minFilter = THREE.LinearFilter;
+                }
+            } else {
+                // Use the already downscaled texture
+                lambertMaterial.map = originalTexture;
+            }
+        }
+        
+        // Handle emissive map with less optimization (it's usually smaller)
+        if (originalMaterial.emissiveMap) {
+            lambertMaterial.emissiveMap = originalMaterial.emissiveMap;
+            // Just optimize settings
+            originalMaterial.emissiveMap.anisotropy = 1;
+        }
         
         // Copy colors
         if (originalMaterial.color) {
@@ -1166,6 +1239,9 @@ export class Game {
         if (originalMaterial.emissive) {
             lambertMaterial.emissive.copy(originalMaterial.emissive);
         }
+        
+        // Disable expensive material features
+        lambertMaterial.flatShading = true;
         
         // Copy relevant userData
         lambertMaterial.userData = { 
@@ -1195,9 +1271,36 @@ export class Game {
         basicMaterial.opacity = originalMaterial.opacity;
         basicMaterial.side = originalMaterial.side;
         
-        // Copy texture maps (basic material only supports diffuse map)
+        // Copy texture maps (basic material only supports diffuse map) with optimization
         if (originalMaterial.map) {
-            basicMaterial.map = originalMaterial.map;
+            // Store original texture for potential restoration
+            const originalTexture = originalMaterial.map;
+            
+            // Check if we need to create a downscaled version of the texture
+            if (!originalTexture.userData || !originalTexture.userData.isDownscaled) {
+                // Get the texture quality level from config
+                const textureQuality = MATERIAL_QUALITY_LEVELS.minimal.textureQuality;
+                
+                // Create a downscaled texture for minimal quality
+                const downscaledTexture = this.createDownscaledTexture(originalTexture, textureQuality);
+                
+                // Use the downscaled texture
+                basicMaterial.map = downscaledTexture;
+                
+                // Store reference to original texture for potential restoration
+                basicMaterial.userData.originalTexture = originalTexture;
+            } else {
+                // Use the already downscaled texture
+                basicMaterial.map = originalTexture;
+            }
+            
+            // Disable mipmaps and set minimal filtering for maximum performance
+            if (basicMaterial.map) {
+                basicMaterial.map.generateMipmaps = false;
+                basicMaterial.map.minFilter = THREE.NearestFilter;
+                basicMaterial.map.magFilter = THREE.NearestFilter;
+                basicMaterial.map.anisotropy = 1;
+            }
         }
         
         // Handle color properly - MeshBasicMaterial shows colors as-is without lighting
@@ -1215,6 +1318,9 @@ export class Game {
             basicMaterial.color.set(0xcccccc); // Light gray - brighter than before
         }
         
+        // Disable expensive material features
+        basicMaterial.flatShading = true;
+        
         // Copy relevant userData
         basicMaterial.userData = { 
             ...originalMaterial.userData,
@@ -1223,6 +1329,68 @@ export class Game {
         };
         
         return basicMaterial;
+    }
+    
+    /**
+     * Create a downscaled version of a texture for better performance
+     * @param {THREE.Texture} originalTexture - The original texture
+     * @param {number} qualityFactor - Quality factor between 0 and 1
+     * @returns {THREE.Texture} - The downscaled texture
+     * @private
+     */
+    createDownscaledTexture(originalTexture, qualityFactor = 0.5) {
+        // Skip if already downscaled or no image
+        if (
+            (originalTexture.userData && originalTexture.userData.isDownscaled) || 
+            !originalTexture.image
+        ) {
+            return originalTexture;
+        }
+        
+        // Get original image
+        const originalImage = originalTexture.image;
+        
+        // Calculate new dimensions (ensure minimum size of 16x16)
+        const newWidth = Math.max(16, Math.floor(originalImage.width * qualityFactor));
+        const newHeight = Math.max(16, Math.floor(originalImage.height * qualityFactor));
+        
+        // Create a canvas to downscale the texture
+        const canvas = document.createElement('canvas');
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        // Draw the original image to the canvas with downscaling
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(originalImage, 0, 0, newWidth, newHeight);
+        
+        // Create a new texture from the downscaled canvas
+        const downscaledTexture = new THREE.Texture(canvas);
+        
+        // Copy essential properties from original texture
+        downscaledTexture.wrapS = originalTexture.wrapS;
+        downscaledTexture.wrapT = originalTexture.wrapT;
+        downscaledTexture.repeat = originalTexture.repeat.clone();
+        downscaledTexture.offset = originalTexture.offset.clone();
+        downscaledTexture.center = originalTexture.center.clone();
+        downscaledTexture.rotation = originalTexture.rotation;
+        
+        // Set performance-optimized settings
+        downscaledTexture.generateMipmaps = false;
+        downscaledTexture.minFilter = THREE.NearestFilter;
+        downscaledTexture.magFilter = THREE.NearestFilter;
+        downscaledTexture.anisotropy = 1;
+        
+        // Mark as downscaled to prevent re-processing
+        downscaledTexture.userData = {
+            isDownscaled: true,
+            originalTextureUuid: originalTexture.uuid,
+            qualityFactor: qualityFactor
+        };
+        
+        // Update texture
+        downscaledTexture.needsUpdate = true;
+        
+        return downscaledTexture;
     }
     
     /**

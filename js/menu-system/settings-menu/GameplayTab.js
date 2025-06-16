@@ -87,7 +87,7 @@ export class GameplayTab extends SettingsTab {
             if (this.cameraZoomValue) {
                 this.cameraZoomValue.textContent = zoomValue;
             }
-        } else if (key === STORAGE_KEYS.MATERIAL_QUALITY && this.materialQualitySelect) {
+        } else if (key === STORAGE_KEYS.QUALITY_LEVEL && this.materialQualitySelect) {
             this.materialQualitySelect.value = newValue || 'high';
         }
     }
@@ -279,8 +279,8 @@ export class GameplayTab extends SettingsTab {
             const materialQualityOptions = [
                 { value: 'high', name: 'High Quality (PBR Materials)' },
                 { value: 'medium', name: 'Medium Quality (Phong Materials)' },
-                { value: 'low', name: 'Low Quality (Lambert Materials)' },
-                { value: 'minimal', name: 'Minimal Quality (Basic Materials)' }
+                { value: 'low', name: 'Low Quality (Optimized for Low-End Devices)' },
+                { value: 'minimal', name: '8-Bit Retro Mode (Pixelated Graphics)' }
             ];
             
             // Add material quality options
@@ -292,7 +292,7 @@ export class GameplayTab extends SettingsTab {
             }
             
             // Set current material quality (default to 'high')
-            const currentMaterialQuality = this.loadSettingSync(STORAGE_KEYS.MATERIAL_QUALITY, 'high');
+            const currentMaterialQuality = this.loadSettingSync(STORAGE_KEYS.QUALITY_LEVEL, 'high');
             
             console.debug(`Loading material quality setting: ${currentMaterialQuality}`);
             this.materialQualitySelect.value = currentMaterialQuality;
@@ -301,20 +301,14 @@ export class GameplayTab extends SettingsTab {
             if (!this.materialQualitySelect.value) {
                 console.debug('Invalid material quality setting detected, defaulting to high');
                 this.materialQualitySelect.value = 'high';
-                this.saveSetting(STORAGE_KEYS.MATERIAL_QUALITY, 'high');
+                this.saveSetting(STORAGE_KEYS.QUALITY_LEVEL, 'high');
             }
             
             // Add change event listener
             this.materialQualitySelect.addEventListener('change', () => {
                 const selectedQuality = this.materialQualitySelect.value;
                 // Store the value using storage service
-                this.saveSetting(STORAGE_KEYS.MATERIAL_QUALITY, selectedQuality);
-                
-                // Show notification that the game will reload to apply changes
-                if (this.game && this.game.hudManager) {
-                    this.game.hudManager.showNotification(`Applying material quality: ${selectedQuality}. Game will reload...`);
-                }
-                
+                this.saveSetting(STORAGE_KEYS.QUALITY_LEVEL, selectedQuality);
                 // Close the settings menu if it exists
                 if (this.settingsMenu) {
                     this.settingsMenu.hide();

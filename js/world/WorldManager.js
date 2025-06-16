@@ -8,6 +8,7 @@ import { LightingManager } from './lighting/LightingManager.js';
 import { FogManager } from './environment/FogManager.js';
 import { TeleportManager } from './teleport/TeleportManager.js';
 import { LODManager } from './LODManager.js';
+import { ENVIRONMENT_OBJECTS, THEME_SPECIFIC_OBJECTS, CROSS_THEME_FEATURES } from '../config/environment.js';
 
 
 /**
@@ -76,7 +77,7 @@ export class WorldManager {
         };
         
         this.environmentDensity = this.densityLevels.medium; // Default to medium density
-        this.worldScale = 5.0; // Scale factor to make objects appear 5x farther apart
+        this.worldScale = 1.0; // Scale factor to make objects appear 5x farther apart
         
         // Procedural generation settings
         this.generatedChunks = new Set(); // Track which chunks have been generated
@@ -87,36 +88,92 @@ export class WorldManager {
         // Flag to track initial terrain creation
         this.initialTerrainCreated = false;
         
-        // Generation densities per zone type - significantly increased for more objects
+        // Generation densities per zone type - using environment configuration constants
         this.zoneDensities = {
             'Forest': { 
                 environment: 2.5, // Increased density
                 structures: 0.4, // Increased structure probability
-                environmentTypes: ['tree', 'bush', 'flower', 'tall_grass', 'fern', 'berry_bush', 'ancient_tree', 'mushroom', 'fallen_log', 'tree_cluster', 'forest_flower', 'forest_debris', 'small_mushroom'],
+                environmentTypes: [
+                    ENVIRONMENT_OBJECTS.TREE,
+                    ENVIRONMENT_OBJECTS.BUSH,
+                    ENVIRONMENT_OBJECTS.FLOWER,
+                    ENVIRONMENT_OBJECTS.TALL_GRASS,
+                    ENVIRONMENT_OBJECTS.FERN,
+                    ENVIRONMENT_OBJECTS.BERRY_BUSH,
+                    ENVIRONMENT_OBJECTS.ANCIENT_TREE,
+                    ENVIRONMENT_OBJECTS.MUSHROOM,
+                    ENVIRONMENT_OBJECTS.FALLEN_LOG,
+                    ENVIRONMENT_OBJECTS.TREE_CLUSTER,
+                    ENVIRONMENT_OBJECTS.FOREST_FLOWER,
+                    ENVIRONMENT_OBJECTS.FOREST_DEBRIS,
+                    ENVIRONMENT_OBJECTS.SMALL_MUSHROOM
+                ],
                 structureTypes: ['ruins', 'village', 'house', 'tower', 'temple', 'altar']
             },
             'Desert': { 
                 environment: 1.8, // Increased density
                 structures: 0.35, // Increased structure probability
-                environmentTypes: ['desert_plant', 'cactus', 'oasis', 'sand_dune', 'desert_shrine', 'ash_pile', 'rock', 'rock_formation', 'small_peak'],
+                environmentTypes: [
+                    ENVIRONMENT_OBJECTS.DESERT_PLANT,
+                    ENVIRONMENT_OBJECTS.OASIS,
+                    ENVIRONMENT_OBJECTS.DESERT_SHRINE,
+                    ENVIRONMENT_OBJECTS.ASH_PILE,
+                    ENVIRONMENT_OBJECTS.ROCK,
+                    ENVIRONMENT_OBJECTS.ROCK_FORMATION,
+                    ENVIRONMENT_OBJECTS.SMALL_PEAK,
+                    ENVIRONMENT_OBJECTS.LAVA_ROCK,
+                    ENVIRONMENT_OBJECTS.OBSIDIAN
+                ],
                 structureTypes: ['ruins', 'temple', 'altar', 'house', 'tower']
             },
             'Mountain': { 
                 environment: 2.0, // Increased density
                 structures: 0.3, // Increased structure probability
-                environmentTypes: ['pine_tree', 'mountain_rock', 'ice_shard', 'alpine_flower', 'small_peak', 'snow_patch', 'rock', 'rock_formation', 'tree'],
+                environmentTypes: [
+                    ENVIRONMENT_OBJECTS.PINE_TREE,
+                    ENVIRONMENT_OBJECTS.MOUNTAIN_ROCK,
+                    ENVIRONMENT_OBJECTS.ICE_SHARD,
+                    ENVIRONMENT_OBJECTS.ALPINE_FLOWER,
+                    ENVIRONMENT_OBJECTS.SMALL_PEAK,
+                    ENVIRONMENT_OBJECTS.SNOW_PATCH,
+                    ENVIRONMENT_OBJECTS.ROCK,
+                    ENVIRONMENT_OBJECTS.ROCK_FORMATION,
+                    ENVIRONMENT_OBJECTS.TREE
+                ],
                 structureTypes: ['ruins', 'fortress', 'tower', 'mountain', 'house', 'altar']
             },
             'Swamp': { 
                 environment: 3.0, // Increased density
                 structures: 0.4, // Increased structure probability
-                environmentTypes: ['swamp_tree', 'lily_pad', 'swamp_plant', 'glowing_mushroom', 'moss', 'swamp_debris', 'tree', 'bush', 'fallen_log', 'mushroom'],
+                environmentTypes: [
+                    ENVIRONMENT_OBJECTS.SWAMP_TREE,
+                    ENVIRONMENT_OBJECTS.LILY_PAD,
+                    ENVIRONMENT_OBJECTS.SWAMP_PLANT,
+                    ENVIRONMENT_OBJECTS.GLOWING_MUSHROOM,
+                    ENVIRONMENT_OBJECTS.MOSS,
+                    ENVIRONMENT_OBJECTS.SWAMP_DEBRIS,
+                    ENVIRONMENT_OBJECTS.TREE,
+                    ENVIRONMENT_OBJECTS.BUSH,
+                    ENVIRONMENT_OBJECTS.FALLEN_LOG,
+                    ENVIRONMENT_OBJECTS.MUSHROOM
+                ],
                 structureTypes: ['ruins', 'dark_sanctum', 'altar', 'house', 'tower']
             },
             'Magical': { 
                 environment: 2.5, // Increased density
                 structures: 0.45, // Increased structure probability
-                environmentTypes: ['glowing_flowers', 'crystal_formation', 'fairy_circle', 'magical_stone', 'ancient_artifact', 'mysterious_portal', 'ancient_tree', 'glowing_mushroom', 'crystal_formation'],
+                environmentTypes: [
+                    ENVIRONMENT_OBJECTS.GLOWING_FLOWERS,
+                    ENVIRONMENT_OBJECTS.CRYSTAL_FORMATION,
+                    ENVIRONMENT_OBJECTS.FAIRY_CIRCLE,
+                    ENVIRONMENT_OBJECTS.MAGICAL_STONE,
+                    ENVIRONMENT_OBJECTS.ANCIENT_ARTIFACT,
+                    ENVIRONMENT_OBJECTS.MYSTERIOUS_PORTAL,
+                    ENVIRONMENT_OBJECTS.ANCIENT_TREE,
+                    ENVIRONMENT_OBJECTS.GLOWING_MUSHROOM,
+                    ENVIRONMENT_OBJECTS.RUNE_STONE,
+                    ENVIRONMENT_OBJECTS.MAGIC_CIRCLE
+                ],
                 structureTypes: ['ruins', 'temple', 'altar', 'tower', 'dark_sanctum']
             }
         };
@@ -260,11 +317,6 @@ export class WorldManager {
      * @param {number} chunkZ - Chunk Z coordinate
      */
     generateChunkContent(chunkX, chunkZ) {
-        // Try dynamic generation if available and enabled
-        if (this.dynamicEnvironmentGenerator && this.dynamicStructureGenerator) {
-            return this.generateDynamicChunkContent(chunkX, chunkZ);
-        }
-        
         // Otherwise use legacy chunk generation
         return this.generateLegacyChunkContent(chunkX, chunkZ);
     }
@@ -297,6 +349,9 @@ export class WorldManager {
             const objectsPerCluster = Math.floor(cappedObjectCount / clusterCount);
             const remainingObjects = cappedObjectCount - (clusterCount * objectsPerCluster);
             
+            // Get theme-specific objects for this zone type
+            const themeObjects = this.getThemeSpecificObjects(zoneType);
+            
             // Generate clusters
             for (let c = 0; c < clusterCount; c++) {
                 // Random cluster center within chunk
@@ -305,6 +360,15 @@ export class WorldManager {
                 
                 // Random cluster radius
                 const clusterRadius = 3 + Math.random() * 7;
+                
+                // Select a primary object type for this cluster that can form clusters
+                const clusterableObjects = themeObjects.filter(obj => obj.canCluster);
+                let primaryClusterObject = null;
+                
+                if (clusterableObjects.length > 0) {
+                    // Select a random clusterable object based on weight
+                    primaryClusterObject = this.selectWeightedObject(clusterableObjects);
+                }
                 
                 // Generate objects in this cluster
                 for (let i = 0; i < objectsPerCluster; i++) {
@@ -321,8 +385,9 @@ export class WorldManager {
                     // Make sure position is within scaled chunk bounds
                     if (x >= worldX * this.worldScale && x < (worldX + chunkSize) * this.worldScale && 
                         z >= worldZ * this.worldScale && z < (worldZ + chunkSize) * this.worldScale) {
-                        // Random object type from zone types - weighted to create more natural groupings
+                        
                         let objectType;
+                        let scale;
                         
                         // Make sure we have valid environment types
                         if (!zoneDensity.environmentTypes || zoneDensity.environmentTypes.length === 0) {
@@ -330,21 +395,20 @@ export class WorldManager {
                             continue;
                         }
                         
-                        // 70% chance to use the same object type for the cluster
-                        if (c % 3 === 0 && i > 0) {
-                            // Use a consistent object type for this cluster
-                            objectType = zoneDensity.environmentTypes[
-                                c % zoneDensity.environmentTypes.length
-                            ];
+                        // 70% chance to use the primary cluster object type if available
+                        if (primaryClusterObject && Math.random() < 0.7) {
+                            objectType = primaryClusterObject.type;
+                            // Use the min/max size defined for this object type
+                            scale = primaryClusterObject.minSize + 
+                                Math.random() * (primaryClusterObject.maxSize - primaryClusterObject.minSize);
                         } else {
-                            // Random object type
-                            objectType = zoneDensity.environmentTypes[
-                                Math.floor(Math.random() * zoneDensity.environmentTypes.length)
-                            ];
+                            // Select a weighted object from the theme
+                            const selectedObject = this.selectWeightedObject(themeObjects);
+                            objectType = selectedObject.type;
+                            // Use the min/max size defined for this object type
+                            scale = selectedObject.minSize + 
+                                Math.random() * (selectedObject.maxSize - selectedObject.minSize);
                         }
-                        
-                        // Random scale with less variation for better performance
-                        const scale = 0.5 + Math.random() * 1.0; // Reduced from 0.3-2.3 to 0.5-1.5
                         
                         // Create the object
                         const object = this.environmentManager.createEnvironmentObject(objectType, x, z, scale);
@@ -393,19 +457,13 @@ export class WorldManager {
                     const x = cellX + padding + Math.random() * (cellSize - 2 * padding);
                     const z = cellZ + padding + Math.random() * (cellSize - 2 * padding);
                     
-                    // Make sure we have valid environment types
-                    if (!zoneDensity.environmentTypes || zoneDensity.environmentTypes.length === 0) {
-                        console.warn(`No environment types defined for zone ${zoneType}`);
-                        continue;
-                    }
+                    // Select a weighted object from the theme
+                    const selectedObject = this.selectWeightedObject(themeObjects);
+                    const objectType = selectedObject.type;
                     
-                    // Random object type from zone types
-                    const objectType = zoneDensity.environmentTypes[
-                        Math.floor(Math.random() * zoneDensity.environmentTypes.length)
-                    ];
-                    
-                    // Random scale with less variation
-                    const scale = 0.5 + Math.random() * 1.0; // Reduced from 0.3-2.3 to 0.5-1.5
+                    // Use the min/max size defined for this object type
+                    const scale = selectedObject.minSize + 
+                        Math.random() * (selectedObject.maxSize - selectedObject.minSize);
                     
                     // Create the object
                     const object = this.environmentManager.createEnvironmentObject(objectType, x, z, scale);
@@ -428,8 +486,152 @@ export class WorldManager {
                     }
                 }
             }
+            
+            // Small chance to add special cross-theme features
+            if (Math.random() < 0.05) {
+                this.addSpecialFeature(worldX, worldZ, chunkSize, zoneType);
+            }
         } catch (error) {
             console.error(`Error generating environment objects for chunk ${chunkX},${chunkZ}:`, error);
+        }
+    }
+    
+    /**
+     * Get theme-specific objects for a zone type
+     * @param {string} zoneType - Zone type
+     * @returns {Array} - Array of theme-specific objects with their properties
+     */
+    getThemeSpecificObjects(zoneType) {
+        // Start with common objects that appear in all themes
+        let objects = [...THEME_SPECIFIC_OBJECTS.COMMON];
+        
+        // Add theme-specific objects
+        switch(zoneType) {
+            case 'Forest':
+                objects = objects.concat(THEME_SPECIFIC_OBJECTS.FOREST);
+                break;
+            case 'Desert':
+                objects = objects.concat(THEME_SPECIFIC_OBJECTS.DESERT);
+                break;
+            case 'Mountain':
+                objects = objects.concat(THEME_SPECIFIC_OBJECTS.MOUNTAINS);
+                break;
+            case 'Swamp':
+                objects = objects.concat(THEME_SPECIFIC_OBJECTS.SWAMP);
+                break;
+            case 'Magical':
+                // For magical zones, add some objects from all themes plus ruins
+                objects = objects.concat(
+                    THEME_SPECIFIC_OBJECTS.FOREST.filter(obj => obj.canGlow),
+                    THEME_SPECIFIC_OBJECTS.SWAMP.filter(obj => obj.canGlow),
+                    THEME_SPECIFIC_OBJECTS.RUINS
+                );
+                break;
+            default:
+                // Default to forest if unknown zone type
+                objects = objects.concat(THEME_SPECIFIC_OBJECTS.FOREST);
+        }
+        
+        return objects;
+    }
+    
+    /**
+     * Select an object from an array based on weight
+     * @param {Array} objects - Array of objects with weight property
+     * @returns {Object} - Selected object
+     */
+    selectWeightedObject(objects) {
+        if (!objects || objects.length === 0) {
+            return null;
+        }
+        
+        // Calculate total weight
+        const totalWeight = objects.reduce((sum, obj) => sum + (obj.weight || 1), 0);
+        
+        // Generate random value between 0 and total weight
+        let random = Math.random() * totalWeight;
+        
+        // Find the object that corresponds to the random value
+        for (const obj of objects) {
+            random -= (obj.weight || 1);
+            if (random <= 0) {
+                return obj;
+            }
+        }
+        
+        // Fallback to first object if something goes wrong
+        return objects[0];
+    }
+    
+    /**
+     * Add a special feature to the chunk
+     * @param {number} worldX - World X coordinate
+     * @param {number} worldZ - World Z coordinate
+     * @param {number} chunkSize - Size of the chunk
+     * @param {string} zoneType - Zone type
+     */
+    addSpecialFeature(worldX, worldZ, chunkSize, zoneType) {
+        // Get special features for this zone type
+        let features = [];
+        
+        switch(zoneType) {
+            case 'Forest':
+                features = CROSS_THEME_FEATURES.FOREST;
+                break;
+            case 'Desert':
+                features = CROSS_THEME_FEATURES.DESERT;
+                break;
+            case 'Mountain':
+                features = CROSS_THEME_FEATURES.MOUNTAINS;
+                break;
+            case 'Swamp':
+                features = CROSS_THEME_FEATURES.SWAMP;
+                break;
+            case 'Magical':
+                // For magical zones, combine features from all themes
+                features = [
+                    ...CROSS_THEME_FEATURES.FOREST,
+                    ...CROSS_THEME_FEATURES.RUINS
+                ];
+                break;
+            default:
+                features = CROSS_THEME_FEATURES.FOREST;
+        }
+        
+        if (features.length === 0) {
+            return;
+        }
+        
+        // Select a random feature
+        const featureType = features[Math.floor(Math.random() * features.length)];
+        
+        // Position near the center of the chunk
+        const x = (worldX + chunkSize * 0.5 + (Math.random() * 0.4 - 0.2) * chunkSize) * this.worldScale;
+        const z = (worldZ + chunkSize * 0.5 + (Math.random() * 0.4 - 0.2) * chunkSize) * this.worldScale;
+        
+        // Larger scale for special features
+        const scale = 1.0 + Math.random() * 1.5;
+        
+        // Create the special feature
+        const object = this.environmentManager.createEnvironmentObject(featureType, x, z, scale);
+        
+        if (object && object.rotation) {
+            // Add random rotation
+            object.rotation.y = Math.random() * Math.PI * 2;
+            
+            // Add to environment objects tracking
+            this.environmentManager.environmentObjects.push({
+                type: featureType,
+                object: object,
+                position: new THREE.Vector3(x, this.terrainManager.getTerrainHeight(x, z), z),
+                scale: scale,
+                isSpecialFeature: true
+            });
+            
+            // Add to type-specific collections
+            this.environmentManager.addToTypeCollection(featureType, object);
+            
+            console.debug(`Added special feature ${featureType} at (${x.toFixed(1)}, ${z.toFixed(1)})`);
         }
     }
     
@@ -446,170 +648,347 @@ export class WorldManager {
             const worldX = chunkX * chunkSize;
             const worldZ = chunkZ * chunkSize;
             
-            // Calculate number of structures based on density - but with reduced count
-            const baseStructureCount = 1; // Reduced from 2 to 1 structure per chunk
             // 50% chance to generate any structures at all to improve performance
             if (Math.random() > 0.5) {
                 return; // Skip structure generation for this chunk
             }
             
-            // Generate at most 2 structures per chunk
+            // Define structure generation probability based on zone type
+            const structureProbabilities = {
+                'village': {
+                    'Forest': 0.05,
+                    'Magical': 0.05,
+                    'Mountain': 0.03,
+                    'Desert': 0.02,
+                    'Swamp': 0.01,
+                    'default': 0.01
+                },
+                'special': {
+                    'Forest': 0.03,
+                    'Magical': 0.08,
+                    'Mountain': 0.04,
+                    'Desert': 0.03,
+                    'Swamp': 0.05,
+                    'default': 0.02
+                }
+            };
+            
+            // Get village probability for this zone
+            const villageProbability = structureProbabilities.village[zoneType] || 
+                structureProbabilities.village.default;
+                
+            // Get special structure probability for this zone
+            const specialProbability = structureProbabilities.special[zoneType] || 
+                structureProbabilities.special.default;
+            
+            // Calculate number of structures based on density
+            const baseStructureCount = 1; // Base of 1 structure per chunk
             const structureCount = Math.random() < zoneDensity.structures ? 
                 Math.min(2, Math.floor(baseStructureCount + Math.random() * 2)) : 1;
             
             console.debug(`Generating ${structureCount} structures for chunk ${chunkX},${chunkZ} (${zoneType})`);
             
-            // Create a village with a reduced 5% chance (down from 15%) if this is a suitable zone
-            const createVillage = Math.random() < 0.05 && 
-                (zoneType === 'Forest' || zoneType === 'Magical' || zoneType === 'Mountain');
+            // Determine if we should create a village
+            const createVillage = Math.random() < villageProbability;
             
             if (createVillage) {
-                // Place village near center of chunk and apply world scale
-                const villageX = (worldX + chunkSize * 0.5) * this.worldScale;
-                const villageZ = (worldZ + chunkSize * 0.5) * this.worldScale;
-                
-                // Create the village
-                const village = this.structureManager.createVillage(villageX, villageZ);
-                
-                if (village) {
-                    // Add to structures tracking
-                    this.structureManager.structures.push({
-                        type: 'village',
-                        object: village,
-                        position: new THREE.Vector3(villageX, this.terrainManager.getTerrainHeight(villageX, villageZ), villageZ),
-                        chunkKey: `${chunkX},${chunkZ}`
-                    });
-                    
-                    // Mark chunk as having structures
-                    this.structureManager.structuresPlaced[`${chunkX},${chunkZ}`] = true;
-                    
-                    // Create fewer additional buildings around the village
-                    const buildingCount = 1 + Math.floor(Math.random() * 2); // Reduced from 2-4 to 1-2
-                    
-                    for (let i = 0; i < buildingCount; i++) {
-                        // Position buildings in a circle around the village
-                        const angle = (i / buildingCount) * Math.PI * 2;
-                        const distance = 15 + Math.random() * 10;
-                        
-                        const buildingX = villageX + Math.cos(angle) * distance * this.worldScale;
-                        const buildingZ = villageZ + Math.sin(angle) * distance * this.worldScale;
-                        
-                        // Make sure building is within scaled chunk bounds
-                        if (buildingX >= worldX * this.worldScale && buildingX < (worldX + chunkSize) * this.worldScale && 
-                            buildingZ >= worldZ * this.worldScale && buildingZ < (worldZ + chunkSize) * this.worldScale) {
-                            
-                            // Create a house or tower
-                            const buildingType = Math.random() < 0.7 ? 'house' : 'tower';
-                            let building = null;
-                            
-                            if (buildingType === 'house') {
-                                // Smaller buildings for better performance
-                                const width = 3 + Math.random() * 2; // Reduced from 3-7 to 3-5
-                                const depth = 3 + Math.random() * 2; // Reduced from 3-7 to 3-5
-                                const height = 2 + Math.random() * 1; // Reduced from 2-5 to 2-3
-                                building = this.structureManager.createBuilding(buildingX, buildingZ, width, depth, height);
-                            } else {
-                                building = this.structureManager.createTower(buildingX, buildingZ);
-                            }
-                            
-                            if (building) {
-                                // Rotate building to face village
-                                const angleToVillage = Math.atan2(villageZ - buildingZ, villageX - buildingX);
-                                building.rotation.y = angleToVillage;
-                                
-                                // Add to structures tracking
-                                this.structureManager.structures.push({
-                                    type: buildingType,
-                                    object: building,
-                                    position: new THREE.Vector3(buildingX, this.terrainManager.getTerrainHeight(buildingX, buildingZ), buildingZ),
-                                    chunkKey: `${chunkX},${chunkZ}`
-                                });
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Generate individual structures
-                for (let i = 0; i < structureCount; i++) {
-                    // Random position within chunk (but not too close to edges) and apply world scale
-                    const margin = chunkSize * 0.1; // 10% margin
-                    const x = (worldX + margin + Math.random() * (chunkSize - 2 * margin)) * this.worldScale;
-                    const z = (worldZ + margin + Math.random() * (chunkSize - 2 * margin)) * this.worldScale;
-                    
-                    // Random structure type from zone types
-                    const structureType = zoneDensity.structureTypes[
-                        Math.floor(Math.random() * zoneDensity.structureTypes.length)
-                    ];
-                    
-                    // Create the structure
-                    let structure = null;
-                    
-                    switch (structureType) {
-                        case 'house':
-                            // Smaller buildings for better performance
-                            const width = 3 + Math.random() * 2; // Reduced from 3-7 to 3-5
-                            const depth = 3 + Math.random() * 2; // Reduced from 3-7 to 3-5
-                            const height = 2 + Math.random() * 1; // Reduced from 2-5 to 2-3
-                            structure = this.structureManager.createBuilding(x, z, width, depth, height);
-                            break;
-                        case 'tower':
-                            structure = this.structureManager.createTower(x, z);
-                            break;
-                        case 'ruins':
-                            structure = this.structureManager.createRuins(x, z);
-                            break;
-                        case 'village':
-                            // Villages are larger, only create if we have space and with reduced chance
-                            if (Math.random() < 0.2) { // Reduced from 40% to 20%
-                                structure = this.structureManager.createVillage(x, z);
-                            }
-                            break;
-                        case 'temple':
-                        case 'altar':
-                        case 'fortress':
-                            // Smaller buildings for better performance
-                            const bWidth = 4 + Math.random() * 2; // Reduced from 4-7 to 4-6
-                            const bDepth = 4 + Math.random() * 2; // Reduced from 4-7 to 4-6
-                            const bHeight = 3 + Math.random() * 1; // Reduced from 3-5 to 3-4
-                            structure = this.structureManager.createBuilding(x, z, bWidth, bDepth, bHeight, structureType);
-                            break;
-                        case 'mountain':
-                            structure = this.structureManager.createMountain(x, z);
-                            break;
-                        case 'dark_sanctum':
-                            structure = this.structureManager.createDarkSanctum(x, z);
-                            break;
-                    }
-                    
-                    if (structure) {
-                        // Add random rotation for more natural appearance
-                        structure.rotation.y = Math.random() * Math.PI * 2;
-                        
-                        // Add to structures tracking
-                        this.structureManager.structures.push({
-                            type: structureType,
-                            object: structure,
-                            position: new THREE.Vector3(x, this.terrainManager.getTerrainHeight(x, z), z),
-                            chunkKey: `${chunkX},${chunkZ}`
-                        });
-                        
-                        // Mark chunk as having structures
-                        this.structureManager.structuresPlaced[`${chunkX},${chunkZ}`] = true;
-                        
-                        // For certain structure types, add some environment objects around them
-                        // But only if we're not in the initial loading phase
-                        if (this.initialTerrainCreated && 
-                            ['temple', 'altar', 'ruins', 'dark_sanctum'].includes(structureType)) {
-                            // 50% chance to add environment objects to further improve performance
-                            if (Math.random() < 0.5) {
-                                this.addEnvironmentAroundStructure(x, z, structureType, zoneType);
-                            }
-                        }
-                    }
-                }
+                this.generateVillage(chunkX, chunkZ, worldX, worldZ, chunkSize, zoneType);
+            } 
+            // Determine if we should create a special structure
+            else if (Math.random() < specialProbability) {
+                this.generateSpecialStructure(chunkX, chunkZ, worldX, worldZ, chunkSize, zoneType, zoneDensity);
+            }
+            // Otherwise generate regular structures
+            else {
+                this.generateRegularStructures(chunkX, chunkZ, worldX, worldZ, chunkSize, zoneType, zoneDensity, structureCount);
             }
         } catch (error) {
             console.error(`Error generating structures for chunk ${chunkX},${chunkZ}:`, error);
+        }
+    }
+    
+    /**
+     * Generate a village in a chunk
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
+     * @param {number} worldX - World X coordinate
+     * @param {number} worldZ - World Z coordinate
+     * @param {number} chunkSize - Size of the chunk
+     * @param {string} zoneType - Zone type
+     */
+    generateVillage(chunkX, chunkZ, worldX, worldZ, chunkSize, zoneType) {
+        // Place village near center of chunk and apply world scale
+        const villageX = (worldX + chunkSize * 0.5) * this.worldScale;
+        const villageZ = (worldZ + chunkSize * 0.5) * this.worldScale;
+        
+        // Create the village
+        const village = this.structureManager.createVillage(villageX, villageZ);
+        
+        if (village) {
+            // Add to structures tracking
+            this.structureManager.structures.push({
+                type: 'village',
+                object: village,
+                position: new THREE.Vector3(villageX, this.terrainManager.getTerrainHeight(villageX, villageZ), villageZ),
+                chunkKey: `${chunkX},${chunkZ}`
+            });
+            
+            // Mark chunk as having structures
+            this.structureManager.structuresPlaced[`${chunkX},${chunkZ}`] = true;
+            
+            // Create fewer additional buildings around the village
+            const buildingCount = 1 + Math.floor(Math.random() * 2); // Reduced from 2-4 to 1-2
+            
+            // Define building types appropriate for this zone
+            const buildingTypes = this.getZoneAppropriateBuildings(zoneType);
+            
+            for (let i = 0; i < buildingCount; i++) {
+                // Position buildings in a circle around the village
+                const angle = (i / buildingCount) * Math.PI * 2;
+                const distance = 15 + Math.random() * 10;
+                
+                const buildingX = villageX + Math.cos(angle) * distance * this.worldScale;
+                const buildingZ = villageZ + Math.sin(angle) * distance * this.worldScale;
+                
+                // Make sure building is within scaled chunk bounds
+                if (buildingX >= worldX * this.worldScale && buildingX < (worldX + chunkSize) * this.worldScale && 
+                    buildingZ >= worldZ * this.worldScale && buildingZ < (worldZ + chunkSize) * this.worldScale) {
+                    
+                    // Select a random building type appropriate for this zone
+                    const buildingType = buildingTypes[Math.floor(Math.random() * buildingTypes.length)];
+                    let building = null;
+                    
+                    if (buildingType === 'house') {
+                        // Smaller buildings for better performance
+                        const width = 3 + Math.random() * 2; // Reduced from 3-7 to 3-5
+                        const depth = 3 + Math.random() * 2; // Reduced from 3-7 to 3-5
+                        const height = 2 + Math.random() * 1; // Reduced from 2-5 to 2-3
+                        building = this.structureManager.createBuilding(buildingX, buildingZ, width, depth, height);
+                    } else if (buildingType === 'tower') {
+                        building = this.structureManager.createTower(buildingX, buildingZ);
+                    } else {
+                        // For other building types (temple, altar, etc.)
+                        const bWidth = 4 + Math.random() * 2;
+                        const bDepth = 4 + Math.random() * 2;
+                        const bHeight = 3 + Math.random() * 1;
+                        building = this.structureManager.createBuilding(buildingX, buildingZ, bWidth, bDepth, bHeight, buildingType);
+                    }
+                    
+                    if (building) {
+                        // Rotate building to face village
+                        const angleToVillage = Math.atan2(villageZ - buildingZ, villageX - buildingX);
+                        building.rotation.y = angleToVillage;
+                        
+                        // Add to structures tracking
+                        this.structureManager.structures.push({
+                            type: buildingType,
+                            object: building,
+                            position: new THREE.Vector3(buildingX, this.terrainManager.getTerrainHeight(buildingX, buildingZ), buildingZ),
+                            chunkKey: `${chunkX},${chunkZ}`
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Generate a special structure in a chunk
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
+     * @param {number} worldX - World X coordinate
+     * @param {number} worldZ - World Z coordinate
+     * @param {number} chunkSize - Size of the chunk
+     * @param {string} zoneType - Zone type
+     * @param {object} zoneDensity - Zone density configuration
+     */
+    generateSpecialStructure(chunkX, chunkZ, worldX, worldZ, chunkSize, zoneType, zoneDensity) {
+        // Position near the center of the chunk
+        const x = (worldX + chunkSize * 0.5 + (Math.random() * 0.3 - 0.15) * chunkSize) * this.worldScale;
+        const z = (worldZ + chunkSize * 0.5 + (Math.random() * 0.3 - 0.15) * chunkSize) * this.worldScale;
+        
+        // Define special structures for each zone type
+        const specialStructures = {
+            'Forest': ['ruins', 'temple', 'altar'],
+            'Desert': ['ruins', 'temple', 'altar'],
+            'Mountain': ['ruins', 'fortress', 'mountain'],
+            'Swamp': ['ruins', 'dark_sanctum', 'altar'],
+            'Magical': ['ruins', 'temple', 'dark_sanctum', 'altar']
+        };
+        
+        // Get special structures for this zone
+        const zoneSpecialStructures = specialStructures[zoneType] || specialStructures['Forest'];
+        
+        // Select a random special structure
+        const structureType = zoneSpecialStructures[Math.floor(Math.random() * zoneSpecialStructures.length)];
+        
+        // Create the structure
+        let structure = null;
+        
+        switch (structureType) {
+            case 'ruins':
+                structure = this.structureManager.createRuins(x, z);
+                break;
+            case 'temple':
+                const tWidth = 5 + Math.random() * 2;
+                const tDepth = 5 + Math.random() * 2;
+                const tHeight = 4 + Math.random() * 2;
+                structure = this.structureManager.createBuilding(x, z, tWidth, tDepth, tHeight, 'temple');
+                break;
+            case 'altar':
+                const aWidth = 3 + Math.random() * 2;
+                const aDepth = 3 + Math.random() * 2;
+                const aHeight = 2 + Math.random() * 1;
+                structure = this.structureManager.createBuilding(x, z, aWidth, aDepth, aHeight, 'altar');
+                break;
+            case 'fortress':
+                const fWidth = 6 + Math.random() * 3;
+                const fDepth = 6 + Math.random() * 3;
+                const fHeight = 5 + Math.random() * 2;
+                structure = this.structureManager.createBuilding(x, z, fWidth, fDepth, fHeight, 'fortress');
+                break;
+            case 'mountain':
+                structure = this.structureManager.createMountain(x, z);
+                break;
+            case 'dark_sanctum':
+                structure = this.structureManager.createDarkSanctum(x, z);
+                break;
+        }
+        
+        if (structure) {
+            // Add random rotation for more natural appearance
+            structure.rotation.y = Math.random() * Math.PI * 2;
+            
+            // Add to structures tracking
+            this.structureManager.structures.push({
+                type: structureType,
+                object: structure,
+                position: new THREE.Vector3(x, this.terrainManager.getTerrainHeight(x, z), z),
+                chunkKey: `${chunkX},${chunkZ}`,
+                isSpecial: true
+            });
+            
+            // Mark chunk as having structures
+            this.structureManager.structuresPlaced[`${chunkX},${chunkZ}`] = true;
+            
+            // Add environment objects around the special structure
+            if (this.initialTerrainCreated) {
+                this.addEnvironmentAroundStructure(x, z, structureType, zoneType);
+            }
+        }
+    }
+    
+    /**
+     * Generate regular structures in a chunk
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
+     * @param {number} worldX - World X coordinate
+     * @param {number} worldZ - World Z coordinate
+     * @param {number} chunkSize - Size of the chunk
+     * @param {string} zoneType - Zone type
+     * @param {object} zoneDensity - Zone density configuration
+     * @param {number} structureCount - Number of structures to generate
+     */
+    generateRegularStructures(chunkX, chunkZ, worldX, worldZ, chunkSize, zoneType, zoneDensity, structureCount) {
+        // Generate individual structures
+        for (let i = 0; i < structureCount; i++) {
+            // Random position within chunk (but not too close to edges) and apply world scale
+            const margin = chunkSize * 0.1; // 10% margin
+            const x = (worldX + margin + Math.random() * (chunkSize - 2 * margin)) * this.worldScale;
+            const z = (worldZ + margin + Math.random() * (chunkSize - 2 * margin)) * this.worldScale;
+            
+            // Random structure type from zone types
+            const structureType = zoneDensity.structureTypes[
+                Math.floor(Math.random() * zoneDensity.structureTypes.length)
+            ];
+            
+            // Create the structure
+            let structure = null;
+            
+            switch (structureType) {
+                case 'house':
+                    // Smaller buildings for better performance
+                    const width = 3 + Math.random() * 2; // Reduced from 3-7 to 3-5
+                    const depth = 3 + Math.random() * 2; // Reduced from 3-7 to 3-5
+                    const height = 2 + Math.random() * 1; // Reduced from 2-5 to 2-3
+                    structure = this.structureManager.createBuilding(x, z, width, depth, height);
+                    break;
+                case 'tower':
+                    structure = this.structureManager.createTower(x, z);
+                    break;
+                case 'ruins':
+                    structure = this.structureManager.createRuins(x, z);
+                    break;
+                case 'village':
+                    // Villages are larger, only create if we have space and with reduced chance
+                    if (Math.random() < 0.2) { // Reduced from 40% to 20%
+                        structure = this.structureManager.createVillage(x, z);
+                    }
+                    break;
+                case 'temple':
+                case 'altar':
+                case 'fortress':
+                    // Smaller buildings for better performance
+                    const bWidth = 4 + Math.random() * 2; // Reduced from 4-7 to 4-6
+                    const bDepth = 4 + Math.random() * 2; // Reduced from 4-7 to 4-6
+                    const bHeight = 3 + Math.random() * 1; // Reduced from 3-5 to 3-4
+                    structure = this.structureManager.createBuilding(x, z, bWidth, bDepth, bHeight, structureType);
+                    break;
+                case 'mountain':
+                    structure = this.structureManager.createMountain(x, z);
+                    break;
+                case 'dark_sanctum':
+                    structure = this.structureManager.createDarkSanctum(x, z);
+                    break;
+            }
+            
+            if (structure) {
+                // Add random rotation for more natural appearance
+                structure.rotation.y = Math.random() * Math.PI * 2;
+                
+                // Add to structures tracking
+                this.structureManager.structures.push({
+                    type: structureType,
+                    object: structure,
+                    position: new THREE.Vector3(x, this.terrainManager.getTerrainHeight(x, z), z),
+                    chunkKey: `${chunkX},${chunkZ}`
+                });
+                
+                // Mark chunk as having structures
+                this.structureManager.structuresPlaced[`${chunkX},${chunkZ}`] = true;
+                
+                // For certain structure types, add some environment objects around them
+                // But only if we're not in the initial loading phase
+                if (this.initialTerrainCreated && 
+                    ['temple', 'altar', 'ruins', 'dark_sanctum'].includes(structureType)) {
+                    // 50% chance to add environment objects to further improve performance
+                    if (Math.random() < 0.5) {
+                        this.addEnvironmentAroundStructure(x, z, structureType, zoneType);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Get building types appropriate for a zone
+     * @param {string} zoneType - Zone type
+     * @returns {Array} - Array of appropriate building types
+     */
+    getZoneAppropriateBuildings(zoneType) {
+        switch(zoneType) {
+            case 'Forest':
+                return ['house', 'tower', 'temple'];
+            case 'Desert':
+                return ['house', 'tower', 'temple', 'altar'];
+            case 'Mountain':
+                return ['house', 'tower', 'fortress'];
+            case 'Swamp':
+                return ['house', 'tower', 'altar'];
+            case 'Magical':
+                return ['house', 'tower', 'temple', 'altar'];
+            default:
+                return ['house', 'tower'];
         }
     }
     
@@ -2173,464 +2552,7 @@ export class WorldManager {
         
         return nearbyObjects;
     }
-    
-    // ============================================================================
-    // DYNAMIC GENERATION EMERGENCY CONTROL
-    // ============================================================================
-    
-    /**
-     * Emergency stop for freezing situations
-     * Clears all dynamic content and resets settings to minimal values
-     */
-    emergencyStop() {
-        console.log('🚨 Emergency stop activated');
-        
-        // Clear all dynamic content
-        if (this.dynamicEnvironmentGenerator) {
-            this.dynamicEnvironmentGenerator.clear();
-        }
-        if (this.dynamicStructureGenerator) {
-            this.dynamicStructureGenerator.clear();
-        }
-        
-        // Reset settings to minimal
-        this.dynamicGenerationSettings = {
-            environmentDensity: 0.1,
-            structureDensity: 0.05,
-            enableClusters: false,
-            enableSpecialFeatures: false,
-            useThematicAreas: false
-        };
-        
-        console.log('✅ Emergency stop complete');
-    }
-    
-    // ============================================================================
-    // DYNAMIC GENERATION METHODS
-    // ============================================================================
-    
-    /**
-     * Generate a complete diverse area with all types of objects (SAFE VERSION)
-     * @param {THREE.Vector3} center - Center of area to generate
-     * @param {number} radius - Radius of area
-     * @param {string} biome - Biome type
-     * @param {boolean} batch - Use batched generation to prevent freezing
-     * @returns {Object} - Generated area info
-     */
-    generateDiverseArea(center, radius = 50, biome = 'FOREST', batch = true) {
-        if (!this.dynamicEnvironmentGenerator || !this.dynamicStructureGenerator) {
-            console.warn('🚫 Dynamic generators not initialized yet. Call initializeDynamicGenerators() first.');
-            return null;
-        }
 
-        // Safety checks to prevent freeze
-        if (radius > 100) {
-            console.warn('⚠️ Large radius detected, capping at 100 to prevent freeze');
-            radius = 100;
-        }
-
-        console.log(`🌍 Generating diverse ${biome} area at (${center.x}, ${center.z}) with radius ${radius}`);
-        
-        if (batch) {
-            return this.generateDiverseAreaBatched(center, radius, biome);
-        }
-        
-        try {
-            // Generate environment objects with safety limits
-            const safeEnvironmentDensity = Math.min(this.dynamicGenerationSettings.environmentDensity, 0.5);
-            const environmentObjects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
-                center,
-                radius,
-                biome,
-                safeEnvironmentDensity
-            );
-            
-            console.log(`🌱 Generated ${environmentObjects.length} environment objects:`);
-            this.logObjectStats(environmentObjects);
-            
-            // Generate a small settlement with safety limits
-            const settlementCenter = new THREE.Vector3(
-                center.x + (Math.random() - 0.5) * radius * 0.3, // Smaller offset
-                center.y,
-                center.z + (Math.random() - 0.5) * radius * 0.3
-            );
-            
-            const settlementPattern = this.selectSettlementPattern(biome);
-            const safeStructureDensity = Math.min(this.dynamicGenerationSettings.structureDensity, 0.2);
-            const structures = this.dynamicStructureGenerator.generateSettlement(
-                settlementCenter,
-                Math.min(radius * 0.2, 20), // Cap settlement size
-                biome,
-                settlementPattern,
-                safeStructureDensity
-            );
-            
-            console.log(`🏘️ Generated ${structures.length} structures in ${settlementPattern} pattern`);
-            this.logStructureStats(structures);
-            
-            // Skip clusters for now to prevent freezing
-            if (this.dynamicGenerationSettings.enableClusters && structures.length < 10) {
-                console.log('⚠️ Skipping clusters - too many objects already generated');
-            }
-            
-            return {
-                environmentObjects,
-                structures,
-                biome,
-                center,
-                radius
-            };
-        } catch (error) {
-            console.error('❌ Error generating diverse area:', error);
-            return null;
-        }
-    }
-    
-    /**
-     * Generate area in batches to prevent freezing
-     */
-    generateDiverseAreaBatched(center, radius, biome) {
-        console.log('🔄 Using batched generation to prevent freezing...');
-        
-        const result = {
-            environmentObjects: [],
-            structures: [],
-            biome,
-            center,
-            radius
-        };
-        
-        // Generate in smaller chunks over time
-        const chunkSize = 20;
-        const chunks = Math.ceil(radius / chunkSize);
-        let currentChunk = 0;
-        
-        const generateChunk = () => {
-            if (currentChunk >= chunks) {
-                console.log('✅ Batched generation complete');
-                return;
-            }
-            
-            const chunkCenter = new THREE.Vector3(
-                center.x + (currentChunk - chunks/2) * chunkSize,
-                center.y,
-                center.z
-            );
-            
-            try {
-                // Generate small batch of objects
-                const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
-                    chunkCenter,
-                    chunkSize,
-                    biome,
-                    0.2 // Very low density per chunk
-                );
-                
-                result.environmentObjects.push(...objects);
-                console.log(`📦 Chunk ${currentChunk + 1}/${chunks}: Generated ${objects.length} objects`);
-                
-                currentChunk++;
-                setTimeout(generateChunk, 50); // Wait 50ms between chunks
-            } catch (error) {
-                console.error('❌ Error in batched generation:', error);
-            }
-        };
-        
-        generateChunk();
-        return result;
-    }
-    
-    /**
-     * Generate multiple diverse biome areas
-     * @returns {Array} - Array of generated areas
-     */
-    generateMultipleBiomes() {
-        if (!this.dynamicEnvironmentGenerator || !this.dynamicStructureGenerator) {
-            console.warn('🚫 Dynamic generators not initialized yet');
-            return [];
-        }
-
-        const biomes = ['FOREST', 'MOUNTAINS', 'DESERT', 'SWAMP', 'RUINS'];
-        const areas = [];
-        
-        biomes.forEach((biome, index) => {
-            const angle = (index / biomes.length) * Math.PI * 2;
-            const distance = 100;
-            const center = new THREE.Vector3(
-                Math.cos(angle) * distance,
-                0,
-                Math.sin(angle) * distance
-            );
-            
-            const area = this.generateDiverseArea(center, 60, biome);
-            if (area) {
-                areas.push(area);
-            }
-        });
-        
-        console.log(`🌍 Generated ${areas.length} diverse biome areas`);
-        return areas;
-    }
-    
-    /**
-     * Generate themed area (e.g., magical forest, haunted ruins, etc.)
-     * @param {THREE.Vector3} center - Center position
-     * @param {string} theme - Theme name
-     * @param {number} radius - Area radius
-     * @returns {Object} - Generated themed area
-     */
-    generateThemedArea(center, theme, radius = 40) {
-        if (!this.dynamicEnvironmentGenerator || !this.dynamicStructureGenerator) {
-            console.warn('🚫 Dynamic generators not initialized yet');
-            return null;
-        }
-
-        console.log(`🎨 Generating ${theme} themed area`);
-        
-        switch (theme) {
-            case 'magical_forest':
-                return this.generateMagicalForest(center, radius);
-            case 'haunted_ruins':
-                return this.generateHauntedRuins(center, radius);
-            case 'mountain_village':
-                return this.generateMountainVillage(center, radius);
-            case 'desert_oasis':
-                return this.generateDesertOasis(center, radius);
-            case 'swamp_mystery':
-                return this.generateSwampMystery(center, radius);
-            default:
-                return this.generateDiverseArea(center, radius);
-        }
-    }
-    
-    /**
-     * Generate magical forest theme
-     */
-    generateMagicalForest(center, radius) {
-        // High density of magical objects and glowing features
-        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
-            center, radius, 'FOREST', 1.5
-        );
-        
-        // Generate multiple fairy circles and magical groves
-        for (let i = 0; i < 3; i++) {
-            const clusterCenter = new THREE.Vector3(
-                center.x + (Math.random() - 0.5) * radius * 0.6,
-                center.y,
-                center.z + (Math.random() - 0.5) * radius * 0.6
-            );
-            this.dynamicEnvironmentGenerator.generateCluster(clusterCenter, 'magical_grove', 5);
-        }
-        
-        // Small mystical settlement
-        const structures = this.dynamicStructureGenerator.generateSettlement(
-            center, radius * 0.2, 'FOREST', 'CIRCULAR', 0.5
-        );
-        
-        return { objects, structures, theme: 'magical_forest' };
-    }
-    
-    /**
-     * Generate haunted ruins theme
-     */
-    generateHauntedRuins(center, radius) {
-        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
-            center, radius, 'RUINS', 1.0
-        );
-        
-        const structures = this.dynamicStructureGenerator.generateSettlement(
-            center, radius * 0.4, 'RUINS', 'SCATTERED', 0.8
-        );
-        
-        return { objects, structures, theme: 'haunted_ruins' };
-    }
-    
-    /**
-     * Generate mountain village theme
-     */
-    generateMountainVillage(center, radius) {
-        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
-            center, radius, 'MOUNTAINS', 0.8
-        );
-        
-        const structures = this.dynamicStructureGenerator.generateSettlement(
-            center, radius * 0.3, 'MOUNTAINS', 'LINEAR', 1.0
-        );
-        
-        return { objects, structures, theme: 'mountain_village' };
-    }
-    
-    /**
-     * Generate desert oasis theme
-     */
-    generateDesertOasis(center, radius) {
-        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
-            center, radius, 'DESERT', 1.2
-        );
-        
-        const structures = this.dynamicStructureGenerator.generateSettlement(
-            center, radius * 0.25, 'DESERT', 'CIRCULAR', 0.6
-        );
-        
-        return { objects, structures, theme: 'desert_oasis' };
-    }
-    
-    /**
-     * Generate swamp mystery theme
-     */
-    generateSwampMystery(center, radius) {
-        const objects = this.dynamicEnvironmentGenerator.generateEnvironmentObjects(
-            center, radius, 'SWAMP', 1.3
-        );
-        
-        const structures = this.dynamicStructureGenerator.generateSettlement(
-            center, radius * 0.2, 'SWAMP', 'SCATTERED', 0.4
-        );
-        
-        return { objects, structures, theme: 'swamp_mystery' };
-    }
-    
-    /**
-     * Generate interesting clusters of objects
-     */
-    generateInterestingClusters(center, radius, biome) {
-        const clusterTypes = [
-            'mushroom_patch',
-            'rock_formation',
-            'flower_field',
-            'magical_grove'
-        ];
-        
-        // Generate 2-4 clusters per area
-        const clusterCount = 2 + Math.floor(Math.random() * 3);
-        
-        for (let i = 0; i < clusterCount; i++) {
-            const clusterType = clusterTypes[Math.floor(Math.random() * clusterTypes.length)];
-            const clusterCenter = new THREE.Vector3(
-                center.x + (Math.random() - 0.5) * radius * 0.8,
-                center.y,
-                center.z + (Math.random() - 0.5) * radius * 0.8
-            );
-            
-            const objectCount = 3 + Math.floor(Math.random() * 8);
-            const clusterObjects = this.dynamicEnvironmentGenerator.generateCluster(
-                clusterCenter,
-                clusterType,
-                objectCount
-            );
-            
-            console.log(`🎯 Generated ${clusterType} cluster with ${clusterObjects.length} objects`);
-        }
-    }
-    
-    /**
-     * Select appropriate settlement pattern for biome
-     */
-    selectSettlementPattern(biome) {
-        const patterns = {
-            FOREST: ['ORGANIC', 'CLUSTERED'],
-            MOUNTAINS: ['LINEAR', 'ORGANIC'],
-            DESERT: ['CIRCULAR', 'CLUSTERED'],
-            SWAMP: ['SCATTERED', 'LINEAR'],
-            RUINS: ['SCATTERED', 'CIRCULAR']
-        };
-        
-        const biomePatterns = patterns[biome] || patterns.FOREST;
-        return biomePatterns[Math.floor(Math.random() * biomePatterns.length)];
-    }
-    
-    /**
-     * Log statistics about generated objects
-     */
-    logObjectStats(objects) {
-        const stats = {};
-        objects.forEach(obj => {
-            stats[obj.type] = (stats[obj.type] || 0) + 1;
-        });
-        
-        Object.entries(stats).forEach(([type, count]) => {
-            console.log(`  • ${type}: ${count}`);
-        });
-    }
-    
-    /**
-     * Log statistics about generated structures
-     */
-    logStructureStats(structures) {
-        const stats = {};
-        structures.forEach(structure => {
-            stats[structure.type] = (stats[structure.type] || 0) + 1;
-        });
-        
-        Object.entries(stats).forEach(([type, count]) => {
-            console.log(`  • ${type}: ${count}`);
-        });
-    }
-    
-    /**
-     * Update dynamic generation settings
-     */
-    updateDynamicGenerationSettings(newSettings) {
-        this.dynamicGenerationSettings = { ...this.dynamicGenerationSettings, ...newSettings };
-        console.log('📝 Updated dynamic generation settings:', this.dynamicGenerationSettings);
-    }
-    
-    /**
-     * Clear all dynamically generated content
-     */
-    clearDynamicContent() {
-        if (this.dynamicEnvironmentGenerator) {
-            this.dynamicEnvironmentGenerator.clear();
-        }
-        if (this.dynamicStructureGenerator) {
-            this.dynamicStructureGenerator.clear();
-        }
-        console.log('🧹 Cleared all dynamic content');
-    }
-    
-    /**
-     * Get all generated content for minimap/debugging
-     */
-    getAllDynamicContent() {
-        const content = {
-            environmentObjects: [],
-            structures: [],
-            vegetation: [],
-            rocks: [],
-            magicalObjects: []
-        };
-        
-        if (this.dynamicEnvironmentGenerator) {
-            content.environmentObjects = this.dynamicEnvironmentGenerator.getAllObjects();
-            content.vegetation = this.dynamicEnvironmentGenerator.getVegetation();
-            content.rocks = this.dynamicEnvironmentGenerator.getRocks();
-            content.magicalObjects = this.dynamicEnvironmentGenerator.getMagicalObjects();
-        }
-        
-        if (this.dynamicStructureGenerator) {
-            content.structures = this.dynamicStructureGenerator.getAllStructures();
-        }
-        
-        return content;
-    }
-    
-    /**
-     * Enhanced chunk generation with dynamic system
-     * @param {number} chunkX - Chunk X coordinate
-     * @param {number} chunkZ - Chunk Z coordinate
-     */
-    generateDynamicChunkContent(chunkX, chunkZ) {
-        const chunkKey = `${chunkX},${chunkZ}`;
-        
-        // Skip if already generated
-        if (this.generatedChunks.has(chunkKey)) {
-            return;
-        }
-        
-        // For now, use legacy method for better performance and stability
-        return this.generateLegacyChunkContent(chunkX, chunkZ);
-    }
-    
     /**
      * Legacy chunk generation (safe fallback)
      * @param {number} chunkX - Chunk X coordinate

@@ -7,6 +7,7 @@ import { TallGrass } from './TallGrass.js';
 import { AncientTree } from './AncientTree.js';
 import { TreeCluster } from './TreeCluster.js';
 import { EnvironmentFactory } from './EnvironmentFactory.js';
+import { ENVIRONMENT_OBJECTS, ENVIRONMENT_CATEGORIES } from '../../config/environment.js';
 
 /**
  * Manages environment objects like trees, rocks, bushes, etc.
@@ -31,13 +32,12 @@ export class EnvironmentManager {
         // Get environment object types from factory and add traditional types
         const factoryTypes = this.environmentFactory.getRegisteredTypes ? 
             this.environmentFactory.getRegisteredTypes() : [];
-        const traditionalTypes = [
-            'tree', 'rock', 'bush', 'flower', 'tall_grass', 'ancient_tree', 'small_plant',
-            'fallen_log', 'mushroom', 'rock_formation', 'shrine', 'stump', 'waterfall'
-        ];
+        
+        // Get all environment object types from the constants
+        const configTypes = Object.values(ENVIRONMENT_OBJECTS);
         
         // Combine both sets of types, removing duplicates
-        this.environmentObjectTypes = [...new Set([...traditionalTypes, ...factoryTypes])];
+        this.environmentObjectTypes = [...new Set([...configTypes, ...factoryTypes])];
         
         // For minimap functionality
         this.trees = [];
@@ -123,64 +123,110 @@ export class EnvironmentManager {
      * @param {THREE.Object3D} object - The object to add
      */
     addToTypeCollection(type, object) {
+        // First check for exact type matches
         switch (type) {
-            case 'tree':
+            case ENVIRONMENT_OBJECTS.TREE:
                 this.trees.push(object);
                 break;
-            case 'rock':
+            case ENVIRONMENT_OBJECTS.ROCK:
                 this.rocks.push(object);
                 break;
-            case 'bush':
+            case ENVIRONMENT_OBJECTS.BUSH:
                 this.bushes.push(object);
                 break;
-            case 'flower':
+            case ENVIRONMENT_OBJECTS.FLOWER:
                 this.flowers.push(object);
                 break;
-            case 'tall_grass':
+            case ENVIRONMENT_OBJECTS.TALL_GRASS:
                 this.tallGrass.push(object);
                 break;
-            case 'ancient_tree':
+            case ENVIRONMENT_OBJECTS.ANCIENT_TREE:
                 this.ancientTrees.push(object);
                 break;
-            case 'small_plant':
+            case ENVIRONMENT_OBJECTS.SMALL_PLANT:
                 this.smallPlants.push(object);
                 break;
-            case 'fallen_log':
+            case ENVIRONMENT_OBJECTS.FALLEN_LOG:
                 this.fallenLogs.push(object);
                 break;
-            case 'mushroom':
+            case ENVIRONMENT_OBJECTS.MUSHROOM:
                 this.mushrooms.push(object);
                 break;
-            case 'rock_formation':
+            case ENVIRONMENT_OBJECTS.ROCK_FORMATION:
                 this.rockFormations.push(object);
                 break;
-            case 'shrine':
+            case ENVIRONMENT_OBJECTS.SHRINE:
+            case ENVIRONMENT_OBJECTS.FOREST_SHRINE:
+            case ENVIRONMENT_OBJECTS.DESERT_SHRINE:
                 this.shrines.push(object);
                 break;
-            case 'stump':
+            case ENVIRONMENT_OBJECTS.STUMP:
                 this.stumps.push(object);
                 break;
-            case 'waterfall':
+            case ENVIRONMENT_OBJECTS.WATERFALL:
                 this.waterfalls.push(object);
                 break;
-            case 'crystal_formation':
+            case ENVIRONMENT_OBJECTS.CRYSTAL_FORMATION:
+            case ENVIRONMENT_OBJECTS.SMALL_CRYSTAL:
                 this.crystalFormations.push(object);
                 break;
-            case 'moss':
+            case ENVIRONMENT_OBJECTS.MOSS:
                 this.mosses.push(object);
                 break;
-            case 'small_crystal':
-                this.crystalFormations.push(object);
-                break;
-            case 'magical_flower':
+            case ENVIRONMENT_OBJECTS.MAGICAL_FLOWER:
                 this.flowers.push(object);
                 break;
-            case 'stone_circle':
+            case ENVIRONMENT_OBJECTS.STONE_CIRCLE:
                 this.shrines.push(object);
                 break;
-            case 'mountain_pass':
+            case ENVIRONMENT_OBJECTS.MOUNTAIN_PASS:
                 this.rockFormations.push(object);
                 break;
+            default:
+                // For types without a specific collection, categorize by type
+                this.categorizeByType(type, object);
+                break;
+        }
+    }
+    
+    /**
+     * Categorize an object by its type using the environment categories
+     * @param {string} type - Type of environment object
+     * @param {THREE.Object3D} object - The object to add
+     */
+    categorizeByType(type, object) {
+        // Check if the type belongs to any category
+        if (ENVIRONMENT_CATEGORIES.VEGETATION.includes(type)) {
+            // For vegetation types, add to appropriate collection based on subtype
+            if (type.includes('tree')) {
+                this.trees.push(object);
+            } else if (type.includes('bush')) {
+                this.bushes.push(object);
+            } else if (type.includes('flower')) {
+                this.flowers.push(object);
+            } else if (type.includes('grass')) {
+                this.tallGrass.push(object);
+            } else {
+                this.smallPlants.push(object);
+            }
+        } else if (ENVIRONMENT_CATEGORIES.ROCKS.includes(type)) {
+            if (type.includes('formation')) {
+                this.rockFormations.push(object);
+            } else {
+                this.rocks.push(object);
+            }
+        } else if (ENVIRONMENT_CATEGORIES.FUNGI.includes(type)) {
+            this.mushrooms.push(object);
+        } else if (ENVIRONMENT_CATEGORIES.WATER.includes(type)) {
+            if (type.includes('waterfall')) {
+                this.waterfalls.push(object);
+            }
+        } else if (ENVIRONMENT_CATEGORIES.STRUCTURES.includes(type)) {
+            this.shrines.push(object);
+        } else if (ENVIRONMENT_CATEGORIES.MAGICAL.includes(type)) {
+            if (type.includes('crystal')) {
+                this.crystalFormations.push(object);
+            }
         }
     }
     
@@ -209,7 +255,7 @@ export class EnvironmentManager {
         
         try {
             // Special handling for tree_cluster
-            if (type === 'tree_cluster') {
+            if (type === ENVIRONMENT_OBJECTS.TREE_CLUSTER) {
                 // Create a data object for the tree cluster
                 const clusterData = {
                     position: { x, y, z },
@@ -231,27 +277,27 @@ export class EnvironmentManager {
             } else {
                 // Fall back to direct creation for traditional types
                 switch (type) {
-                    case 'tree':
+                    case ENVIRONMENT_OBJECTS.TREE:
                         const tree = new Tree();
                         object = tree.createMesh();
                         break;
-                    case 'rock':
+                    case ENVIRONMENT_OBJECTS.ROCK:
                         const rock = new Rock();
                         object = rock.createMesh();
                         break;
-                    case 'bush':
+                    case ENVIRONMENT_OBJECTS.BUSH:
                         const bush = new Bush();
                         object = bush.createMesh();
                         break;
-                    case 'flower':
+                    case ENVIRONMENT_OBJECTS.FLOWER:
                         const flower = new Flower();
                         object = flower.createMesh();
                         break;
-                    case 'tall_grass':
+                    case ENVIRONMENT_OBJECTS.TALL_GRASS:
                         const tallGrass = new TallGrass();
                         object = tallGrass.createMesh();
                         break;
-                    case 'ancient_tree':
+                    case ENVIRONMENT_OBJECTS.ANCIENT_TREE:
                         const ancientTree = new AncientTree();
                         object = ancientTree.createMesh();
                         break;
@@ -279,7 +325,12 @@ export class EnvironmentManager {
             
             // Apply LOD if available and appropriate for this object type
             // Skip LOD for very small objects or objects that don't benefit from it
-            const skipLodTypes = ['flower', 'tall_grass', 'small_mushroom', 'small_plant'];
+            const skipLodTypes = [
+                ENVIRONMENT_OBJECTS.FLOWER, 
+                ENVIRONMENT_OBJECTS.TALL_GRASS, 
+                ENVIRONMENT_OBJECTS.SMALL_MUSHROOM, 
+                ENVIRONMENT_OBJECTS.SMALL_PLANT
+            ];
             if (this.worldManager.lodManager && !skipLodTypes.includes(type) && scale > 0.5) {
                 // Apply LOD to the object
                 object = this.worldManager.lodManager.applyLOD(object, type, position);

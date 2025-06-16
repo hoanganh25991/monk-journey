@@ -116,10 +116,12 @@ export class FogManager {
         // a custom shader for distance-based darkening. For now, we'll rely on the
         // exponential fog which naturally creates a stronger effect at distance.
         
-        // Adjust the scene's background to be darker than the fog color
-        // This creates the illusion that objects fade to darkness at distance
+        // Adjust the scene's background to be slightly darker than the fog color
+        // This creates the illusion that objects fade to distance without excessive darkening
         if (this.scene.background instanceof THREE.Color) {
-            const bgColor = new THREE.Color(FOG_CONFIG.color).multiplyScalar(this.darkeningFactor);
+            // Use a more moderate darkening factor that doesn't change with quality level
+            const consistentDarkeningFactor = 0.85; // Higher value = brighter background (0.7 was original)
+            const bgColor = new THREE.Color(FOG_CONFIG.color).multiplyScalar(consistentDarkeningFactor);
             this.scene.background.copy(bgColor);
         }
     }
@@ -154,6 +156,10 @@ export class FogManager {
         if (this.game && this.game.performanceManager) {
             this.qualityLevel = this.game.performanceManager.getCurrentQualityLevel();
             this.drawDistanceMultiplier = this.game.performanceManager.getDrawDistanceMultiplier();
+            
+            // Maintain consistent distanceFalloff regardless of quality level
+            // This prevents the game from becoming darker at lower quality levels
+            this.distanceFalloff = FOG_CONFIG.distanceFalloff;
         }
         
         // Calculate base fog density based on performance settings
@@ -206,9 +212,12 @@ export class FogManager {
         this.currentFogColor.lerp(this.targetFogColor, transitionSpeed);
         this.scene.fog.color.copy(this.currentFogColor);
         
-        // Also update the background color to match the darkened fog color
+        // Update the background color to match the fog color without excessive darkening
+        // Use a consistent brightness factor regardless of quality level
         if (this.scene.background instanceof THREE.Color) {
-            const bgColor = new THREE.Color().copy(this.currentFogColor).multiplyScalar(this.darkeningFactor);
+            // Use a fixed darkeningFactor that doesn't change with quality level
+            const consistentDarkeningFactor = FOG_CONFIG.darkeningFactor;
+            const bgColor = new THREE.Color().copy(this.currentFogColor).multiplyScalar(consistentDarkeningFactor);
             this.scene.background.copy(bgColor);
         }
         
@@ -306,14 +315,14 @@ export class FogManager {
                 break;
                 
             case 'night':
-                // Dark blue at night, but not too bright
-                this.targetFogColor.lerp(new THREE.Color(0x101035), 0.6);
-                // Significantly increase density at night to hide distant objects
-                this.targetFogDensity = originalDensity * 2.0;
-                // Increase distance falloff for night - objects disappear more quickly with distance
-                this.distanceFalloff = FOG_CONFIG.distanceFalloff * 1.8;
-                // Increase darkening factor at night
-                this.darkeningFactor = FOG_CONFIG.darkeningFactor * 0.7;
+                // Dark blue at night, but not too dark
+                this.targetFogColor.lerp(new THREE.Color(0x202045), 0.5); // Lighter blue color
+                // Moderately increase density at night
+                this.targetFogDensity = originalDensity * 1.5; // Reduced from 2.0
+                // Use a more moderate distance falloff for night
+                this.distanceFalloff = FOG_CONFIG.distanceFalloff * 1.3; // Reduced from 1.8
+                // Use a more moderate darkening factor at night
+                this.darkeningFactor = FOG_CONFIG.darkeningFactor * 0.85; // Increased from 0.7 (higher = brighter)
                 break;
                 
             default: // day
@@ -356,14 +365,14 @@ export class FogManager {
                 break;
                 
             case 'storm':
-                // Dark gray fog during storms
-                this.targetFogColor.lerp(new THREE.Color(0x404050), 0.6);
-                // Dramatically increase density during storms
-                this.targetFogDensity = timeAdjustedDensity * 2.5;
-                // Increase distance falloff during storms
-                this.distanceFalloff = this.distanceFalloff * 1.8;
-                // Increase darkening factor during storms
-                this.darkeningFactor = this.darkeningFactor * 0.8;
+                // Gray fog during storms, but not too dark
+                this.targetFogColor.lerp(new THREE.Color(0x505060), 0.5); // Lighter gray color
+                // Moderately increase density during storms
+                this.targetFogDensity = timeAdjustedDensity * 1.8; // Reduced from 2.5
+                // Use a more moderate distance falloff for storms
+                this.distanceFalloff = this.distanceFalloff * 1.3; // Reduced from 1.8
+                // Use a more moderate darkening factor during storms
+                this.darkeningFactor = this.darkeningFactor * 0.9; // Increased from 0.8 (higher = brighter)
                 break;
                 
             default: // clear weather

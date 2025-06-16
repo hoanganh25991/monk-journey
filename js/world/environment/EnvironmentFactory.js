@@ -69,6 +69,9 @@ import { FairyCircle } from './FairyCircle.js';
 import { GlowingFlowers } from './GlowingFlowers.js';
 import { MushroomCluster } from './MushroomCluster.js';
 import { Treehouse } from './Treehouse.js';
+import { BogPit } from './BogPit.js';
+import { ForestShrine } from './ForestShrine.js';
+import { IceFormation } from './IceFormation.js';
 
 /**
  * Environment Factory - Creates environment objects based on type
@@ -632,6 +635,24 @@ export class EnvironmentFactory {
             const treehouse = new Treehouse(this.scene, this.worldManager);
             const treehouseGroup = treehouse.createMesh(position, size, data);
             return treehouseGroup;
+        });
+        
+        // Register bog pit environment object
+        this.register(ENVIRONMENT_OBJECTS.BOG_PIT, (position, size, data = {}) => {
+            const bogPit = new BogPit(this.scene, this.worldManager, position, size);
+            return bogPit;
+        });
+        
+        // Register forest shrine environment object
+        this.register(ENVIRONMENT_OBJECTS.FOREST_SHRINE, (position, size, data = {}) => {
+            const forestShrine = new ForestShrine(this.scene, this.worldManager, position, size);
+            return forestShrine.object;
+        });
+        
+        // Register ice formation environment object
+        this.register(ENVIRONMENT_OBJECTS.ICE_FORMATION, (position, size, data = {}) => {
+            const iceFormation = new IceFormation(this.scene, this.worldManager, position, size);
+            return iceFormation;
         });
         
         // Register missing environment objects that appear in map files
