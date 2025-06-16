@@ -250,8 +250,9 @@ export class HUDManager {
      * @param {number} startCount - Starting countdown number (e.g., 3)
      * @param {function} onComplete - Callback when countdown reaches 0
      * @param {string} message - Optional message to show with countdown
+     * @param {boolean} cancellable - Whether the countdown can be cancelled by movement
      */
-    showCountdown(startCount = 3, onComplete = null, message = 'Portal created! Auto-teleport in') {
+    showCountdown(startCount = 3, onComplete = null, message = 'Portal created! Auto-teleport in', cancellable = true) {
         console.debug(`Starting teleport countdown: ${startCount}`);
         
         // Get the countdown container and elements
@@ -260,14 +261,15 @@ export class HUDManager {
         
         if (!countdownContainer || !countdownNumber) {
             console.warn('Countdown DOM elements not found, falling back to notification');
-            this.showNotification(`${message} ${startCount}s (move to cancel)`);
+            const cancelText = cancellable ? ' (move to cancel)' : '';
+            this.showNotification(`${message} ${startCount}s${cancelText}`);
             
             // Manual countdown with setTimeout
             let currentCount = startCount;
             const countdownInterval = setInterval(() => {
                 currentCount--;
                 if (currentCount > 0) {
-                    this.showNotification(`${message} ${currentCount}s (move to cancel)`);
+                    this.showNotification(`${message} ${currentCount}s${cancelText}`);
                 } else {
                     clearInterval(countdownInterval);
                     if (onComplete) {
