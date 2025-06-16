@@ -19,39 +19,37 @@ export const FOG_CONFIG = {
     maxVisibleDistance: 150, // Maximum distance at which objects are still visible
     darkeningFactor: 0.7, // How much darker distant objects become (0-1)
     
-    // Quality level adjustments
+    // Quality level adjustments - higher values = more fog = fewer objects to render = better performance
     qualityMultipliers: {
-        ultra: 1.0, // Standard fog density for ultra quality
-        high: 1.2, // Slightly increased fog density for high quality
+        ultra: 0.8, // Reduced fog density for ultra quality (best visibility)
+        high: 1.0, // Standard fog density for high quality
         medium: 1.5, // Moderately increased fog density for medium quality
-        low: 2.0, // Significantly increased fog density for low quality
-        minimal: 2.5 // Very high fog density for minimal quality
+        low: 2.2, // Significantly increased fog density for low quality (tablets)
+        minimal: 3.0 // Very high fog density for minimal quality (low-end devices)
     }
 };
 
 export const RENDER_CONFIG = {
-    // Ultra quality - for high-end devices
+    // Ultra quality - for high-end desktops and powerful machines
     ultra: {
-        // WebGLRenderer initialization options
         init: {
             antialias: true,
             powerPreference: 'high-performance',
             precision: 'highp',
             stencil: false,
-            logarithmicDepthBuffer: true,
+            logarithmicDepthBuffer: false,
             depth: true,
             alpha: false
         },
-        // Post-initialization settings
         settings: {
-            pixelRatio: window.devicePixelRatio,
+            pixelRatio: window.devicePixelRatio, // Full device pixel ratio
             shadowMapEnabled: true,
-            shadowMapType: 'PCFSoftShadowMap', // Better shadow quality
+            shadowMapType: 'PCFSoftShadowMap',
             outputColorSpace: 'SRGBColorSpace'
         }
     },
     
-    // High quality - for good devices
+    // High quality - for good desktop computers
     high: {
         init: {
             antialias: true,
@@ -65,15 +63,15 @@ export const RENDER_CONFIG = {
         settings: {
             pixelRatio: Math.min(window.devicePixelRatio, 1.5),
             shadowMapEnabled: true,
-            shadowMapType: 'PCFShadowMap',
+            shadowMapType: 'PCFSoftShadowMap',
             outputColorSpace: 'SRGBColorSpace'
         }
     },
     
-    // Medium quality - for average devices
+    // Medium quality - for slower desktops and good tablets
     medium: {
         init: {
-            antialias: false, // Matches quality-levels.js (line 33)
+            antialias: false,
             powerPreference: 'high-performance',
             precision: 'mediump',
             stencil: false,
@@ -82,18 +80,18 @@ export const RENDER_CONFIG = {
             alpha: false
         },
         settings: {
-            pixelRatio: Math.min(window.devicePixelRatio, 1.0),
+            pixelRatio: Math.min(window.devicePixelRatio, 0.9),
             shadowMapEnabled: true,
             shadowMapType: 'PCFShadowMap',
             outputColorSpace: 'SRGBColorSpace'
         }
     },
     
-    // Low quality - for lower-end devices
+    // Low quality - for tablets and mid-range mobile devices
     low: {
         init: {
             antialias: false,
-            powerPreference: 'high-performance', // Changed from 'default' to 'high-performance'
+            powerPreference: 'default',
             precision: 'mediump',
             stencil: false,
             logarithmicDepthBuffer: false,
@@ -101,18 +99,18 @@ export const RENDER_CONFIG = {
             alpha: false
         },
         settings: {
-            pixelRatio: Math.min(window.devicePixelRatio, 0.75),
-            shadowMapEnabled: true,
+            pixelRatio: Math.min(window.devicePixelRatio, 0.6),
+            shadowMapEnabled: false, // Disabled shadows for better performance
             shadowMapType: 'BasicShadowMap',
             outputColorSpace: 'SRGBColorSpace'
         }
     },
     
-    // Minimal quality - for very low-end devices
+    // Minimal quality - for any low-end device to achieve playable FPS
     minimal: {
         init: {
             antialias: false,
-            powerPreference: 'high-performance', // Changed from 'default' to 'high-performance'
+            powerPreference: 'default', // Changed to 'default' to save battery on mobile
             precision: 'lowp',
             stencil: false,
             logarithmicDepthBuffer: false,
@@ -120,10 +118,10 @@ export const RENDER_CONFIG = {
             alpha: false
         },
         settings: {
-            pixelRatio: 0.5,
+            pixelRatio: 0.4, // Further reduced for maximum performance
             shadowMapEnabled: false,
             shadowMapType: 'BasicShadowMap',
-            outputColorSpace: 'SRGBColorSpace'
+            outputColorSpace: 'LinearSRGBColorSpace' // Changed to linear for performance
         }
     }
 };
