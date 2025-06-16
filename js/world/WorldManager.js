@@ -1558,7 +1558,8 @@ export class WorldManager {
             teleport: this.teleportManager.save ? this.teleportManager.save() : null,
             // Add procedural generation data
             procedural: {
-                generatedChunks: Array.from(this.generatedChunks),
+                // We don't save generatedChunks anymore to force regeneration on load
+                // This ensures content is generated around the player's position when loading
                 currentZoneType: this.currentZoneType
             },
             settings: {
@@ -1599,9 +1600,14 @@ export class WorldManager {
             }
         }
         
+        // When loading from a saved position, we need to reset the generatedChunks
+        // to ensure content is generated around the player's new position
+        this.generatedChunks = new Set();
+        
         // Load procedural generation data if available
         if (worldState.procedural) {
-            this.generatedChunks = new Set(worldState.procedural.generatedChunks || []);
+            // We intentionally don't restore generatedChunks from saved state
+            // to force regeneration of content around the player's new position
             this.currentZoneType = worldState.procedural.currentZoneType || 'Forest';
         }
         
@@ -1615,6 +1621,17 @@ export class WorldManager {
         // Load teleport data if available
         if (worldState.teleport && this.teleportManager.load) {
             this.teleportManager.load(worldState.teleport);
+        }
+        
+        // Set initialTerrainCreated to true to ensure structures are generated
+        this.initialTerrainCreated = true;
+        
+        // Force world update on next frame to generate content around player's position
+        if (this.game && this.game.player && this.game.player.position) {
+            console.debug("Forcing world update for saved position:", this.game.player.position);
+            setTimeout(() => {
+                this.updateWorldForPlayer(this.game.player.position);
+            }, 100);
         }
     }
     
