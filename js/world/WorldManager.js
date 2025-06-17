@@ -56,6 +56,11 @@ export class WorldManager {
         this.buildings = [];
         this.paths = [];
         
+        // Object preloading and buffering
+        this.objectBuffer = new Map(); // Map to store preloaded objects
+        this.preloadDistance = 100; // Distance ahead of player to preload objects
+        this.preloadedChunks = new Set(); // Track which chunks have been preloaded
+        
         // Spatial partitioning for faster object lookup
         this.spatialGrid = new SpatialGrid(50); // Grid-based spatial partitioning with 50 unit cell size
         
@@ -325,7 +330,14 @@ export class WorldManager {
                 this._lastEnvironmentUpdate = now;
             }
             
-            // 3. Generate procedural content (can be throttled most aggressively)
+            // 3. Preload objects in the direction of player movement
+            // This prevents objects from suddenly appearing
+            if (hasMovedSignificantly && (!this._lastPreload || now - this._lastPreload > 300)) {
+                this.preloadObjectsInDirection(playerPosition, this.lastPlayerPosition);
+                this._lastPreload = now;
+            }
+            
+            // 4. Generate procedural content (can be throttled most aggressively)
             // Only generate content if we're not already processing chunks
             if (!this.generationManager.processingChunk && 
                 (!this._lastContentGeneration || now - this._lastContentGeneration > 500)) {
@@ -342,7 +354,7 @@ export class WorldManager {
                 });
             }
             
-            // 4. Update world systems (lighting, fog, etc.)
+            // 5. Update world systems (lighting, fog, etc.)
             // These are lightweight and can be updated every frame
             this.updateWorldSystems(playerPosition, effectiveDrawDistance);
         }
@@ -375,9 +387,76 @@ export class WorldManager {
         if (this.environmentManager && this.environmentManager.updateForPlayer) {
             // Use a try-catch to prevent errors from breaking the game loop
             try {
+                // First, check if we have any preloaded objects to add to the scene
+                this.addPreloadedObjectsToScene(playerPosition, effectiveDrawDistance);
+                
+                // Then update environment as usual
                 this.environmentManager.updateForPlayer(playerPosition, effectiveDrawDistance);
             } catch (error) {
                 console.error("Error updating environment:", error);
+            }
+        }
+    }
+    
+    /**
+     * Add preloaded objects to the scene when they come within draw distance
+     * @param {THREE.Vector3} playerPosition - Player position
+     * @param {number} drawDistance - Draw distance
+     */
+    addPreloadedObjectsToScene(playerPosition, drawDistance) {
+        // Skip if no player position
+        if (!playerPosition) return;
+        
+        // Calculate chunk coordinates for the player
+        const terrainChunkSize = this.terrainManager.terrainChunkSize;
+        const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
+        const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
+        
+        // Calculate visible chunk range
+        const chunkDrawDistance = Math.ceil(drawDistance / terrainChunkSize);
+        
+        // Check each buffered chunk
+        for (const [chunkKey, buffer] of this.objectBuffer.entries()) {
+            // Parse chunk coordinates from key
+            const [chunkX, chunkZ] = chunkKey.split(',').map(Number);
+            
+            // Calculate distance to player in chunks
+            const chunkDistance = Math.max(
+                Math.abs(chunkX - playerChunkX),
+                Math.abs(chunkZ - playerChunkZ)
+            );
+            
+            // If chunk is within draw distance, add its objects to the scene
+            if (chunkDistance <= chunkDrawDistance) {
+                // Add environment objects
+                for (const objData of buffer.environment) {
+                    // Create the actual object and add to scene
+                    if (this.environmentManager && objData.type) {
+                        const object = this.environmentManager.createEnvironmentObject(
+                            objData.type,
+                            objData.position.x,
+                            objData.position.z,
+                            objData.scale
+                        );
+                        
+                        if (object) {
+                            // Add to environment objects tracking
+                            this.environmentManager.environmentObjects.push({
+                                type: objData.type,
+                                object: object,
+                                position: objData.position,
+                                scale: objData.scale,
+                                chunkKey: chunkKey
+                            });
+                            
+                            // Add to type-specific collections
+                            this.environmentManager.addToTypeCollection(objData.type, object);
+                        }
+                    }
+                }
+                
+                // Remove from buffer after adding to scene
+                this.objectBuffer.delete(chunkKey);
             }
         }
     }
@@ -1041,5 +1120,123 @@ export class WorldManager {
             return this.teleportManager.getPortals();
         }
         return [];
+    }
+    
+    /**
+     * Preload objects in the direction of player movement
+     * This prevents objects from suddenly appearing by preloading them
+     * @param {THREE.Vector3} currentPosition - Current player position
+     * @param {THREE.Vector3} previousPosition - Previous player position
+     */
+    preloadObjectsInDirection(currentPosition, previousPosition) {
+        if (!currentPosition || !previousPosition) return;
+        
+        // Calculate movement direction
+        const direction = new THREE.Vector3()
+            .subVectors(currentPosition, previousPosition)
+            .normalize();
+            
+        // Calculate target position (ahead of player in movement direction)
+        const targetPosition = new THREE.Vector3()
+            .copy(currentPosition)
+            .addScaledVector(direction, this.preloadDistance);
+            
+        // Calculate chunk coordinates for the target position
+        const terrainChunkSize = this.terrainManager.terrainChunkSize;
+        const targetChunkX = Math.floor(targetPosition.x / terrainChunkSize);
+        const targetChunkZ = Math.floor(targetPosition.z / terrainChunkSize);
+        
+        // Preload chunks in a small area around the target position
+        const preloadRadius = 1; // Just preload a 3x3 area
+        
+        for (let x = targetChunkX - preloadRadius; x <= targetChunkX + preloadRadius; x++) {
+            for (let z = targetChunkZ - preloadRadius; z <= targetChunkZ + preloadRadius; z++) {
+                const chunkKey = `${x},${z}`;
+                
+                // Skip if already preloaded
+                if (this.preloadedChunks.has(chunkKey)) continue;
+                
+                // Mark as preloaded
+                this.preloadedChunks.add(chunkKey);
+                
+                // Preload content for this chunk in the background
+                setTimeout(() => {
+                    this.preloadChunkContent(x, z);
+                }, 0);
+            }
+        }
+    }
+    
+    /**
+     * Preload content for a specific chunk
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
+     */
+    preloadChunkContent(chunkX, chunkZ) {
+        try {
+            // Calculate world coordinates for this chunk
+            const worldX = chunkX * this.terrainManager.terrainChunkSize;
+            const worldZ = chunkZ * this.terrainManager.terrainChunkSize;
+            
+            // Determine zone type for this chunk
+            const zoneType = this.generationManager.getZoneTypeAt(worldX, worldZ);
+            
+            // Skip if zone type is undefined
+            if (!zoneType) return;
+            
+            // Get zone density configuration
+            const zoneDensity = this.zoneDensities[zoneType];
+            
+            // Skip if no zone density is provided
+            if (!zoneDensity) return;
+            
+            // Create a buffer of objects for this chunk
+            const chunkKey = `${chunkX},${chunkZ}`;
+            
+            // Skip if we already have a buffer for this chunk
+            if (this.objectBuffer.has(chunkKey)) return;
+            
+            // Create a new buffer for this chunk
+            const buffer = {
+                environment: [],
+                structures: []
+            };
+            
+            // Preload environment objects (just create the data, don't add to scene yet)
+            if (this.environmentManager && zoneDensity.environmentTypes) {
+                // Reduced density for better performance
+                const density = zoneDensity.environment * 0.3;
+                const chunkSize = this.terrainManager.terrainChunkSize;
+                
+                // Calculate number of objects to create
+                const numObjects = Math.floor(density * chunkSize / 10);
+                
+                // Create environment object data
+                for (let i = 0; i < numObjects; i++) {
+                    // Random position within chunk
+                    const offsetX = Math.random() * chunkSize;
+                    const offsetZ = Math.random() * chunkSize;
+                    const x = worldX + offsetX;
+                    const z = worldZ + offsetZ;
+                    
+                    // Random object type from zone's environment types
+                    const typeIndex = Math.floor(Math.random() * zoneDensity.environmentTypes.length);
+                    const objectType = zoneDensity.environmentTypes[typeIndex];
+                    
+                    // Add to buffer
+                    buffer.environment.push({
+                        type: objectType,
+                        position: new THREE.Vector3(x, this.terrainManager.getTerrainHeight(x, z), z),
+                        scale: 0.8 + Math.random() * 0.4
+                    });
+                }
+            }
+            
+            // Store buffer for this chunk
+            this.objectBuffer.set(chunkKey, buffer);
+            
+        } catch (error) {
+            console.error(`Error preloading chunk content for chunk ${chunkX},${chunkZ}:`, error);
+        }
     }
 }

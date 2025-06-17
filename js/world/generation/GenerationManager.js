@@ -204,6 +204,13 @@ export class GenerationManager {
             return;
         }
         
+        // Validate chunk coordinates
+        if (isNaN(chunkX) || isNaN(chunkZ)) {
+            console.warn(`Invalid chunk coordinates: ${chunkX}, ${chunkZ}`);
+            this.generatedChunks.add(chunkKey); // Mark as generated to prevent retries
+            return;
+        }
+        
         console.debug(`Generating content for chunk ${chunkKey}`);
         
         // Calculate world coordinates for this chunk
@@ -212,10 +219,19 @@ export class GenerationManager {
         
         // Determine zone type for this chunk
         const zoneType = this.getZoneTypeAt(worldX, worldZ);
-        const zoneDensity = this.zoneDensities[zoneType];
+        
+        // Handle undefined zone type
+        if (!zoneType) {
+            console.warn(`Failed to determine zone type for chunk ${chunkKey}`);
+            this.generatedChunks.add(chunkKey); // Mark as generated to prevent retries
+            return;
+        }
+        
+        // Get zone density, defaulting to Forest if not found
+        const zoneDensity = this.zoneDensities[zoneType] || this.zoneDensities['Forest'];
         
         if (!zoneDensity) {
-            console.warn(`Unknown zone type: ${zoneType}`);
+            console.warn(`No zone density configuration for zone type: ${zoneType}`);
             this.generatedChunks.add(chunkKey); // Mark as generated to prevent retries
             return;
         }
@@ -252,6 +268,12 @@ export class GenerationManager {
      * @returns {string} - Zone type
      */
     getZoneTypeAt(x, z) {
+        // Handle invalid coordinates
+        if (x === undefined || z === undefined || isNaN(x) || isNaN(z)) {
+            console.warn(`Invalid coordinates for zone determination: x=${x}, z=${z}`);
+            return 'Forest'; // Default to Forest if coordinates are invalid
+        }
+        
         // Simple zone determination based on position
         // Creates a pattern of different zones across the world
         const zoneX = Math.floor(x / this.zoneSize);
@@ -261,7 +283,10 @@ export class GenerationManager {
         const hash = Math.abs(zoneX * 73 + zoneZ * 127) % 5;
         const zoneTypes = ['Forest', 'Desert', 'Mountain', 'Swamp', 'Magical'];
         
-        return zoneTypes[hash];
+        // Ensure we have a valid zone type
+        const zoneType = zoneTypes[hash] || 'Forest';
+        
+        return zoneType;
     }
     
     /**
@@ -271,7 +296,20 @@ export class GenerationManager {
     updatePlayerZone(playerPosition) {
         if (!playerPosition) return;
         
+        // Ensure we have valid coordinates
+        if (isNaN(playerPosition.x) || isNaN(playerPosition.z)) {
+            console.warn(`Invalid player position for zone update: ${playerPosition.x}, ${playerPosition.z}`);
+            return;
+        }
+        
         const newZoneType = this.getZoneTypeAt(playerPosition.x, playerPosition.z);
+        
+        // Ensure we have a valid zone type
+        if (!newZoneType) {
+            console.warn(`Invalid zone type returned for position: ${playerPosition.x}, ${playerPosition.z}`);
+            return;
+        }
+        
         if (newZoneType !== this.currentZoneType) {
             console.debug(`Player entered new zone: ${this.currentZoneType} -> ${newZoneType}`);
             this.currentZoneType = newZoneType;
@@ -308,8 +346,35 @@ export class GenerationManager {
      * @returns {object} - Zone information
      */
     getCurrentZoneInfo(playerPosition) {
+        // Handle invalid player position
+        if (!playerPosition || isNaN(playerPosition.x) || isNaN(playerPosition.z)) {
+            console.warn(`Invalid player position for zone info: ${playerPosition?.x}, ${playerPosition?.z}`);
+            // Return default zone info
+            return {
+                type: 'Forest',
+                density: this.zoneDensities['Forest'],
+                position: { x: 0, z: 0 }
+            };
+        }
+        
         const zoneType = this.getZoneTypeAt(playerPosition.x, playerPosition.z);
-        const zoneDensity = this.zoneDensities[zoneType];
+        
+        // Handle undefined zone type
+        if (!zoneType) {
+            console.warn(`Invalid zone type for position: ${playerPosition.x}, ${playerPosition.z}`);
+            // Return default zone info
+            return {
+                type: 'Forest',
+                density: this.zoneDensities['Forest'],
+                position: {
+                    x: Math.floor(playerPosition.x / this.zoneSize),
+                    z: Math.floor(playerPosition.z / this.zoneSize)
+                }
+            };
+        }
+        
+        // Get zone density, defaulting to Forest if not found
+        const zoneDensity = this.zoneDensities[zoneType] || this.zoneDensities['Forest'];
         
         return {
             type: zoneType,
