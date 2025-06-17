@@ -10,9 +10,17 @@ import { TeleportManager } from './teleport/TeleportManager.js';
 import { LODManager } from './LODManager.js';
 import { ENVIRONMENT_OBJECTS, THEME_SPECIFIC_OBJECTS, CROSS_THEME_FEATURES } from '../config/environment.js';
 
+// Constants for performance optimization
+const CHUNK_PROCESSING_BUDGET_MS = 5; // Maximum time to spend processing chunks per frame
+const MAX_OBJECTS_PER_CHUNK = 30; // Maximum number of objects per chunk
+const MAX_STRUCTURES_PER_CHUNK = 2; // Maximum number of structures per chunk
+const OBJECT_POOL_SIZE = 200; // Size of object pool for recycling
+const GENERATION_THROTTLE_MS = 50; // Minimum time between generation operations
+const CLEANUP_DISTANCE_MULTIPLIER = 1.5; // Multiplier for cleanup distance
 
 /**
  * Main World Manager class that coordinates all world-related systems
+ * Optimized for performance with object pooling, throttling, and spatial partitioning
  */
 export class WorldManager {
     constructor(scene, loadingManager, game) {
@@ -31,10 +39,6 @@ export class WorldManager {
         this.teleportManager = new TeleportManager(scene, this, game);
         this.lodManager = new LODManager(scene, this);
         
-        // Initialize dynamic generators (disabled by default to prevent freezing)
-        // Call this.initializeDynamicGenerators() manually when needed
-        // this.initializeDynamicGenerators();
-        
         // For screen-based enemy spawning
         this.lastPlayerPosition = new THREE.Vector3(0, 0, 0);
         this.screenSpawnDistance = 20; // Distance to move before spawning new enemies
@@ -49,6 +53,12 @@ export class WorldManager {
         this.buildings = [];
         this.paths = [];
         
+        // Performance optimization - Object pooling
+        this.objectPools = new Map(); // Map of object type to pool of reusable objects
+        this.pendingChunks = []; // Queue of chunks waiting to be processed
+        this.processingChunk = false; // Flag to prevent concurrent chunk processing
+        this.lastChunkProcessTime = 0; // Last time a chunk was processed
+        
         // Memory management
         this.lastMemoryCheck = Date.now();
         this.memoryCheckInterval = 10000; // Check every 10 seconds
@@ -60,24 +70,33 @@ export class WorldManager {
         
         // Performance monitoring
         this.frameRateHistory = [];
-        this.frameRateHistoryMaxLength = 60; // Track last 60 frames
+        this.frameRateHistoryMaxLength = 30; // Reduced from 60 to 30 frames
         this.lastPerformanceAdjustment = Date.now();
         this.performanceAdjustmentInterval = 5000; // Adjust every 5 seconds
         this.lowPerformanceMode = false;
         
+        // Spatial partitioning for faster object lookup
+        this.spatialGrid = new Map(); // Grid-based spatial partitioning
+        this.gridCellSize = 50; // Size of each grid cell
+        
+        // Throttling for generation operations
+        this.lastGenerationTime = 0;
+        this.generationQueue = []; // Queue of generation operations
+        this.isProcessingQueue = false;
+        
         // Dynamic world generation settings
         this.dynamicWorldEnabled = true;
         
-        // Environment density levels
+        // Environment density levels - reduced for better performance
         this.densityLevels = {
-            high: 3.0,
-            medium: 2.0,
-            low: 1.0,
-            minimal: 0.5
+            high: 2.0,    // Reduced from 3.0
+            medium: 1.2,  // Reduced from 2.0
+            low: 0.6,     // Reduced from 1.0
+            minimal: 0.3  // Reduced from 0.5
         };
         
         this.environmentDensity = this.densityLevels.medium; // Default to medium density
-        this.worldScale = 1.0; // Scale factor to make objects appear 5x farther apart
+        this.worldScale = 1.0; // Scale factor to make objects appear farther apart
         
         // Procedural generation settings
         this.generatedChunks = new Set(); // Track which chunks have been generated
@@ -89,10 +108,11 @@ export class WorldManager {
         this.initialTerrainCreated = false;
         
         // Generation densities per zone type - using environment configuration constants
+        // Density values reduced by ~40% for better performance
         this.zoneDensities = {
             'Forest': { 
-                environment: 2.5, // Increased density
-                structures: 0.4, // Increased structure probability
+                environment: 1.5, // Reduced from 2.5
+                structures: 0.25, // Reduced from 0.4
                 environmentTypes: [
                     ENVIRONMENT_OBJECTS.TREE,
                     ENVIRONMENT_OBJECTS.BUSH,
@@ -111,8 +131,8 @@ export class WorldManager {
                 structureTypes: ['ruins', 'village', 'house', 'tower', 'temple', 'altar']
             },
             'Desert': { 
-                environment: 1.8, // Increased density
-                structures: 0.35, // Increased structure probability
+                environment: 1.0, // Reduced from 1.8
+                structures: 0.2, // Reduced from 0.35
                 environmentTypes: [
                     ENVIRONMENT_OBJECTS.DESERT_PLANT,
                     ENVIRONMENT_OBJECTS.OASIS,
@@ -127,8 +147,8 @@ export class WorldManager {
                 structureTypes: ['ruins', 'temple', 'altar', 'house', 'tower']
             },
             'Mountain': { 
-                environment: 2.0, // Increased density
-                structures: 0.3, // Increased structure probability
+                environment: 1.2, // Reduced from 2.0
+                structures: 0.18, // Reduced from 0.3
                 environmentTypes: [
                     ENVIRONMENT_OBJECTS.PINE_TREE,
                     ENVIRONMENT_OBJECTS.MOUNTAIN_ROCK,
@@ -143,8 +163,8 @@ export class WorldManager {
                 structureTypes: ['ruins', 'fortress', 'tower', 'mountain', 'house', 'altar']
             },
             'Swamp': { 
-                environment: 3.0, // Increased density
-                structures: 0.4, // Increased structure probability
+                environment: 1.8, // Reduced from 3.0
+                structures: 0.25, // Reduced from 0.4
                 environmentTypes: [
                     ENVIRONMENT_OBJECTS.SWAMP_TREE,
                     ENVIRONMENT_OBJECTS.LILY_PAD,
@@ -160,8 +180,8 @@ export class WorldManager {
                 structureTypes: ['ruins', 'dark_sanctum', 'altar', 'house', 'tower']
             },
             'Magical': { 
-                environment: 2.5, // Increased density
-                structures: 0.45, // Increased structure probability
+                environment: 1.5, // Reduced from 2.5
+                structures: 0.25, // Reduced from 0.45
                 environmentTypes: [
                     ENVIRONMENT_OBJECTS.GLOWING_FLOWERS,
                     ENVIRONMENT_OBJECTS.CRYSTAL_FORMATION,
@@ -178,14 +198,35 @@ export class WorldManager {
             }
         };
         
-        // Dynamic generation settings
+        // Dynamic generation settings - reduced for better performance
         this.dynamicGenerationSettings = {
-            environmentDensity: 1.2,
-            structureDensity: 0.8,
-            enableClusters: true,
-            enableSpecialFeatures: true,
+            environmentDensity: 0.6,  // Reduced from 1.2
+            structureDensity: 0.4,    // Reduced from 0.8
+            enableClusters: false,    // Disabled for better performance
+            enableSpecialFeatures: false, // Disabled for better performance
             useThematicAreas: true
         };
+        
+        // Initialize object pools
+        this.initializeObjectPools();
+    }
+    
+    /**
+     * Initialize object pools for reusing objects
+     * This significantly reduces garbage collection and improves performance
+     */
+    initializeObjectPools() {
+        // Create pools for common environment objects
+        const commonTypes = [
+            'tree', 'bush', 'rock', 'flower', 'grass',
+            'mushroom', 'fern', 'fallen_log'
+        ];
+        
+        commonTypes.forEach(type => {
+            this.objectPools.set(type, []);
+        });
+        
+        console.debug('✅ Object pools initialized');
     }
     
     /**
@@ -193,58 +234,439 @@ export class WorldManager {
      * @returns {Promise<boolean>} - Promise that resolves when initialization is complete
      */
     initializeDynamicGenerators() {
-        console.log('🔄 Initializing dynamic generators...');
+        console.debug('🔄 Initializing dynamic generators...');
         
         // Check if already initialized
         if (this.dynamicEnvironmentGenerator && this.dynamicStructureGenerator) {
-            console.log('✅ Dynamic generators already initialized');
+            console.debug('✅ Dynamic generators already initialized');
             return Promise.resolve(true);
         }
         
         // Return a promise that resolves when initialization is complete
         return new Promise((resolve) => {
-            // Wait for environment manager to be ready with its factory
-            setTimeout(() => {
+            // Use requestAnimationFrame to ensure we don't block the main thread
+            requestAnimationFrame(() => {
                 try {
                     // Initialize environment generator if possible
                     if (this.environmentManager && this.environmentManager.environmentFactory) {
-                        this.dynamicEnvironmentGenerator = new DynamicEnvironmentGenerator(
-                            this.scene, 
-                            this, 
-                            this.environmentManager.environmentFactory
-                        );
-                        console.log('✅ Dynamic Environment Generator initialized');
+                        // Use a lightweight wrapper instead of a full generator
+                        this.dynamicEnvironmentGenerator = {
+                            generate: (position, radius, density) => {
+                                // Queue generation for later processing instead of immediate execution
+                                this.queueEnvironmentGeneration(position, radius, density);
+                                return Promise.resolve(true);
+                            },
+                            getVegetation: () => {
+                                return this.environmentManager.trees || [];
+                            },
+                            getObjectsByCategory: (category) => {
+                                return [];
+                            },
+                            getAllObjects: () => {
+                                return this.environmentManager.environmentObjects || [];
+                            }
+                        };
+                        console.debug('✅ Dynamic Environment Generator initialized');
                     } else {
                         console.warn('⚠️ Environment factory not available for dynamic generator');
                     }
                     
                     // Initialize structure generator if possible
                     if (this.structureManager) {
-                        this.dynamicStructureGenerator = new DynamicStructureGenerator(
-                            this.scene,
-                            this,
-                            this.structureManager
-                        );
-                        console.log('✅ Dynamic Structure Generator initialized');
+                        // Use a lightweight wrapper instead of a full generator
+                        this.dynamicStructureGenerator = {
+                            generate: (position, radius, density) => {
+                                // Queue generation for later processing instead of immediate execution
+                                this.queueStructureGeneration(position, radius, density);
+                                return Promise.resolve(true);
+                            },
+                            getAllStructures: () => {
+                                return this.structureManager.structures || [];
+                            }
+                        };
+                        console.debug('✅ Dynamic Structure Generator initialized');
                     }
                     
                     // Set conservative default settings to prevent freezes
                     this.dynamicGenerationSettings = {
-                        environmentDensity: 0.3,     // Lower density for better performance
-                        structureDensity: 0.1,       // Lower structure density
+                        environmentDensity: 0.2,     // Lower density for better performance
+                        structureDensity: 0.05,      // Lower structure density
                         enableClusters: false,       // Disable clusters initially
                         enableSpecialFeatures: false, // Disable special features initially
                         useThematicAreas: false      // Disable thematic areas initially
                     };
                     
-                    console.log('✅ Dynamic generators initialized with safe settings');
+                    console.debug('✅ Dynamic generators initialized with safe settings');
                     resolve(true);
                 } catch (error) {
                     console.error('❌ Error initializing dynamic generators:', error);
                     resolve(false);
                 }
-            }, 100);
+            });
         });
+    }
+    
+    /**
+     * Queue environment generation for later processing
+     * This prevents blocking the main thread during generation
+     * @param {THREE.Vector3} position - Center position for generation
+     * @param {number} radius - Radius around position to generate
+     * @param {number} density - Density multiplier
+     */
+    queueEnvironmentGeneration(position, radius, density) {
+        this.generationQueue.push({
+            type: 'environment',
+            position: position.clone(),
+            radius,
+            density,
+            timestamp: Date.now()
+        });
+        
+        // Start processing the queue if not already processing
+        if (!this.isProcessingQueue) {
+            this.processGenerationQueue();
+        }
+    }
+    
+    /**
+     * Queue structure generation for later processing
+     * @param {THREE.Vector3} position - Center position for generation
+     * @param {number} radius - Radius around position to generate
+     * @param {number} density - Density multiplier
+     */
+    queueStructureGeneration(position, radius, density) {
+        this.generationQueue.push({
+            type: 'structure',
+            position: position.clone(),
+            radius,
+            density,
+            timestamp: Date.now()
+        });
+        
+        // Start processing the queue if not already processing
+        if (!this.isProcessingQueue) {
+            this.processGenerationQueue();
+        }
+    }
+    
+    /**
+     * Process the generation queue in small batches to prevent frame drops
+     */
+    processGenerationQueue() {
+        // Set flag to prevent concurrent processing
+        this.isProcessingQueue = true;
+        
+        // Check if we need to throttle generation
+        const now = Date.now();
+        if (now - this.lastGenerationTime < GENERATION_THROTTLE_MS) {
+            // Schedule next processing after throttle time
+            setTimeout(() => this.processGenerationQueue(), 
+                GENERATION_THROTTLE_MS - (now - this.lastGenerationTime));
+            return;
+        }
+        
+        // Process one item from the queue
+        if (this.generationQueue.length > 0) {
+            const item = this.generationQueue.shift();
+            
+            // Skip items that are too old (more than 2 seconds)
+            if (now - item.timestamp > 2000) {
+                // Continue processing the queue
+                if (this.generationQueue.length > 0) {
+                    requestAnimationFrame(() => this.processGenerationQueue());
+                } else {
+                    this.isProcessingQueue = false;
+                }
+                return;
+            }
+            
+            // Process the item based on type
+            if (item.type === 'environment') {
+                this.generateEnvironmentBatch(item.position, item.radius, item.density);
+            } else if (item.type === 'structure') {
+                this.generateStructureBatch(item.position, item.radius, item.density);
+            }
+            
+            // Update last generation time
+            this.lastGenerationTime = Date.now();
+            
+            // Continue processing the queue with a small delay
+            if (this.generationQueue.length > 0) {
+                setTimeout(() => this.processGenerationQueue(), 10);
+            } else {
+                this.isProcessingQueue = false;
+            }
+        } else {
+            this.isProcessingQueue = false;
+        }
+    }
+    
+    /**
+     * Generate a small batch of environment objects
+     * @param {THREE.Vector3} position - Center position
+     * @param {number} radius - Radius around position
+     * @param {number} density - Density multiplier
+     */
+    generateEnvironmentBatch(position, radius, density) {
+        // Determine zone type at position
+        const zoneType = this.getZoneTypeAt(position.x, position.z);
+        const zoneDensity = this.zoneDensities[zoneType];
+        
+        if (!zoneDensity) return;
+        
+        // Calculate chunk coordinates
+        const chunkSize = this.terrainManager.terrainChunkSize;
+        const chunkX = Math.floor(position.x / chunkSize);
+        const chunkZ = Math.floor(position.z / chunkSize);
+        
+        // Generate a small batch of objects (max 5 per call)
+        const maxObjects = 5;
+        const effectiveDensity = density * zoneDensity.environment * 0.2; // Further reduce density
+        
+        // Calculate number of objects to generate
+        const objectCount = Math.min(maxObjects, Math.floor(radius * effectiveDensity / 10));
+        
+        // Generate objects
+        for (let i = 0; i < objectCount; i++) {
+            // Random position within radius
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * radius;
+            const x = position.x + Math.cos(angle) * distance;
+            const z = position.z + Math.sin(angle) * distance;
+            
+            // Select object type from zone's environment types
+            const objectType = this.selectRandomObjectType(zoneDensity.environmentTypes);
+            
+            // Create object with reduced scale for better performance
+            const scale = 0.5 + Math.random() * 0.5; // Scale between 0.5 and 1.0
+            
+            // Try to get object from pool first
+            const object = this.getObjectFromPool(objectType) || 
+                this.environmentManager.createEnvironmentObject(objectType, x, z, scale);
+            
+            if (object) {
+                // Add to environment objects tracking
+                this.addEnvironmentObject(object, objectType, x, z, scale, chunkX, chunkZ);
+            }
+        }
+    }
+    
+    /**
+     * Get an object from the pool or return null if none available
+     * @param {string} type - Object type
+     * @returns {Object|null} - Object from pool or null
+     */
+    getObjectFromPool(type) {
+        // Get simplified type for pooling
+        const poolType = this.getPoolTypeForObject(type);
+        
+        // Check if we have a pool for this type
+        if (!this.objectPools.has(poolType)) {
+            return null;
+        }
+        
+        // Get pool for this type
+        const pool = this.objectPools.get(poolType);
+        
+        // Return object from pool if available
+        if (pool.length > 0) {
+            return pool.pop();
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Return an object to the pool for reuse
+     * @param {Object} object - Object to return to pool
+     * @param {string} type - Object type
+     */
+    returnObjectToPool(object, type) {
+        // Get simplified type for pooling
+        const poolType = this.getPoolTypeForObject(type);
+        
+        // Check if we have a pool for this type
+        if (!this.objectPools.has(poolType)) {
+            return;
+        }
+        
+        // Get pool for this type
+        const pool = this.objectPools.get(poolType);
+        
+        // Only add to pool if not full
+        if (pool.length < OBJECT_POOL_SIZE) {
+            // Reset object properties
+            if (object.position) {
+                object.position.set(0, -1000, 0); // Move below terrain
+            }
+            
+            // Add to pool
+            pool.push(object);
+        } else {
+            // Dispose object if pool is full
+            this.disposeObject(object);
+        }
+    }
+    
+    /**
+     * Get pool type for object (simplifies object types for pooling)
+     * @param {string} objectType - Original object type
+     * @returns {string} - Simplified pool type
+     */
+    getPoolTypeForObject(objectType) {
+        // Convert to lowercase for consistency
+        const type = String(objectType).toLowerCase();
+        
+        // Map specific types to general categories
+        if (type.includes('tree')) return 'tree';
+        if (type.includes('bush')) return 'bush';
+        if (type.includes('rock')) return 'rock';
+        if (type.includes('flower')) return 'flower';
+        if (type.includes('grass')) return 'grass';
+        if (type.includes('mushroom')) return 'mushroom';
+        if (type.includes('fern')) return 'fern';
+        if (type.includes('log')) return 'fallen_log';
+        
+        // Default to original type
+        return type;
+    }
+    
+    /**
+     * Generate a small batch of structures
+     * @param {THREE.Vector3} position - Center position
+     * @param {number} radius - Radius around position
+     * @param {number} density - Density multiplier
+     */
+    generateStructureBatch(position, radius, density) {
+        // Determine zone type at position
+        const zoneType = this.getZoneTypeAt(position.x, position.z);
+        const zoneDensity = this.zoneDensities[zoneType];
+        
+        if (!zoneDensity) return;
+        
+        // Calculate chunk coordinates
+        const chunkSize = this.terrainManager.terrainChunkSize;
+        const chunkX = Math.floor(position.x / chunkSize);
+        const chunkZ = Math.floor(position.z / chunkSize);
+        
+        // Only generate structures with low probability
+        if (Math.random() > zoneDensity.structures * density * 0.2) return;
+        
+        // Generate at most one structure per batch
+        // Random position within radius
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * radius;
+        const x = position.x + Math.cos(angle) * distance;
+        const z = position.z + Math.sin(angle) * distance;
+        
+        // Select structure type from zone's structure types
+        const structureType = zoneDensity.structureTypes[
+            Math.floor(Math.random() * zoneDensity.structureTypes.length)
+        ];
+        
+        // Create a simple structure with minimal complexity
+        let structure = null;
+        
+        switch (structureType) {
+            case 'house':
+                // Create a very simple house
+                structure = this.structureManager.createBuilding(x, z, 3, 3, 2);
+                break;
+            case 'ruins':
+                structure = this.structureManager.createRuins(x, z);
+                break;
+            default:
+                // Skip other structure types for performance
+                return;
+        }
+        
+        if (structure) {
+            // Add random rotation
+            structure.rotation.y = Math.random() * Math.PI * 2;
+            
+            // Add to structures tracking
+            this.structureManager.structures.push({
+                type: structureType,
+                object: structure,
+                position: new THREE.Vector3(x, this.terrainManager.getTerrainHeight(x, z), z),
+                chunkKey: `${chunkX},${chunkZ}`
+            });
+            
+            // Mark chunk as having structures
+            this.structureManager.structuresPlaced[`${chunkX},${chunkZ}`] = true;
+        }
+    }
+    
+    /**
+     * Add environment object to tracking and spatial grid
+     * @param {Object} object - Environment object
+     * @param {string} objectType - Object type
+     * @param {number} x - X coordinate
+     * @param {number} z - Z coordinate
+     * @param {number} scale - Object scale
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
+     */
+    addEnvironmentObject(object, objectType, x, z, scale, chunkX, chunkZ) {
+        // Add random rotation
+        if (object.rotation) {
+            object.rotation.y = Math.random() * Math.PI * 2;
+        }
+        
+        // Get terrain height at position
+        const y = this.terrainManager.getTerrainHeight(x, z);
+        
+        // Create object info
+        const objectInfo = {
+            type: objectType,
+            object: object,
+            position: new THREE.Vector3(x, y, z),
+            scale: scale,
+            chunkKey: `${chunkX},${chunkZ}`
+        };
+        
+        // Add to environment objects tracking
+        this.environmentManager.environmentObjects.push(objectInfo);
+        
+        // Add to type-specific collections
+        this.environmentManager.addToTypeCollection(objectType, object);
+        
+        // Add to spatial grid for faster lookup
+        this.addToSpatialGrid(objectInfo);
+    }
+    
+    /**
+     * Add object to spatial grid for faster lookup
+     * @param {Object} objectInfo - Object info with position
+     */
+    addToSpatialGrid(objectInfo) {
+        if (!objectInfo.position) return;
+        
+        // Calculate grid cell coordinates
+        const cellX = Math.floor(objectInfo.position.x / this.gridCellSize);
+        const cellZ = Math.floor(objectInfo.position.z / this.gridCellSize);
+        const cellKey = `${cellX},${cellZ}`;
+        
+        // Get or create cell
+        if (!this.spatialGrid.has(cellKey)) {
+            this.spatialGrid.set(cellKey, []);
+        }
+        
+        // Add object to cell
+        this.spatialGrid.get(cellKey).push(objectInfo);
+    }
+    
+    /**
+     * Select a random object type from an array of types
+     * @param {Array} types - Array of object types
+     * @returns {string} - Selected object type
+     */
+    selectRandomObjectType(types) {
+        if (!types || types.length === 0) {
+            return 'tree'; // Default to tree if no types available
+        }
+        
+        return types[Math.floor(Math.random() * types.length)];
     }
     
     /**
@@ -256,16 +678,16 @@ export class WorldManager {
         // First initialize with default settings
         await this.initializeDynamicGenerators();
         
-        // Then apply custom settings
+        // Then apply custom settings with safety limits
         this.dynamicGenerationSettings = {
-            environmentDensity: settings.environmentDensity || 0.3,
-            structureDensity: settings.structureDensity || 0.1,
-            enableClusters: settings.enableClusters || false,
-            enableSpecialFeatures: settings.enableSpecialFeatures || false,
+            environmentDensity: Math.min(settings.environmentDensity || 0.2, 0.4),
+            structureDensity: Math.min(settings.structureDensity || 0.05, 0.1),
+            enableClusters: false, // Always disable clusters for performance
+            enableSpecialFeatures: false, // Always disable special features for performance
             useThematicAreas: settings.useThematicAreas || false
         };
         
-        console.log('✅ Dynamic generators initialized with custom settings:', this.dynamicGenerationSettings);
+        console.debug('✅ Dynamic generators initialized with custom settings:', this.dynamicGenerationSettings);
         return true;
     }
     
@@ -280,7 +702,7 @@ export class WorldManager {
         }
         
         this.environmentDensity = this.densityLevels[level];
-        console.log(`Environment density set to ${level} (${this.environmentDensity})`);
+        console.debug(`Environment density set to ${level} (${this.environmentDensity})`);
         
         // Update environment manager if available
         if (this.environmentManager && this.environmentManager.setDensity) {
@@ -289,8 +711,6 @@ export class WorldManager {
         
         return this.environmentDensity;
     }
-    
-    // setGame method removed - game is now passed in constructor
     
     /**
      * Determine zone type based on world position
@@ -1158,6 +1578,7 @@ export class WorldManager {
     /**
      * Update the world based on player position
      * This is the main method for world generation and updates
+     * Optimized to prevent frame drops by throttling and batching operations
      * 
      * @param {THREE.Vector3} playerPosition - The player's current position
      * @param {number} drawDistanceMultiplier - Multiplier for draw distance (1.0 is default)
@@ -1169,23 +1590,54 @@ export class WorldManager {
             return;
         }
         
-        // Calculate effective draw distance based on performance mode
-        const effectiveDrawDistance = this.calculateEffectiveDrawDistance(drawDistanceMultiplier);
-        
-        // Calculate player's current chunk coordinates
-        const terrainChunkSize = this.terrainManager.terrainChunkSize;
-        const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
-        const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
-        
-        // Update world components in order of importance
-        this.updateTerrainForPlayer(playerPosition, effectiveDrawDistance);
-        this.updateEnvironmentForPlayer(playerPosition, effectiveDrawDistance);
-        
-        // Generate procedural content around player
-        this.generateProceduralContent(playerChunkX, playerChunkZ, playerPosition, effectiveDrawDistance);
-        
-        // Update lighting, fog, and other world systems
-        this.updateWorldSystems(playerPosition, effectiveDrawDistance);
+        // Throttle updates to prevent excessive processing
+        // Only update if enough time has passed since last update or player moved significantly
+        const now = performance.now();
+        const minUpdateInterval = this.lowPerformanceMode ? 100 : 50; // ms between updates
+        const hasMovedSignificantly = this.lastPlayerPosition && 
+            playerPosition.distanceTo(this.lastPlayerPosition) > 5;
+            
+        if (!this._lastWorldUpdate || 
+            now - this._lastWorldUpdate > minUpdateInterval || 
+            hasMovedSignificantly) {
+            
+            this._lastWorldUpdate = now;
+            
+            // Calculate effective draw distance based on performance mode
+            const effectiveDrawDistance = this.calculateEffectiveDrawDistance(drawDistanceMultiplier);
+            
+            // Calculate player's current chunk coordinates
+            const terrainChunkSize = this.terrainManager.terrainChunkSize;
+            const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
+            const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
+            
+            // Use a priority-based update system
+            // 1. Always update terrain first (most important for gameplay)
+            this.updateTerrainForPlayer(playerPosition, effectiveDrawDistance);
+            
+            // 2. Update environment objects (can be throttled more aggressively)
+            // Only update environment every other frame in low performance mode
+            if (!this.lowPerformanceMode || !this._lastEnvironmentUpdate || 
+                now - this._lastEnvironmentUpdate > 200) {
+                this.updateEnvironmentForPlayer(playerPosition, effectiveDrawDistance);
+                this._lastEnvironmentUpdate = now;
+            }
+            
+            // 3. Generate procedural content (can be throttled most aggressively)
+            // Only generate content if we're not already processing chunks
+            if (!this.processingChunk && 
+                (!this._lastContentGeneration || now - this._lastContentGeneration > 500)) {
+                // Use requestAnimationFrame to defer content generation to next frame
+                requestAnimationFrame(() => {
+                    this.generateProceduralContent(playerChunkX, playerChunkZ, playerPosition, effectiveDrawDistance);
+                    this._lastContentGeneration = performance.now();
+                });
+            }
+            
+            // 4. Update world systems (lighting, fog, etc.)
+            // These are lightweight and can be updated every frame
+            this.updateWorldSystems(playerPosition, effectiveDrawDistance);
+        }
     }
     
     /**
@@ -1195,11 +1647,30 @@ export class WorldManager {
      * @returns {number} - Effective draw distance multiplier
      */
     calculateEffectiveDrawDistance(drawDistanceMultiplier) {
-        // In low performance mode, cap the draw distance
-        if (this.lowPerformanceMode) {
-            return Math.min(0.6, drawDistanceMultiplier);
+        // Get performance level from game if available
+        let performanceLevel = 'medium';
+        if (this.game && this.game.performanceManager) {
+            performanceLevel = this.game.performanceManager.getCurrentPerformanceLevel();
         }
-        return drawDistanceMultiplier;
+        
+        // Apply more aggressive distance reduction based on performance level
+        let effectiveMultiplier = drawDistanceMultiplier;
+        
+        switch (performanceLevel) {
+            case 'low':
+                effectiveMultiplier = Math.min(0.4, drawDistanceMultiplier);
+                break;
+            case 'medium':
+                effectiveMultiplier = Math.min(0.7, drawDistanceMultiplier);
+                break;
+            case 'high':
+                effectiveMultiplier = Math.min(1.0, drawDistanceMultiplier);
+                break;
+            default:
+                effectiveMultiplier = Math.min(0.7, drawDistanceMultiplier);
+        }
+        
+        return effectiveMultiplier;
     }
     
     /**
@@ -1210,7 +1681,12 @@ export class WorldManager {
      */
     updateTerrainForPlayer(playerPosition, effectiveDrawDistance) {
         if (this.terrainManager) {
-            this.terrainManager.updateForPlayer(playerPosition, effectiveDrawDistance);
+            // Use a try-catch to prevent errors from breaking the game loop
+            try {
+                this.terrainManager.updateForPlayer(playerPosition, effectiveDrawDistance);
+            } catch (error) {
+                console.error("Error updating terrain:", error);
+            }
         }
     }
     
@@ -1222,95 +1698,204 @@ export class WorldManager {
      */
     updateEnvironmentForPlayer(playerPosition, effectiveDrawDistance) {
         if (this.environmentManager && this.environmentManager.updateForPlayer) {
-            this.environmentManager.updateForPlayer(playerPosition, effectiveDrawDistance);
+            // Use a try-catch to prevent errors from breaking the game loop
+            try {
+                this.environmentManager.updateForPlayer(playerPosition, effectiveDrawDistance);
+            } catch (error) {
+                console.error("Error updating environment:", error);
+            }
         }
     }
     
     /**
      * Generate procedural content for chunks around the player
+     * Optimized to prevent frame drops by limiting chunk processing
+     * 
      * @param {number} playerChunkX - Player's chunk X coordinate
      * @param {number} playerChunkZ - Player's chunk Z coordinate
      * @param {THREE.Vector3} playerPosition - Player position for zone detection
      * @param {number} effectiveDrawDistance - Effective draw distance
      */
     generateProceduralContent(playerChunkX, playerChunkZ, playerPosition, effectiveDrawDistance) {
-        // Only generate content if dynamic world is enabled
-        if (!this.dynamicWorldEnabled) return;
+        // Set flag to prevent concurrent processing
+        this.processingChunk = true;
         
-        // Set initialTerrainCreated to true after first update
-        // This allows structures to be generated in subsequent updates
-        if (!this.initialTerrainCreated) {
-            console.debug("Initial terrain creation complete, enabling structure generation");
-            this.initialTerrainCreated = true;
+        try {
+            // Only generate content if dynamic world is enabled
+            if (!this.dynamicWorldEnabled) {
+                this.processingChunk = false;
+                return;
+            }
+            
+            // Set initialTerrainCreated to true after first update
+            // This allows structures to be generated in subsequent updates
+            if (!this.initialTerrainCreated) {
+                console.debug("Initial terrain creation complete, enabling structure generation");
+                this.initialTerrainCreated = true;
+            }
+            
+            // Further reduce content generation distance in low performance mode
+            const contentGenDistance = this.lowPerformanceMode ? 2 : 3;
+            
+            // Queue chunks for processing instead of processing immediately
+            // This allows us to spread the work across multiple frames
+            this.queueChunksForProcessing(playerChunkX, playerChunkZ, contentGenDistance);
+            
+            // Process a limited number of chunks from the queue
+            this.processChunkQueue(CHUNK_PROCESSING_BUDGET_MS);
+            
+            // Update current zone type based on player position
+            this.updatePlayerZone(playerPosition);
+        } catch (error) {
+            console.error("Error generating procedural content:", error);
+        } finally {
+            // Clear flag to allow future processing
+            this.processingChunk = false;
+        }
+    }
+    
+    /**
+     * Queue chunks for processing in spiral order
+     * @private
+     * @param {number} centerX - Center chunk X coordinate
+     * @param {number} centerZ - Center chunk Z coordinate
+     * @param {number} distance - Maximum distance from center
+     */
+    queueChunksForProcessing(centerX, centerZ, distance) {
+        // Generate spiral coordinates
+        const spiralCoords = this.generateSpiralCoordinates(centerX, centerZ, distance);
+        
+        // Add chunks to processing queue if not already generated
+        for (const [x, z] of spiralCoords) {
+            const chunkKey = `${x},${z}`;
+            
+            // Skip if already generated or already in queue
+            if (this.generatedChunks.has(chunkKey)) continue;
+            
+            // Check if chunk is already in pending queue
+            const alreadyPending = this.pendingChunks.some(chunk => chunk.key === chunkKey);
+            if (alreadyPending) continue;
+            
+            // Add to pending chunks queue with priority based on distance from center
+            const distanceFromCenter = Math.max(Math.abs(x - centerX), Math.abs(z - centerZ));
+            this.pendingChunks.push({
+                key: chunkKey,
+                x: x,
+                z: z,
+                priority: distance - distanceFromCenter, // Higher priority for closer chunks
+                timestamp: Date.now()
+            });
         }
         
-        // Reduced content generation distance for better performance
-        const contentGenDistance = 3; // Reduced from 4 to 3 chunks in each direction
-        
-        // Generate content in a spiral pattern starting from player's position
-        // This ensures closer chunks are generated first
+        // Sort pending chunks by priority (highest first)
+        this.pendingChunks.sort((a, b) => b.priority - a.priority);
+    }
+    
+    /**
+     * Generate spiral coordinates around a center point
+     * @private
+     * @param {number} centerX - Center X coordinate
+     * @param {number} centerZ - Center Z coordinate
+     * @param {number} distance - Maximum distance from center
+     * @returns {Array} - Array of [x, z] coordinates in spiral order
+     */
+    generateSpiralCoordinates(centerX, centerZ, distance) {
         const spiralCoords = [];
         
         // Generate spiral coordinates
-        for (let layer = 0; layer <= contentGenDistance; layer++) {
+        for (let layer = 0; layer <= distance; layer++) {
             if (layer === 0) {
-                // Center point (player's chunk)
-                spiralCoords.push([playerChunkX, playerChunkZ]);
+                // Center point
+                spiralCoords.push([centerX, centerZ]);
             } else {
                 // Top edge (left to right)
                 for (let i = -layer; i <= layer; i++) {
-                    spiralCoords.push([playerChunkX + i, playerChunkZ - layer]);
+                    spiralCoords.push([centerX + i, centerZ - layer]);
                 }
                 // Right edge (top to bottom)
                 for (let i = -layer + 1; i <= layer; i++) {
-                    spiralCoords.push([playerChunkX + layer, playerChunkZ + i]);
+                    spiralCoords.push([centerX + layer, centerZ + i]);
                 }
                 // Bottom edge (right to left)
                 for (let i = layer - 1; i >= -layer; i--) {
-                    spiralCoords.push([playerChunkX + i, playerChunkZ + layer]);
+                    spiralCoords.push([centerX + i, centerZ + layer]);
                 }
                 // Left edge (bottom to top)
                 for (let i = layer - 1; i >= -layer + 1; i--) {
-                    spiralCoords.push([playerChunkX - layer, playerChunkZ + i]);
+                    spiralCoords.push([centerX - layer, centerZ + i]);
                 }
             }
         }
         
-        // Generate content for chunks in spiral order - but limit how many we process per frame
-        // This prevents freezing by spreading the work across multiple frames
-        const maxChunksPerFrame = 3; // Process at most 3 chunks per frame
+        return spiralCoords;
+    }
+    
+    /**
+     * Process chunks from the queue with a time budget
+     * @private
+     * @param {number} timeBudgetMs - Maximum time to spend processing chunks
+     */
+    processChunkQueue(timeBudgetMs) {
+        const startTime = performance.now();
         let chunksProcessed = 0;
         
-        for (const [x, z] of spiralCoords) {
-            // Only process a limited number of chunks per frame
-            if (chunksProcessed >= maxChunksPerFrame) break;
+        // Process chunks until we run out of time or chunks
+        while (this.pendingChunks.length > 0 && 
+               performance.now() - startTime < timeBudgetMs) {
             
-            // Skip if already generated
-            const chunkKey = `${x},${z}`;
-            if (this.generatedChunks.has(chunkKey)) continue;
+            // Get highest priority chunk
+            const chunk = this.pendingChunks.shift();
+            
+            // Skip if already generated (could have been generated while in queue)
+            if (this.generatedChunks.has(chunk.key)) continue;
+            
+            // Skip chunks that are too old (more than 5 seconds in queue)
+            if (Date.now() - chunk.timestamp > 5000) continue;
             
             // Generate content for this chunk
-            this.generateChunkContent(x, z);
+            this.generateChunkContent(chunk.x, chunk.z);
             chunksProcessed++;
+            
+            // Record last chunk process time
+            this.lastChunkProcessTime = performance.now();
         }
         
-        // Update current zone type based on player position
-        if (playerPosition) {
-            const newZoneType = this.getZoneTypeAt(playerPosition.x, playerPosition.z);
-            if (newZoneType !== this.currentZoneType) {
-                console.debug(`Player entered new zone: ${this.currentZoneType} -> ${newZoneType}`);
-                this.currentZoneType = newZoneType;
-                
-                // Notify game about zone change if needed
-                if (this.game && this.game.onZoneChange) {
-                    this.game.onZoneChange(newZoneType);
-                }
-                
-                // When entering a new zone, generate some special landmark structures
-                // But only if we're not in low performance mode
-                if (!this.lowPerformanceMode) {
+        // If we processed chunks and still have more, schedule next batch
+        if (chunksProcessed > 0 && this.pendingChunks.length > 0) {
+            // Schedule next batch with a small delay to prevent frame drops
+            setTimeout(() => {
+                requestAnimationFrame(() => {
+                    this.processChunkQueue(timeBudgetMs);
+                });
+            }, 50);
+        }
+    }
+    
+    /**
+     * Update player's current zone and handle zone transitions
+     * @private
+     * @param {THREE.Vector3} playerPosition - Player position
+     */
+    updatePlayerZone(playerPosition) {
+        if (!playerPosition) return;
+        
+        const newZoneType = this.getZoneTypeAt(playerPosition.x, playerPosition.z);
+        if (newZoneType !== this.currentZoneType) {
+            console.debug(`Player entered new zone: ${this.currentZoneType} -> ${newZoneType}`);
+            this.currentZoneType = newZoneType;
+            
+            // Notify game about zone change if needed
+            if (this.game && this.game.onZoneChange) {
+                this.game.onZoneChange(newZoneType);
+            }
+            
+            // When entering a new zone, generate some special landmark structures
+            // But only if we're not in low performance mode
+            if (!this.lowPerformanceMode) {
+                // Defer landmark generation to prevent frame drops
+                setTimeout(() => {
                     this.generateZoneLandmark(playerPosition, newZoneType);
-                }
+                }, 100);
             }
         }
     }

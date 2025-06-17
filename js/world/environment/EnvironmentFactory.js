@@ -73,6 +73,12 @@ import { BogPit } from './BogPit.js';
 import { ForestShrine } from './ForestShrine.js';
 import { IceFormation } from './IceFormation.js';
 
+// Import newly added missing environment objects
+import { CrystalOutcrop } from './CrystalOutcrop.js';
+import { MountainCave } from './MountainCave.js';
+import { GiantMushroom } from './GiantMushroom.js';
+import { MagicCircle } from './MagicCircle.js';
+
 /**
  * Environment Factory - Creates environment objects based on type
  * Centralizes environment object creation and provides a registry for all types
@@ -653,6 +659,30 @@ export class EnvironmentFactory {
         this.register(ENVIRONMENT_OBJECTS.ICE_FORMATION, (position, size, data = {}) => {
             const iceFormation = new IceFormation(this.scene, this.worldManager, position, size);
             return iceFormation;
+        });
+        
+        // Register crystal outcrop environment object
+        this.register(ENVIRONMENT_OBJECTS.CRYSTAL_OUTCROP, (position, size, data = {}) => {
+            const crystalOutcrop = new CrystalOutcrop(this.scene, this.worldManager, position, size, data);
+            return crystalOutcrop.createMesh();
+        });
+        
+        // Register mountain cave environment object
+        this.register(ENVIRONMENT_OBJECTS.MOUNTAIN_CAVE, (position, size, data = {}) => {
+            const mountainCave = new MountainCave(this.scene, this.worldManager, position, size, data);
+            return mountainCave.createMesh();
+        });
+        
+        // Register giant mushroom environment object
+        this.register(ENVIRONMENT_OBJECTS.GIANT_MUSHROOM, (position, size, data = {}) => {
+            const giantMushroom = new GiantMushroom(this.scene, this.worldManager, position, size, data);
+            return giantMushroom.createMesh();
+        });
+        
+        // Register magic circle environment object
+        this.register(ENVIRONMENT_OBJECTS.MAGIC_CIRCLE, (position, size, data = {}) => {
+            const magicCircle = new MagicCircle(this.scene, this.worldManager, position, size, data);
+            return magicCircle.createMesh();
         });
         
         // Register missing environment objects that appear in map files
