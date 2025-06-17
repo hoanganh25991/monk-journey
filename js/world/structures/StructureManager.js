@@ -492,13 +492,122 @@ export class StructureManager {
     }
     
     /**
-     * Legacy method kept for compatibility
-     * Now just a stub that does nothing
+     * Generate structures for a chunk based on zone type and density
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
+     * @param {string} zoneType - Type of zone (Forest, Desert, etc.)
+     * @param {object} zoneDensity - Density configuration for the zone
      */
-    generateStructuresForChunk(chunkX, chunkZ, dataOnly = false) {
-        // This method is kept as a stub for compatibility
-        // It no longer generates structures based on chunks
-        return;
+    generateStructuresForChunk(chunkX, chunkZ, zoneType, zoneDensity) {
+        // Skip if no zone density is provided
+        if (!zoneDensity) {
+            console.warn(`No zone density provided for zone type: ${zoneType}`);
+            return;
+        }
+        
+        // Calculate world coordinates for this chunk
+        const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const worldX = chunkX * chunkSize;
+        const worldZ = chunkZ * chunkSize;
+        
+        // Create a unique key for this chunk
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // Skip if we've already generated structures for this chunk
+        if (this.structuresPlaced[chunkKey]) {
+            return;
+        }
+        
+        console.debug(`Generating structures for chunk ${chunkKey} (${zoneType})`);
+        
+        // Mark this chunk as having structures
+        this.structuresPlaced[chunkKey] = true;
+        
+        // Get structure types for this zone
+        const structureTypes = zoneDensity.structureTypes || [];
+        if (structureTypes.length === 0) {
+            console.warn(`No structure types defined for zone: ${zoneType}`);
+            return;
+        }
+        
+        // Calculate probability of placing a structure in this chunk
+        // Apply the structure density setting as a multiplier
+        const baseProbability = 0.2; // Base probability of placing a structure
+        const densityFactor = zoneDensity.structures || 0.2;
+        const probability = baseProbability * densityFactor * this.worldManager.worldScale;
+        
+        // Determine if we should place a structure in this chunk
+        if (Math.random() < probability) {
+            // Choose a random position within the chunk
+            const offsetX = Math.random() * chunkSize * 0.8 + chunkSize * 0.1; // Keep away from edges
+            const offsetZ = Math.random() * chunkSize * 0.8 + chunkSize * 0.1; // Keep away from edges
+            const x = worldX + offsetX;
+            const z = worldZ + offsetZ;
+            
+            // Choose a random structure type for this zone
+            const typeIndex = Math.floor(Math.random() * structureTypes.length);
+            const type = structureTypes[typeIndex];
+            
+            // Create the structure
+            let structure = null;
+            
+            switch (type) {
+                case 'house':
+                    const width = 4 + Math.random() * 3;
+                    const depth = 4 + Math.random() * 3;
+                    const height = 3 + Math.random() * 2;
+                    structure = this.createBuilding(x, z, width, depth, height);
+                    break;
+                case 'tower':
+                    structure = this.createTower(x, z);
+                    break;
+                case 'ruins':
+                    structure = this.createRuins(x, z);
+                    break;
+                case 'dark_sanctum':
+                    structure = this.createDarkSanctum(x, z);
+                    break;
+                case 'mountain':
+                    structure = this.createMountain(x, z);
+                    break;
+                case 'village':
+                    structure = this.createVillage(x, z);
+                    break;
+                case 'temple':
+                    const tWidth = 8 + Math.random() * 4;
+                    const tDepth = 8 + Math.random() * 4;
+                    const tHeight = 6 + Math.random() * 3;
+                    structure = this.createBuilding(x, z, tWidth, tDepth, tHeight, 'temple');
+                    break;
+                case 'altar':
+                    const aWidth = 4 + Math.random() * 2;
+                    const aDepth = 4 + Math.random() * 2;
+                    const aHeight = 2 + Math.random() * 1;
+                    structure = this.createBuilding(x, z, aWidth, aDepth, aHeight, 'altar');
+                    break;
+                case 'fortress':
+                    const fWidth = 10 + Math.random() * 5;
+                    const fDepth = 10 + Math.random() * 5;
+                    const fHeight = 8 + Math.random() * 4;
+                    structure = this.createBuilding(x, z, fWidth, fDepth, fHeight, 'fortress');
+                    break;
+                default:
+                    console.warn(`Unknown structure type: ${type}`);
+                    break;
+            }
+            
+            if (structure) {
+                // Add to structures array for tracking
+                this.structures.push({
+                    type: type,
+                    object: structure,
+                    position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z),
+                    chunkKey: chunkKey
+                });
+                
+                console.debug(`Created ${type} at (${x.toFixed(1)}, ${z.toFixed(1)}) in chunk ${chunkKey}`);
+            }
+        }
     }
     
     /**
@@ -639,11 +748,13 @@ export class StructureManager {
      * @param {number} width - Building width
      * @param {number} depth - Building depth
      * @param {number} height - Building height
+     * @param {string} buildingType - Optional building type (house, temple, altar, etc.)
      * @returns {THREE.Group} - The building group
      */
-    createBuilding(x, z, width, depth, height) {
+    createBuilding(x, z, width, depth, height, buildingType = 'house') {
         const zoneType = this.getZoneTypeAt(x, z);
-        const building = new Building(width, depth, height, zoneType);
+        // Building constructor expects: zoneType, width, depth, height, buildingType, style
+        const building = new Building(zoneType, width, depth, height, buildingType);
         const buildingGroup = building.createMesh();
         
         // Position building on terrain
@@ -651,7 +762,6 @@ export class StructureManager {
         
         // Add to scene
         this.scene.add(buildingGroup);
-        this.structures.push(buildingGroup);
         
         return buildingGroup;
     }

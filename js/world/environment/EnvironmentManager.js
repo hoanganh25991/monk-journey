@@ -23,7 +23,8 @@ export class EnvironmentManager {
         this.environmentFactory = new EnvironmentFactory(scene, worldManager);
         
         // Environment object collections
-        this.environmentObjects = [];
+        this.environmentObjects = []; // Global list of all environment objects
+        this.environmentObjectsByChunk = {}; // Objects organized by chunk
         
         // Environment generation settings
         this.environmentDensity = 1.0; // Default density factor (0.0 to 1.0)
@@ -434,13 +435,22 @@ export class EnvironmentManager {
      */
     removeChunkObjects(chunkKey, disposeResources = false) {
         // Remove environment objects from scene
-        if (this.environmentObjects[chunkKey]) {
-            this.environmentObjects[chunkKey].forEach(item => {
+        if (this.environmentObjectsByChunk[chunkKey]) {
+            this.environmentObjectsByChunk[chunkKey].forEach(item => {
                 if (item.object) {
                     // Remove from scene if it's in the scene
                     if (item.object.parent) {
                         this.scene.remove(item.object);
                     }
+                    
+                    // Remove from global tracking array
+                    const index = this.environmentObjects.findIndex(obj => obj.object === item.object);
+                    if (index !== -1) {
+                        this.environmentObjects.splice(index, 1);
+                    }
+                    
+                    // Remove from type-specific collections
+                    this.removeFromTypeCollections(item.object);
                     
                     // Dispose of geometries and materials if requested
                     if (disposeResources) {
@@ -484,13 +494,44 @@ export class EnvironmentManager {
             
             // If disposing resources, remove the chunk data completely
             if (disposeResources) {
-                delete this.environmentObjects[chunkKey];
+                delete this.environmentObjectsByChunk[chunkKey];
                 console.debug(`Disposed environment objects for chunk ${chunkKey}`);
             }
         }
         
         // Remove the chunk from the visible chunks
         delete this.visibleChunks[chunkKey];
+    }
+    
+    /**
+     * Remove an object from all type-specific collections
+     * @param {THREE.Object3D} object - The object to remove
+     */
+    removeFromTypeCollections(object) {
+        // Helper function to remove from array
+        const removeFromArray = (array) => {
+            const index = array.indexOf(object);
+            if (index !== -1) {
+                array.splice(index, 1);
+            }
+        };
+        
+        // Remove from all type-specific collections
+        removeFromArray(this.trees);
+        removeFromArray(this.rocks);
+        removeFromArray(this.bushes);
+        removeFromArray(this.flowers);
+        removeFromArray(this.tallGrass);
+        removeFromArray(this.ancientTrees);
+        removeFromArray(this.smallPlants);
+        removeFromArray(this.fallenLogs);
+        removeFromArray(this.mushrooms);
+        removeFromArray(this.rockFormations);
+        removeFromArray(this.shrines);
+        removeFromArray(this.stumps);
+        removeFromArray(this.waterfalls);
+        removeFromArray(this.crystalFormations);
+        removeFromArray(this.mosses);
     }
     
     /**
@@ -692,20 +733,106 @@ export class EnvironmentManager {
     }
     
     /**
+     * Generate environment objects for a chunk
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
+     * @param {string} zoneType - Type of zone (Forest, Desert, etc.)
+     * @param {object} zoneDensity - Density configuration for the zone
+     */
+    generateEnvironmentForChunk(chunkX, chunkZ, zoneType, zoneDensity) {
+        // Skip if no zone density is provided
+        if (!zoneDensity) {
+            console.warn(`No zone density provided for zone type: ${zoneType}`);
+            return;
+        }
+        
+        // Calculate world coordinates for this chunk
+        const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const worldX = chunkX * chunkSize;
+        const worldZ = chunkZ * chunkSize;
+        
+        // Create a unique key for this chunk
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // Skip if we've already generated objects for this chunk
+        if (this.environmentObjectsByChunk[chunkKey]) {
+            return;
+        }
+        
+        console.debug(`Generating environment for chunk ${chunkKey} (${zoneType})`);
+        
+        // Initialize array for this chunk
+        this.environmentObjectsByChunk[chunkKey] = [];
+        
+        // Get environment types for this zone
+        const environmentTypes = zoneDensity.environmentTypes || [];
+        if (environmentTypes.length === 0) {
+            console.warn(`No environment types defined for zone: ${zoneType}`);
+            return;
+        }
+        
+        // Calculate number of objects to create based on density
+        // Apply the environment density setting as a multiplier
+        const baseCount = 10; // Base number of objects per chunk
+        const densityFactor = zoneDensity.environment || 1.0;
+        const count = Math.floor(baseCount * densityFactor * this.environmentDensity * this.worldManager.worldScale);
+        
+        // Generate random environment objects
+        for (let i = 0; i < count; i++) {
+            // Choose a random position within the chunk
+            const offsetX = Math.random() * chunkSize;
+            const offsetZ = Math.random() * chunkSize;
+            const x = worldX + offsetX;
+            const z = worldZ + offsetZ;
+            
+            // Choose a random environment type for this zone
+            const typeIndex = Math.floor(Math.random() * environmentTypes.length);
+            const type = environmentTypes[typeIndex];
+            
+            // Random scale variation
+            const scale = 0.7 + Math.random() * 0.6;
+            
+            // Create the environment object
+            const object = this.createEnvironmentObject(type, x, z, scale);
+            
+            if (object) {
+                // Create object info
+                const objectInfo = {
+                    type: type,
+                    object: object,
+                    position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z),
+                    scale: scale,
+                    chunkKey: chunkKey
+                };
+                
+                // Add to environment objects for this chunk
+                this.environmentObjectsByChunk[chunkKey].push(objectInfo);
+                
+                // Add to global environment objects array for tracking
+                this.environmentObjects.push(objectInfo);
+                
+                // Add to type-specific collections for minimap
+                this.addToTypeCollection(type, object);
+            }
+        }
+        
+        console.debug(`Created ${this.environmentObjectsByChunk[chunkKey].length} environment objects for chunk ${chunkKey}`);
+    }
+    
+    /**
      * Clear all environment objects
      */
     clear() {
         // Remove all environment objects from the scene
-        for (const chunkKey in this.environmentObjects) {
-            this.environmentObjects[chunkKey].forEach(item => {
-                if (item.object && item.object.parent) {
-                    this.scene.remove(item.object);
-                }
-            });
-        }
+        this.environmentObjects.forEach(item => {
+            if (item.object && item.object.parent) {
+                this.scene.remove(item.object);
+            }
+        });
         
         // Reset collections
-        this.environmentObjects = {};
+        this.environmentObjects = [];
+        this.environmentObjectsByChunk = {};
         this.visibleChunks = {};
         
         // Reset tracking arrays
@@ -721,5 +848,10 @@ export class EnvironmentManager {
         this.rockFormations = [];
         this.shrines = [];
         this.stumps = [];
+        this.waterfalls = [];
+        this.crystalFormations = [];
+        this.mosses = [];
+        
+        console.debug("All environment objects cleared");
     }
 }
