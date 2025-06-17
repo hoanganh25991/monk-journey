@@ -58,8 +58,9 @@ export class WorldManager {
         
         // Object preloading and buffering
         this.objectBuffer = new Map(); // Map to store preloaded objects
-        this.preloadDistance = 100; // Distance ahead of player to preload objects
+        this.preloadDistance = 200; // Distance ahead of player to preload objects
         this.preloadedChunks = new Set(); // Track which chunks have been preloaded
+        this.preloadRadius = 2; // Radius of chunks to preload (in chunks)
         
         // Spatial partitioning for faster object lookup
         this.spatialGrid = new SpatialGrid(50); // Grid-based spatial partitioning with 50 unit cell size
@@ -428,18 +429,22 @@ export class WorldManager {
             
             // If chunk is within draw distance, add its objects to the scene
             if (chunkDistance <= chunkDrawDistance) {
-                // Add environment objects
-                for (const objData of buffer.environment) {
-                    // Create the actual object and add to scene
-                    if (this.environmentManager && objData.type) {
-                        const object = this.environmentManager.createEnvironmentObject(
-                            objData.type,
-                            objData.position.x,
-                            objData.position.z,
-                            objData.scale
-                        );
+                // Check if we have pre-created objects
+                if (buffer.preCreatedObjects && buffer.preCreatedObjects.length > 0) {
+                    // Add pre-created environment objects to the scene
+                    for (const preCreated of buffer.preCreatedObjects) {
+                        const objData = preCreated.data;
+                        const object = preCreated.object;
                         
                         if (object) {
+                            // Make the object visible
+                            object.visible = true;
+                            
+                            // Add to scene if not already added
+                            if (!object.parent) {
+                                this.scene.add(object);
+                            }
+                            
                             // Add to environment objects tracking
                             this.environmentManager.environmentObjects.push({
                                 type: objData.type,
@@ -451,6 +456,114 @@ export class WorldManager {
                             
                             // Add to type-specific collections
                             this.environmentManager.addToTypeCollection(objData.type, object);
+                        }
+                    }
+                } else {
+                    // Fallback to creating objects on the fly if pre-created objects are not available
+                    // Add environment objects
+                    for (const objData of buffer.environment) {
+                        // Create the actual object and add to scene
+                        if (this.environmentManager && objData.type) {
+                            const object = this.environmentManager.createEnvironmentObject(
+                                objData.type,
+                                objData.position.x,
+                                objData.position.z,
+                                objData.scale
+                            );
+                            
+                            if (object) {
+                                // Set rotation if specified
+                                if (objData.rotation !== undefined) {
+                                    object.rotation.y = objData.rotation;
+                                }
+                                
+                                // Add to environment objects tracking
+                                this.environmentManager.environmentObjects.push({
+                                    type: objData.type,
+                                    object: object,
+                                    position: objData.position,
+                                    scale: objData.scale,
+                                    chunkKey: chunkKey
+                                });
+                                
+                                // Add to type-specific collections
+                                this.environmentManager.addToTypeCollection(objData.type, object);
+                            }
+                        }
+                    }
+                }
+                
+                // Add structures
+                for (const structData of buffer.structures || []) {
+                    // Create the actual structure and add to scene
+                    if (this.structureManager && structData.type) {
+                        let structure;
+                        
+                        // Create structure based on type
+                        switch (structData.type) {
+                            case 'village':
+                                structure = this.structureManager.createVillage(
+                                    structData.position.x, 
+                                    structData.position.z
+                                );
+                                break;
+                            case 'temple':
+                                structure = this.structureManager.createBuilding(
+                                    structData.position.x, 
+                                    structData.position.z, 
+                                    8 + Math.random() * 4, // width
+                                    8 + Math.random() * 4, // depth
+                                    6 + Math.random() * 3, // height
+                                    'temple'
+                                );
+                                break;
+                            case 'fortress':
+                                structure = this.structureManager.createBuilding(
+                                    structData.position.x, 
+                                    structData.position.z, 
+                                    10 + Math.random() * 5, // width
+                                    10 + Math.random() * 5, // depth
+                                    8 + Math.random() * 4, // height
+                                    'fortress'
+                                );
+                                break;
+                            case 'mountain':
+                                structure = this.structureManager.createMountain(
+                                    structData.position.x, 
+                                    structData.position.z
+                                );
+                                break;
+                            case 'dark_sanctum':
+                                structure = this.structureManager.createDarkSanctum(
+                                    structData.position.x, 
+                                    structData.position.z
+                                );
+                                break;
+                            case 'ruins':
+                            default:
+                                structure = this.structureManager.createRuins(
+                                    structData.position.x, 
+                                    structData.position.z
+                                );
+                                break;
+                        }
+                        
+                        if (structure) {
+                            // Set rotation if specified
+                            if (structData.rotation !== undefined) {
+                                structure.rotation.y = structData.rotation;
+                            }
+                            
+                            // Add to structures tracking
+                            this.structureManager.structures.push({
+                                type: structData.type,
+                                object: structure,
+                                position: structData.position,
+                                chunkKey: chunkKey
+                            });
+                            
+                            // Mark chunk as having structures
+                            this.structureManager.structuresPlaced[chunkKey] = true;
                         }
                     }
                 }
@@ -1146,11 +1259,11 @@ export class WorldManager {
         const targetChunkX = Math.floor(targetPosition.x / terrainChunkSize);
         const targetChunkZ = Math.floor(targetPosition.z / terrainChunkSize);
         
-        // Preload chunks in a small area around the target position
-        const preloadRadius = 1; // Just preload a 3x3 area
+        // Preload chunks in an area around the target position
+        // Use the preloadRadius property for configurability
         
-        for (let x = targetChunkX - preloadRadius; x <= targetChunkX + preloadRadius; x++) {
-            for (let z = targetChunkZ - preloadRadius; z <= targetChunkZ + preloadRadius; z++) {
+        for (let x = targetChunkX - this.preloadRadius; x <= targetChunkX + this.preloadRadius; x++) {
+            for (let z = targetChunkZ - this.preloadRadius; z <= targetChunkZ + this.preloadRadius; z++) {
                 const chunkKey = `${x},${z}`;
                 
                 // Skip if already preloaded
@@ -1159,10 +1272,19 @@ export class WorldManager {
                 // Mark as preloaded
                 this.preloadedChunks.add(chunkKey);
                 
+                // Calculate priority based on distance from target
+                const distanceFromTarget = Math.max(
+                    Math.abs(x - targetChunkX),
+                    Math.abs(z - targetChunkZ)
+                );
+                
                 // Preload content for this chunk in the background
+                // Use a small delay for chunks further away to prioritize closer chunks
+                const delay = distanceFromTarget * 50; // 0ms for center chunk, 50ms for each chunk away
+                
                 setTimeout(() => {
                     this.preloadChunkContent(x, z);
-                }, 0);
+                }, delay);
             }
         }
     }
@@ -1204,30 +1326,78 @@ export class WorldManager {
             
             // Preload environment objects (just create the data, don't add to scene yet)
             if (this.environmentManager && zoneDensity.environmentTypes) {
-                // Reduced density for better performance
-                const density = zoneDensity.environment * 0.3;
+                // Use the same density as the actual generation to ensure consistency
+                const density = zoneDensity.environment * 0.5; // Slightly higher than in generateChunkContent
                 const chunkSize = this.terrainManager.terrainChunkSize;
                 
                 // Calculate number of objects to create
                 const numObjects = Math.floor(density * chunkSize / 10);
                 
+                // Use deterministic seeding for consistent generation
+                const seed = chunkX * 10000 + chunkZ;
+                const random = this.seededRandom(seed);
+                
                 // Create environment object data
                 for (let i = 0; i < numObjects; i++) {
-                    // Random position within chunk
-                    const offsetX = Math.random() * chunkSize;
-                    const offsetZ = Math.random() * chunkSize;
+                    // Deterministic position within chunk
+                    const offsetX = random() * chunkSize;
+                    const offsetZ = random() * chunkSize;
                     const x = worldX + offsetX;
                     const z = worldZ + offsetZ;
                     
-                    // Random object type from zone's environment types
-                    const typeIndex = Math.floor(Math.random() * zoneDensity.environmentTypes.length);
+                    // Deterministic object type from zone's environment types
+                    const typeIndex = Math.floor(random() * zoneDensity.environmentTypes.length);
                     const objectType = zoneDensity.environmentTypes[typeIndex];
+                    
+                    // Deterministic scale
+                    const scale = 0.8 + random() * 0.4;
+                    
+                    // Get terrain height at this position
+                    const y = this.terrainManager.getTerrainHeight(x, z);
                     
                     // Add to buffer
                     buffer.environment.push({
                         type: objectType,
-                        position: new THREE.Vector3(x, this.terrainManager.getTerrainHeight(x, z), z),
-                        scale: 0.8 + Math.random() * 0.4
+                        position: new THREE.Vector3(x, y, z),
+                        scale: scale,
+                        rotation: random() * Math.PI * 2 // Random rotation
+                    });
+                }
+            }
+            
+            // Preload structures (just create the data, don't add to scene yet)
+            if (this.structureManager && zoneDensity.structureTypes && zoneDensity.structureTypes.length > 0) {
+                // Use deterministic seeding for consistent generation
+                const seed = chunkX * 20000 + chunkZ;
+                const random = this.seededRandom(seed);
+                
+                // Calculate probability of placing a structure in this chunk
+                const baseProbability = 0.2; // Base probability of placing a structure
+                const densityFactor = zoneDensity.structures || 0.2;
+                const probability = baseProbability * densityFactor * this.worldScale;
+                
+                // Determine if we should place a structure in this chunk
+                if (random() < probability) {
+                    const chunkSize = this.terrainManager.terrainChunkSize;
+                    
+                    // Choose a random position within the chunk
+                    const offsetX = random() * chunkSize * 0.8 + chunkSize * 0.1; // Keep away from edges
+                    const offsetZ = random() * chunkSize * 0.8 + chunkSize * 0.1; // Keep away from edges
+                    const x = worldX + offsetX;
+                    const z = worldZ + offsetZ;
+                    
+                    // Choose a random structure type for this zone
+                    const typeIndex = Math.floor(random() * zoneDensity.structureTypes.length);
+                    const type = zoneDensity.structureTypes[typeIndex];
+                    
+                    // Get terrain height at this position
+                    const y = this.terrainManager.getTerrainHeight(x, z);
+                    
+                    // Add to buffer
+                    buffer.structures.push({
+                        type: type,
+                        position: new THREE.Vector3(x, y, z),
+                        rotation: random() * Math.PI * 2 // Random rotation
                     });
                 }
             }
@@ -1235,8 +1405,81 @@ export class WorldManager {
             // Store buffer for this chunk
             this.objectBuffer.set(chunkKey, buffer);
             
+            // Pre-create actual objects in the background for faster display later
+            // This is done asynchronously to avoid blocking the main thread
+            setTimeout(() => {
+                this.preCreateEnvironmentObjects(chunkKey, buffer);
+            }, 0);
+            
         } catch (error) {
             console.error(`Error preloading chunk content for chunk ${chunkX},${chunkZ}:`, error);
         }
+    }
+    
+    /**
+     * Pre-create environment objects for a chunk
+     * @param {string} chunkKey - Chunk key
+     * @param {object} buffer - Object buffer for this chunk
+     */
+    preCreateEnvironmentObjects(chunkKey, buffer) {
+        try {
+            // Skip if buffer is empty or already processed
+            if (!buffer || !buffer.environment || buffer.environment.length === 0 || buffer.processed) {
+                return;
+            }
+            
+            // Mark buffer as processed to prevent duplicate processing
+            buffer.processed = true;
+            
+            // Create actual THREE.js objects for environment objects
+            const preCreatedObjects = [];
+            
+            for (const objData of buffer.environment) {
+                // Create the actual object but don't add to scene yet
+                if (this.environmentManager && objData.type) {
+                    const object = this.environmentManager.createEnvironmentObject(
+                        objData.type,
+                        objData.position.x,
+                        objData.position.z,
+                        objData.scale,
+                        true // offscreenCreation = true
+                    );
+                    
+                    if (object) {
+                        // Store the created object with its data
+                        preCreatedObjects.push({
+                            data: objData,
+                            object: object
+                        });
+                        
+                        // Set rotation if specified
+                        if (objData.rotation !== undefined) {
+                            object.rotation.y = objData.rotation;
+                        }
+                        
+                        // Hide the object until it's added to the scene
+                        object.visible = false;
+                    }
+                }
+            }
+            
+            // Store pre-created objects in the buffer
+            buffer.preCreatedObjects = preCreatedObjects;
+            
+        } catch (error) {
+            console.error(`Error pre-creating environment objects for chunk ${chunkKey}:`, error);
+        }
+    }
+    
+    /**
+     * Seeded random number generator for deterministic generation
+     * @param {number} seed - Seed value
+     * @returns {function} - Random number generator function
+     */
+    seededRandom(seed) {
+        return function() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        };
     }
 }

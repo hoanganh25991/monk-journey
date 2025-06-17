@@ -601,10 +601,11 @@ export class EnvironmentManager {
      * @param {number} x - X coordinate
      * @param {number} z - Z coordinate
      * @param {number} size - Size of the object (optional)
+     * @param {boolean} offscreenCreation - Whether this is being created offscreen (don't add to scene yet)
      * @param {Object} data - Additional data for complex objects (optional)
      * @returns {THREE.Object3D} - The created environment object
      */
-    createEnvironmentObject(type, x, z, size = 1, data = null) {
+    createEnvironmentObject(type, x, z, size = 1, offscreenCreation = false, data = null) {
         // Create position object with terrain height
         const position = new THREE.Vector3(
             x, 
@@ -622,6 +623,13 @@ export class EnvironmentManager {
         const object = this.environmentFactory.create(type, position, size, data);
         
         if (object) {
+            // If this is an offscreen creation, don't add to tracking arrays or scene
+            if (offscreenCreation) {
+                // Just set the position and return the object
+                object.position.copy(position);
+                return object;
+            }
+            
             // Add to the appropriate tracking array if it exists
             const trackingArrayName = this.getTrackingArrayName(type);
             if (this[trackingArrayName]) {
