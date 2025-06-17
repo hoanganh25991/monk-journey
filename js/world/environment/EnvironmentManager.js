@@ -736,10 +736,34 @@ export class EnvironmentManager {
      * Generate environment objects for a chunk
      * @param {number} chunkX - Chunk X coordinate
      * @param {number} chunkZ - Chunk Z coordinate
-     * @param {string} zoneType - Type of zone (Forest, Desert, etc.)
+     * @param {string|boolean} zoneType - Type of zone (Forest, Desert, etc.) or boolean flag for data-only generation
      * @param {object} zoneDensity - Density configuration for the zone
      */
     generateEnvironmentForChunk(chunkX, chunkZ, zoneType, zoneDensity) {
+        // Handle the case when zoneType is a boolean (data-only flag)
+        const dataOnly = typeof zoneType === 'boolean' ? zoneType : false;
+        
+        // If zoneType is not provided or is a boolean, get it from the world manager
+        if (!zoneType || typeof zoneType === 'boolean') {
+            // Calculate world coordinates for this chunk
+            const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
+            const worldX = chunkX * chunkSize;
+            const worldZ = chunkZ * chunkSize;
+            
+            // Get zone type from the world manager
+            if (this.worldManager && this.worldManager.generationManager) {
+                zoneType = this.worldManager.generationManager.getZoneTypeAt(worldX, worldZ);
+            } else {
+                // Default to Forest if we can't determine zone type
+                zoneType = 'Forest';
+            }
+            
+            // Get zone density from the world manager
+            if (this.worldManager && this.worldManager.zoneDensities) {
+                zoneDensity = this.worldManager.zoneDensities[zoneType];
+            }
+        }
+        
         // Skip if no zone density is provided
         if (!zoneDensity) {
             console.warn(`No zone density provided for zone type: ${zoneType}`);
@@ -756,6 +780,12 @@ export class EnvironmentManager {
         
         // Skip if we've already generated objects for this chunk
         if (this.environmentObjectsByChunk[chunkKey]) {
+            return;
+        }
+        
+        // If this is a data-only call, just mark the chunk as processed and return
+        if (dataOnly) {
+            this.environmentObjectsByChunk[chunkKey] = [];
             return;
         }
         
