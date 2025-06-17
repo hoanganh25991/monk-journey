@@ -1145,8 +1145,8 @@ export class EnemyManager {
             console.debug(`Cleaned up ${removedCount} distant enemies. Remaining: ${this.enemies.size}`);
             
             // Force garbage collection hint if significant cleanup occurred
-            if (removedCount > 5 && this.game && this.game.world) {
-                this.game.world.hintGarbageCollection();
+            if (removedCount > 5 && this.game && this.game.world && this.game.world.performanceManager) {
+                this.game.world.performanceManager.hintGarbageCollection();
             }
         }
     }
