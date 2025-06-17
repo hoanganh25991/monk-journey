@@ -23,7 +23,8 @@ export class AncientArtifact extends EnvironmentObject {
         this.isActivated = Math.random() > 0.7; // 30% chance to be activated/glowing
         
         // Get zone type from world manager if available
-        this.zoneType = worldManager?.getCurrentZoneType(position) || 'Ruins';
+        const zoneInfo = worldManager?.getCurrentZoneInfo?.(position);
+        this.zoneType = zoneInfo?.type || 'Ruins';
         
         // Create the artifact
         this.object = this.create();
