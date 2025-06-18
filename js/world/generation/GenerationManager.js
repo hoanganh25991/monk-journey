@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import BIOMES from '../../config/map/biomes.js';
 
 /**
  * Generation Manager class that handles procedural content generation
@@ -14,7 +15,7 @@ export class GenerationManager {
         
         // Procedural generation settings
         this.generatedChunks = new Set(); // Track which chunks have been generated
-        this.currentZoneType = 'Forest'; // Current zone type
+        this.currentZoneType = BIOMES.FOREST; // Current zone type
         this.worldScale = 1.0; // Scale factor to make objects appear farther apart
         
         // For spiral generation
@@ -385,10 +386,16 @@ export class GenerationManager {
         
         // Use a simple hash to determine zone type
         const hash = Math.abs(zoneX * 73 + zoneZ * 127) % 5;
-        const zoneTypes = ['Forest', 'Desert', 'Mountain', 'Swamp', 'Magical'];
+        const zoneTypes = [
+            BIOMES.FOREST,
+            BIOMES.DESERT,
+            BIOMES.MOUNTAIN,
+            BIOMES.SWAMP,
+            BIOMES.MAGICAL
+        ];
         
         // Ensure we have a valid zone type
-        const zoneType = zoneTypes[hash] || 'Forest';
+        const zoneType = zoneTypes[hash] || BIOMES.FOREST;
         
         return zoneType;
     }
