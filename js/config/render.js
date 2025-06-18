@@ -60,8 +60,8 @@ export const FOG_CONFIG = {
     // Base fog settings
     enabled: true,
     type: 'exp2', // 'exp2' for exponential squared fog (more realistic), 'exp' for exponential, 'linear' for linear
-    color: 0xF6C75B, // Lighter blue-gray color for a brighter atmosphere FFD39B F8D98D F6C75B E8C49A
-    density: 0.0075 / 2, // Reduced base fog density for lighter atmosphere
+    color: 0x87CEEB, // Lighter blue-gray color for a brighter atmosphere 0x87CEEB 0xFFD39B 0xE8C49A 0xF8D98D 0xF6C75B
+    density: 0.0075, // Reduced base fog density for lighter atmosphere
     near: 10, // For linear fog only - increased distance where fog begins
     far: 50, // For linear fog only - increased distance where fog is fully opaque
     
