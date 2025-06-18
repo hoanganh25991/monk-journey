@@ -296,7 +296,7 @@ export class NotificationsUI extends UIComponent {
     }
     
     /**
-     * Show level up animation using Three.js effects
+     * Show level up animation using CSS animations
      * @param {number} level - New level
      */
     showLevelUp(level) {
@@ -307,11 +307,13 @@ export class NotificationsUI extends UIComponent {
         // Set the level text
         levelElement.textContent = level;
         
-        // Show the level up animation
-        levelUpContainer.style.removeProperty("display");
+        // Show the level up animation using CSS classes
+        levelUpContainer.classList.add('show');
+        
+        // Remove the class after animation completes
         setTimeout(() => {
-            levelUpContainer.style.display = "none";
-        }, 2000)
+            levelUpContainer.classList.remove('show');
+        }, 2000);
     }
     
     /**
