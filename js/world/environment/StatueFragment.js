@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * StatueFragment - Creates a broken piece of an ancient statue
  */
 export class StatueFragment {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

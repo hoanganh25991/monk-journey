@@ -10,7 +10,7 @@ The density system consists of multiple layers that work together:
 
 ### 1. Global Density Levels
 
-Global density levels are defined in `WorldManager.js` as multipliers that affect all object generation:
+Global density levels are defined in `MapManager.js` as multipliers that affect all object generation:
 
 ```javascript
 this.densityLevels = {
@@ -115,7 +115,7 @@ The `PerformanceManager` can dynamically adjust density levels based on the curr
 
 The density system is implemented across several files:
 
-- **WorldManager.js**: Defines global density levels and biome-specific densities
+- **MapManager.js**: Defines global density levels and biome-specific densities
 - **EnvironmentManager.js**: Uses density values to determine how many objects to generate
 - **StructureManager.js**: Uses density values to determine structure placement probability
 - **PerformanceManager.js**: Dynamically adjusts density levels based on performance

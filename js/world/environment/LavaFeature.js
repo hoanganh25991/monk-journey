@@ -5,8 +5,8 @@ import { EnvironmentObject } from './EnvironmentObject.js';
  * Lava Feature - Creates a lava pool in the environment
  */
 export class LavaFeature extends EnvironmentObject {
-    constructor(scene, worldManager, position, size) {
-        super(scene, worldManager, position, size, 'lava');
+    constructor(scene, MapManager, position, size) {
+        super(scene, MapManager, position, size, 'lava');
         return this.create();
     }
     

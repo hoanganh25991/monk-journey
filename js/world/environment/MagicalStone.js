@@ -10,12 +10,12 @@ export class MagicalStone extends EnvironmentObject {
     /**
      * Create a new magical stone
      * @param {THREE.Scene} scene - The scene to add the stone to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the stone
      * @param {number} size - The size of the stone
      */
-    constructor(scene, worldManager, position, size = 1) {
-        super(scene, worldManager, position, size, 'magical_stone');
+    constructor(scene, MapManager, position, size = 1) {
+        super(scene, MapManager, position, size, 'magical_stone');
         
         // Randomize stone properties
         this.stoneType = Math.floor(Math.random() * 3); // 0: rounded, 1: angular, 2: floating
@@ -23,7 +23,7 @@ export class MagicalStone extends EnvironmentObject {
         this.pulseEffect = Math.random() > 0.3; // 70% chance to have pulsing effect
         
         // Get zone type from world manager if available
-        const zone = worldManager?.getZoneAt?.(position);
+        const zone = MapManager?.getZoneAt?.(position);
         this.zoneType = zone?.name || 'Forest';
         
         // Create the stone

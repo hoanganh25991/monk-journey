@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * OvergrownRuin - Creates an ancient ruin structure with vegetation growing on it
  */
 export class OvergrownRuin {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

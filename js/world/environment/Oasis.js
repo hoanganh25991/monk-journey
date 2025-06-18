@@ -10,12 +10,12 @@ export class Oasis extends EnvironmentObject {
     /**
      * Create a new oasis
      * @param {THREE.Scene} scene - The scene to add the oasis to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the oasis
      * @param {number} size - The size of the oasis
      */
-    constructor(scene, worldManager, position, size = 1) {
-        super(scene, worldManager, position, size, 'oasis');
+    constructor(scene, MapManager, position, size = 1) {
+        super(scene, MapManager, position, size, 'oasis');
         
         // Randomize oasis properties
         this.waterRadius = this.size * (1 + Math.random() * 0.5);
@@ -23,7 +23,7 @@ export class Oasis extends EnvironmentObject {
         this.hasRocks = Math.random() > 0.4; // 60% chance to have rocks
         
         // Get zone type from world manager if available
-        this.zoneType = worldManager?.getCurrentZoneType(position) || 'Desert';
+        this.zoneType = MapManager?.getCurrentZoneType(position) || 'Desert';
         
         // Create the oasis
         this.object = this.create();

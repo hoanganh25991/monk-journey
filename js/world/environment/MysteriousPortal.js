@@ -8,11 +8,11 @@ export class MysteriousPortal {
     /**
      * Create a new MysteriousPortal
      * @param {THREE.Scene} scene - The Three.js scene
-     * @param {import("../WorldManager.js").WorldManager} worldManager - Reference to the world manager
+     * @param {import("../MapManager.js").MapManager} MapManager - Reference to the world manager
      */
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
     
     /**

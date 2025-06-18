@@ -2,9 +2,9 @@
  * Manages terrain cleanup and memory management
  */
 export class TerrainCleanupManager {
-    constructor(scene, worldManager, terrainConfig) {
+    constructor(scene, MapManager, terrainConfig) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.terrainConfig = terrainConfig;
     }
 
@@ -61,8 +61,8 @@ export class TerrainCleanupManager {
             });
             
             // Hint for garbage collection after significant cleanup
-            if (chunksToRemove.length > 3 && this.worldManager && this.worldManager.performanceManager) {
-                this.worldManager.performanceManager.hintGarbageCollection();
+            if (chunksToRemove.length > 3 && this.MapManager && this.MapManager.performanceManager) {
+                this.MapManager.performanceManager.hintGarbageCollection();
             }
         }
     }
@@ -102,21 +102,21 @@ export class TerrainCleanupManager {
             delete terrainChunks[chunkKey];
             
             // Clean up associated objects if requested
-            if (cleanupAssociatedObjects && this.worldManager) {
+            if (cleanupAssociatedObjects && this.MapManager) {
                 // Clean up environment objects
-                if (this.worldManager.environmentManager) {
-                    this.worldManager.environmentManager.removeChunkObjects(chunkKey, true);
+                if (this.MapManager.environmentManager) {
+                    this.MapManager.environmentManager.removeChunkObjects(chunkKey, true);
                 }
                 
                 // Clean up structures
-                if (this.worldManager.structureManager) {
-                    this.worldManager.structureManager.removeStructuresInChunk(chunkKey, true);
+                if (this.MapManager.structureManager) {
+                    this.MapManager.structureManager.removeStructuresInChunk(chunkKey, true);
                 }
                 
                 // Clean up interactive objects if the method exists
-                if (this.worldManager.interactiveManager && 
-                    typeof this.worldManager.interactiveManager.removeObjectsInChunk === 'function') {
-                    this.worldManager.interactiveManager.removeObjectsInChunk(chunkKey, true);
+                if (this.MapManager.interactiveManager && 
+                    typeof this.MapManager.interactiveManager.removeObjectsInChunk === 'function') {
+                    this.MapManager.interactiveManager.removeObjectsInChunk(chunkKey, true);
                 }
             }
         }
@@ -145,8 +145,8 @@ export class TerrainCleanupManager {
             centerZ = playerChunkZ;
         }
         // Otherwise, try to get player position from the game
-        else if (this.worldManager && this.worldManager.game && this.worldManager.game.player) {
-            const playerPos = this.worldManager.game.player.getPosition();
+        else if (this.MapManager && this.MapManager.game && this.MapManager.game.player) {
+            const playerPos = this.MapManager.game.player.getPosition();
             centerX = Math.floor(playerPos.x / this.terrainConfig.chunkSize);
             centerZ = Math.floor(playerPos.z / this.terrainConfig.chunkSize);
         }
@@ -230,8 +230,8 @@ export class TerrainCleanupManager {
         
         // Force a garbage collection hint after significant cleanup
         if ((chunkCountBefore - chunkCountAfter) + (bufferCountBefore - bufferCountAfter) > 5) {
-            if (this.worldManager && this.worldManager.performanceManager) {
-                this.worldManager.performanceManager.hintGarbageCollection();
+            if (this.MapManager && this.MapManager.performanceManager) {
+                this.MapManager.performanceManager.hintGarbageCollection();
             }
         }
         

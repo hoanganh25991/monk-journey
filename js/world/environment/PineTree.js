@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * PineTree - Creates coniferous trees for mountain environments
  */
 export class PineTree {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

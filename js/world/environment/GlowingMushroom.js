@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * GlowingMushroom - Creates a mushroom that emits a magical glow
  */
 export class GlowingMushroom {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * EmberVent - Creates volcanic vents that emit glowing embers and particles
  */
 export class EmberVent {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

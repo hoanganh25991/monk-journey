@@ -10,12 +10,12 @@ export class TreeCluster {
     /**
      * Create a new tree cluster
      * @param {THREE.Scene} scene - The scene to add the cluster to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {Object} data - Data object containing cluster configuration
      */
-    constructor(scene, worldManager, data = null) {
+    constructor(scene, MapManager, data = null) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         
         // Ensure data is an object
         const safeData = data || {};

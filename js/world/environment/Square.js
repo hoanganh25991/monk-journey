@@ -7,11 +7,11 @@ export class Square {
     /**
      * Create a new square
      * @param {THREE.Scene} scene - The scene to add the square to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      */
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**
@@ -28,10 +28,10 @@ export class Square {
         // Get theme colors
         let squareColor = 0xCCCCCC; // Default square color
         
-        if (this.worldManager.mapLoader && 
-            this.worldManager.mapLoader.currentMap && 
-            this.worldManager.mapLoader.currentMap.theme) {
-            const themeColors = this.worldManager.mapLoader.currentMap.theme.colors;
+        if (this.MapManager.mapLoader && 
+            this.MapManager.mapLoader.currentMap && 
+            this.MapManager.mapLoader.currentMap.theme) {
+            const themeColors = this.MapManager.mapLoader.currentMap.theme.colors;
             
             // Use theme-specific path color if available
             if (themeColors && themeColors.path) {

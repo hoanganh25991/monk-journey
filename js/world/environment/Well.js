@@ -5,9 +5,9 @@ import * as THREE from 'three';
  * A decorative well structure for village environments
  */
 export class Well {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

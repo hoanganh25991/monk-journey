@@ -5,9 +5,9 @@ import * as THREE from 'three';
  * Creates forest floor debris like fallen leaves, twigs, and small branches
  */
 export class ForestDebris {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**
@@ -35,8 +35,8 @@ export class ForestDebris {
             const z = position.z + Math.sin(angle) * distance;
             
             // Get terrain height at this position
-            const y = this.worldManager ? 
-                this.worldManager.getTerrainHeight(x, z) : 
+            const y = this.MapManager ? 
+                this.MapManager.getTerrainHeight(x, z) : 
                 position.y;
             
             // Determine what type of debris to create (leaf, twig, or small branch)

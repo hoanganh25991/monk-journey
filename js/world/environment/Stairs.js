@@ -7,11 +7,11 @@ export class Stairs {
     /**
      * Create a new stairs object
      * @param {THREE.Scene} scene - The scene to add the stairs to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      */
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

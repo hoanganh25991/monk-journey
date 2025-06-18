@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /**
  * SpatialGrid class for efficient spatial partitioning and object lookup
- * Extracted from WorldManager for better maintainability
+ * Extracted from MapManager for better maintainability
  */
 export class SpatialGrid {
     constructor(cellSize = 50) {

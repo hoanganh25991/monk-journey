@@ -5,9 +5,9 @@ import * as THREE from 'three';
  * Features multiple fronds with a distinctive fern-like appearance
  */
 export class Fern {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
     
     /**

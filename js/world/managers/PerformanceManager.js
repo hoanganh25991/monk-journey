@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /**
  * Performance Manager class that handles performance monitoring and optimization
- * Extracted from WorldManager for better maintainability
+ * Extracted from MapManager for better maintainability
  */
 export class PerformanceManager {
     constructor(game) {

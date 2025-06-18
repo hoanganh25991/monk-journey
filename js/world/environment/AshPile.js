@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * AshPile - Creates piles of volcanic ash for desert/volcanic environments
  */
 export class AshPile {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

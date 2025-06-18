@@ -12,9 +12,9 @@ import { FOG_CONFIG } from '../../config/render.js';
  * - Distance-based darkening for far objects
  */
 export class FogManager {
-    constructor(scene, worldManager, game = null) {
+    constructor(scene, MapManager, game = null) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.game = game;
         
         // Current fog settings
@@ -148,8 +148,8 @@ export class FogManager {
         
         // Get current zone at player position
         let zone = null;
-        if (this.worldManager && this.worldManager.zoneManager) {
-            zone = this.worldManager.zoneManager.getZoneAt(playerPosition);
+        if (this.MapManager && this.MapManager.zoneManager) {
+            zone = this.MapManager.zoneManager.getZoneAt(playerPosition);
         }
         
         // Get current performance settings

@@ -8,15 +8,15 @@ export class MagicCircle {
     /**
      * Create a new magic circle
      * @param {THREE.Scene} scene - The scene to add the magic circle to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the magic circle
      * @param {number} size - The size of the magic circle
      * @param {Object} data - Additional data for the magic circle
      */
-    constructor(scene, worldManager, position, size = 1, data = {}) {
+    constructor(scene, MapManager, position, size = 1, data = {}) {
         // Store references
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.position = position;
         
         // Randomize circle properties
@@ -189,8 +189,8 @@ export class MagicCircle {
         circleGroup.add(light);
         
         // Add animation to the circle group
-        if (this.worldManager && this.worldManager.addAnimatedObject) {
-            this.worldManager.addAnimatedObject({
+        if (this.MapManager && this.MapManager.addAnimatedObject) {
+            this.MapManager.addAnimatedObject({
                 update: (deltaTime) => {
                     this.time += deltaTime;
                     

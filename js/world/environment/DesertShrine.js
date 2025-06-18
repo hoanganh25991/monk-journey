@@ -10,12 +10,12 @@ export class DesertShrine extends EnvironmentObject {
     /**
      * Create a new desert shrine
      * @param {THREE.Scene} scene - The scene to add the shrine to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the shrine
      * @param {number} size - The size of the shrine
      */
-    constructor(scene, worldManager, position, size = 1) {
-        super(scene, worldManager, position, size, 'desert_shrine');
+    constructor(scene, MapManager, position, size = 1) {
+        super(scene, MapManager, position, size, 'desert_shrine');
         
         // Randomize shrine properties
         this.shrineType = Math.floor(Math.random() * 3); // 0: obelisk, 1: altar, 2: small temple
@@ -23,7 +23,7 @@ export class DesertShrine extends EnvironmentObject {
         this.hasTorches = Math.random() > 0.5; // 50% chance to have torches/fire
         
         // Get zone type from world manager if available
-        this.zoneType = worldManager?.getZoneTypeAt(position.x, position.z) || 'Desert';
+        this.zoneType = MapManager?.getZoneTypeAt(position.x, position.z) || 'Desert';
         
         // Create the shrine
         this.object = this.create();

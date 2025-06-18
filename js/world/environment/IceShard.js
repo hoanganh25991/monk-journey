@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * IceShard - Creates crystalline ice formations for cold mountain environments
  */
 export class IceShard {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

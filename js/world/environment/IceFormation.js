@@ -5,8 +5,8 @@ import { EnvironmentObject } from './EnvironmentObject.js';
  * Ice Formation - Creates an ice formation in the environment
  */
 export class IceFormation extends EnvironmentObject {
-    constructor(scene, worldManager, position, size) {
-        super(scene, worldManager, position, size, 'ice_formation');
+    constructor(scene, MapManager, position, size) {
+        super(scene, MapManager, position, size, 'ice_formation');
         return this.create();
     }
     

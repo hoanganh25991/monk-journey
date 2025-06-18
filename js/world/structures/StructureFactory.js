@@ -17,9 +17,9 @@ import { Village } from './Village.js';
  * Centralizes structure object creation and provides a registry for all types
  */
 export class StructureFactory {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.registry = new Map();
         
         // Register all structure creators
@@ -36,37 +36,37 @@ export class StructureFactory {
             const depth = options.depth || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.HOUSE].depth;
             const height = options.height || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.HOUSE].height;
             
-            const building = new Building(this.scene, this.worldManager);
+            const building = new Building(this.scene, this.MapManager);
             return building.createMesh(position.x, position.z, width, depth, height);
         });
         
         this.register(STRUCTURE_TYPES.TOWER, (position, options = {}) => {
-            const tower = new Tower(this.scene, this.worldManager);
+            const tower = new Tower(this.scene, this.MapManager);
             return tower.createMesh(position.x, position.z);
         });
         
         this.register(STRUCTURE_TYPES.RUINS, (position, options = {}) => {
-            const ruins = new Ruins(this.scene, this.worldManager);
+            const ruins = new Ruins(this.scene, this.MapManager);
             return ruins.createMesh(position.x, position.z);
         });
         
         this.register(STRUCTURE_TYPES.DARK_SANCTUM, (position, options = {}) => {
-            const darkSanctum = new DarkSanctum(this.scene, this.worldManager);
+            const darkSanctum = new DarkSanctum(this.scene, this.MapManager);
             return darkSanctum.createMesh(position.x, position.z);
         });
         
         this.register(STRUCTURE_TYPES.MOUNTAIN, (position, options = {}) => {
-            const mountain = new Mountain(this.scene, this.worldManager);
+            const mountain = new Mountain(this.scene, this.MapManager);
             return mountain.createMesh(position.x, position.z);
         });
         
         this.register(STRUCTURE_TYPES.BRIDGE, (position, options = {}) => {
-            const bridge = new Bridge(this.scene, this.worldManager);
+            const bridge = new Bridge(this.scene, this.MapManager);
             return bridge.createMesh(position.x, position.z);
         });
         
         this.register(STRUCTURE_TYPES.VILLAGE, (position, options = {}) => {
-            const village = new Village(this.scene, this.worldManager);
+            const village = new Village(this.scene, this.MapManager);
             return village.createMesh(position.x, position.z);
         });
         
@@ -76,7 +76,7 @@ export class StructureFactory {
             const depth = options.depth || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.TAVERN].depth;
             const height = options.height || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.TAVERN].height;
             
-            const building = new Building(this.scene, this.worldManager);
+            const building = new Building(this.scene, this.MapManager);
             return building.createMesh(position.x, position.z, width, depth, height, STRUCTURE_TYPES.TAVERN);
         });
         
@@ -85,7 +85,7 @@ export class StructureFactory {
             const depth = options.depth || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.TEMPLE].depth;
             const height = options.height || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.TEMPLE].height;
             
-            const building = new Building(this.scene, this.worldManager);
+            const building = new Building(this.scene, this.MapManager);
             return building.createMesh(position.x, position.z, width, depth, height, STRUCTURE_TYPES.TEMPLE);
         });
         
@@ -94,7 +94,7 @@ export class StructureFactory {
             const depth = options.depth || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.SHOP].depth;
             const height = options.height || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.SHOP].height;
             
-            const building = new Building(this.scene, this.worldManager);
+            const building = new Building(this.scene, this.MapManager);
             return building.createMesh(position.x, position.z, width, depth, height, STRUCTURE_TYPES.SHOP);
         });
         
@@ -103,7 +103,7 @@ export class StructureFactory {
             const depth = options.depth || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.FORTRESS].depth;
             const height = options.height || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.FORTRESS].height;
             
-            const building = new Building(this.scene, this.worldManager);
+            const building = new Building(this.scene, this.MapManager);
             return building.createMesh(position.x, position.z, width, depth, height, STRUCTURE_TYPES.FORTRESS);
         });
         
@@ -112,7 +112,7 @@ export class StructureFactory {
             const depth = options.depth || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.ALTAR].depth;
             const height = options.height || STRUCTURE_PROPERTIES[STRUCTURE_TYPES.ALTAR].height;
             
-            const building = new Building(this.scene, this.worldManager);
+            const building = new Building(this.scene, this.MapManager);
             return building.createMesh(position.x, position.z, width, depth, height, STRUCTURE_TYPES.ALTAR);
         });
     }

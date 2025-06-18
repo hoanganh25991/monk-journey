@@ -6,8 +6,8 @@ import { EnvironmentObject } from './EnvironmentObject.js';
  * Creates a rustic wooden structure elevated above ground
  */
 export class Treehouse extends EnvironmentObject {
-    constructor(scene, worldManager) {
-        super(scene, worldManager);
+    constructor(scene, MapManager) {
+        super(scene, MapManager);
         this.name = 'Treehouse';
     }
 

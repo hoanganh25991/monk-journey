@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * SwampDebris - Creates various debris objects for swamp environments
  */
 export class SwampDebris {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

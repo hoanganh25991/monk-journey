@@ -25,7 +25,7 @@ import { SpatialGrid } from './utils/SpatialGrid.js';
  * Optimized for performance with object pooling, throttling, and spatial partitioning
  * Refactored to use modular managers for better maintainability
  */
-export class WorldManager {
+export class MapManager {
     constructor(scene, loadingManager, game) {
         this.scene = scene;
         this.loadingManager = loadingManager;

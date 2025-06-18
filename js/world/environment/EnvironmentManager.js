@@ -13,13 +13,13 @@ import { ENVIRONMENT_OBJECTS, ENVIRONMENT_CATEGORIES } from '../../config/map/en
  * Simplified to focus only on loading environment objects from map data
  */
 export class EnvironmentManager {
-    constructor(scene, worldManager, game = null) {
+    constructor(scene, MapManager, game = null) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.game = game;
         
         // Initialize the environment factory
-        this.environmentFactory = new EnvironmentFactory(scene, worldManager);
+        this.environmentFactory = new EnvironmentFactory(scene, MapManager);
         
         // Environment object collections
         this.environmentObjects = []; // Global list of all environment objects
@@ -248,7 +248,7 @@ export class EnvironmentManager {
         }
         
         // Use the terrain height at this position
-        const y = this.worldManager.getTerrainHeight(x, z);
+        const y = this.MapManager.getTerrainHeight(x, z);
         
         // Create a position object with the correct terrain height
         const position = new THREE.Vector3(x, y, z);
@@ -331,9 +331,9 @@ export class EnvironmentManager {
                 ENVIRONMENT_OBJECTS.SMALL_MUSHROOM, 
                 ENVIRONMENT_OBJECTS.SMALL_PLANT
             ];
-            if (this.worldManager.lodManager && !skipLodTypes.includes(type) && scale > 0.5) {
+            if (this.MapManager.lodManager && !skipLodTypes.includes(type) && scale > 0.5) {
                 // Apply LOD to the object
-                object = this.worldManager.lodManager.applyLOD(object, type, position);
+                object = this.MapManager.lodManager.applyLOD(object, type, position);
             }
             
             // Add to scene (only if not already added by factory)
@@ -565,7 +565,7 @@ export class EnvironmentManager {
                 objects.push({
                     type: objData.type,
                     object: object,
-                    position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z)
+                    position: new THREE.Vector3(x, this.MapManager.getTerrainHeight(x, z), z)
                 });
             }
         }
@@ -582,9 +582,9 @@ export class EnvironmentManager {
      */
     getZoneTypeAt(x, z) {
         // Use the world manager to get the zone at this position
-        if (this.worldManager && this.worldManager.getZoneAt) {
+        if (this.MapManager && this.MapManager.getZoneAt) {
             const position = new THREE.Vector3(x, 0, z);
-            const zone = this.worldManager.getZoneAt(position);
+            const zone = this.MapManager.getZoneAt(position);
             if (zone) {
                 return zone.name;
             }
@@ -608,7 +608,7 @@ export class EnvironmentManager {
         // Create position object with terrain height
         const position = new THREE.Vector3(
             x, 
-            this.worldManager.getTerrainHeight(x, z), 
+            this.MapManager.getTerrainHeight(x, z), 
             z
         );
         
@@ -668,7 +668,7 @@ export class EnvironmentManager {
         if (!playerPosition) return;
         
         // Calculate which chunk the player is in
-        const chunkSize = this.worldManager.terrainManager.terrainChunkSize || 64;
+        const chunkSize = this.MapManager.terrainManager.terrainChunkSize || 64;
         const playerChunkX = Math.floor(playerPosition.x / chunkSize);
         const playerChunkZ = Math.floor(playerPosition.z / chunkSize);
         
@@ -681,10 +681,10 @@ export class EnvironmentManager {
         let directionX = 0;
         let directionZ = 0;
         
-        if (this.worldManager.lastPlayerPosition) {
+        if (this.MapManager.lastPlayerPosition) {
             // Calculate movement direction
-            const moveX = playerPosition.x - this.worldManager.lastPlayerPosition.x;
-            const moveZ = playerPosition.z - this.worldManager.lastPlayerPosition.z;
+            const moveX = playerPosition.x - this.MapManager.lastPlayerPosition.x;
+            const moveZ = playerPosition.z - this.MapManager.lastPlayerPosition.z;
             
             // Normalize direction
             const length = Math.sqrt(moveX * moveX + moveZ * moveZ);
@@ -798,21 +798,21 @@ export class EnvironmentManager {
         // If zoneType is not provided or is a boolean, get it from the world manager
         if (!zoneType || typeof zoneType === 'boolean') {
             // Calculate world coordinates for this chunk
-            const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
+            const chunkSize = this.MapManager.terrainManager.terrainChunkSize;
             const worldX = chunkX * chunkSize;
             const worldZ = chunkZ * chunkSize;
             
             // Get zone type from the world manager
-            if (this.worldManager && this.worldManager.generationManager) {
-                zoneType = this.worldManager.generationManager.getZoneTypeAt(worldX, worldZ);
+            if (this.MapManager && this.MapManager.generationManager) {
+                zoneType = this.MapManager.generationManager.getZoneTypeAt(worldX, worldZ);
             } else {
                 // Default to Forest if we can't determine zone type
                 zoneType = 'Forest';
             }
             
             // Get zone density from the world manager
-            if (this.worldManager && this.worldManager.zoneDensities) {
-                zoneDensity = this.worldManager.zoneDensities[zoneType];
+            if (this.MapManager && this.MapManager.zoneDensities) {
+                zoneDensity = this.MapManager.zoneDensities[zoneType];
             }
         }
         
@@ -823,7 +823,7 @@ export class EnvironmentManager {
         }
         
         // Calculate world coordinates for this chunk
-        const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const chunkSize = this.MapManager.terrainManager.terrainChunkSize;
         const worldX = chunkX * chunkSize;
         const worldZ = chunkZ * chunkSize;
         
@@ -857,7 +857,7 @@ export class EnvironmentManager {
         // Apply the environment density setting as a multiplier
         const baseCount = 10; // Base number of objects per chunk
         const densityFactor = zoneDensity.environment || 1.0;
-        const count = Math.floor(baseCount * densityFactor * this.environmentDensity * this.worldManager.worldScale);
+        const count = Math.floor(baseCount * densityFactor * this.environmentDensity * this.MapManager.worldScale);
         
         // Generate random environment objects
         for (let i = 0; i < count; i++) {
@@ -882,7 +882,7 @@ export class EnvironmentManager {
                 const objectInfo = {
                     type: type,
                     object: object,
-                    position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z),
+                    position: new THREE.Vector3(x, this.MapManager.getTerrainHeight(x, z), z),
                     scale: scale,
                     chunkKey: chunkKey
                 };

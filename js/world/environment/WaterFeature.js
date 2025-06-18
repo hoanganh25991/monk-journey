@@ -5,8 +5,8 @@ import { EnvironmentObject } from './EnvironmentObject.js';
  * Water Feature - Creates a water body in the environment
  */
 export class WaterFeature extends EnvironmentObject {
-    constructor(scene, worldManager, position, size) {
-        super(scene, worldManager, position, size, 'water');
+    constructor(scene, MapManager, position, size) {
+        super(scene, MapManager, position, size, 'water');
         return this.create();
     }
     

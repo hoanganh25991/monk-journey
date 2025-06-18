@@ -10,12 +10,12 @@ export class Moss extends EnvironmentObject {
     /**
      * Create a new moss patch
      * @param {THREE.Scene} scene - The scene to add the moss to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the moss
      * @param {number} size - The size of the moss patch
      */
-    constructor(scene, worldManager, position, size = 1) {
-        super(scene, worldManager, position, size, 'moss');
+    constructor(scene, MapManager, position, size = 1) {
+        super(scene, MapManager, position, size, 'moss');
         
         // Randomize moss properties
         this.patchType = Math.floor(Math.random() * 3); // 0: ground, 1: rock, 2: tree
@@ -26,8 +26,8 @@ export class Moss extends EnvironmentObject {
         this.zoneType = 'Forest'; // Default to Forest
         
         // Try to get the zone type from the zone manager
-        if (worldManager && worldManager.zoneManager) {
-            const zone = worldManager.zoneManager.getZoneAt(position);
+        if (MapManager && MapManager.zoneManager) {
+            const zone = MapManager.zoneManager.getZoneAt(position);
             if (zone && zone.name) {
                 this.zoneType = zone.name;
             }

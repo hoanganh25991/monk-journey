@@ -8,15 +8,15 @@ export class GiantMushroom {
     /**
      * Create a new giant mushroom
      * @param {THREE.Scene} scene - The scene to add the giant mushroom to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the giant mushroom
      * @param {number} size - The size of the giant mushroom
      * @param {Object} data - Additional data for the giant mushroom
      */
-    constructor(scene, worldManager, position, size = 1, data = {}) {
+    constructor(scene, MapManager, position, size = 1, data = {}) {
         // Store references
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.position = position;
         
         // Randomize mushroom properties

@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * BrokenColumn - Creates a broken ancient column
  */
 export class BrokenColumn {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

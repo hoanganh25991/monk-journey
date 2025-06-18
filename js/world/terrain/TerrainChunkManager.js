@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * Manages terrain chunk creation, buffering, and lifecycle
  */
 export class TerrainChunkManager {
-    constructor(scene, worldManager, terrainConfig, templateManager, coloringManager) {
+    constructor(scene, MapManager, terrainConfig, templateManager, coloringManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.terrainConfig = terrainConfig;
         this.templateManager = templateManager;
         this.coloringManager = coloringManager;
@@ -43,14 +43,14 @@ export class TerrainChunkManager {
         let zoneType = 'Terrant'; // Default to Terrant for new terrain
         
         // If we have a world manager with zone information, use it
-        if (this.worldManager && this.worldManager.getZoneAt) {
+        if (this.MapManager && this.MapManager.getZoneAt) {
             // Calculate world coordinates for this chunk
             const worldX = x * this.terrainConfig.chunkSize + this.terrainConfig.chunkSize / 2;
             const worldZ = z * this.terrainConfig.chunkSize + this.terrainConfig.chunkSize / 2;
             
             // Get zone at this position
             const pos = new THREE.Vector3(worldX, 0, worldZ);
-            const zone = this.worldManager.getZoneAt(pos);
+            const zone = this.MapManager.getZoneAt(pos);
             
             if (zone) {
                 zoneType = zone.name;
@@ -69,7 +69,7 @@ export class TerrainChunkManager {
         terrain.castShadow = true;
         
         // Apply terrain coloring with variations based on zone type
-        const themeColors = this.worldManager.zoneManager ? this.worldManager.zoneManager.currentThemeColors : null;
+        const themeColors = this.MapManager.zoneManager ? this.MapManager.zoneManager.currentThemeColors : null;
         this.coloringManager.colorTerrainUniform(terrain, zoneType, themeColors);
         
         // Store zone type on the terrain for later reference
@@ -165,8 +165,8 @@ export class TerrainChunkManager {
         this.terrainChunks[chunkKey] = terrain;
         
         // Notify structure manager to generate structures for this chunk
-        if (this.worldManager && this.worldManager.structureManager) {
-            this.worldManager.structureManager.generateStructuresForChunk(chunkX, chunkZ);
+        if (this.MapManager && this.MapManager.structureManager) {
+            this.MapManager.structureManager.generateStructuresForChunk(chunkX, chunkZ);
         }
         
         return terrain;
@@ -185,14 +185,14 @@ export class TerrainChunkManager {
         
         // Notify structure manager about saved structures
         if (chunkData.structures && chunkData.structures.length > 0 && 
-            this.worldManager && this.worldManager.structureManager) {
-            this.worldManager.structureManager.loadStructuresForChunk(chunkX, chunkZ, chunkData.structures);
+            this.MapManager && this.MapManager.structureManager) {
+            this.MapManager.structureManager.loadStructuresForChunk(chunkX, chunkZ, chunkData.structures);
         }
         
         // Notify environment manager about saved environment objects
         if (chunkData.environmentObjects && Array.isArray(chunkData.environmentObjects) && chunkData.environmentObjects.length > 0 && 
-            this.worldManager && this.worldManager.environmentManager) {
-            this.worldManager.environmentManager.loadEnvironmentObjectsForChunk(chunkX, chunkZ, chunkData.environmentObjects);
+            this.MapManager && this.MapManager.environmentManager) {
+            this.MapManager.environmentManager.loadEnvironmentObjectsForChunk(chunkX, chunkZ, chunkData.environmentObjects);
         }
         
         console.debug(`Terrain chunk ${chunkX},${chunkZ} created from saved data`);
@@ -232,14 +232,14 @@ export class TerrainChunkManager {
         let zoneType = 'Terrant'; // Default to Terrant for new terrain
         
         // If we have a world manager with zone information, use it
-        if (this.worldManager && this.worldManager.getZoneAt) {
+        if (this.MapManager && this.MapManager.getZoneAt) {
             // Calculate world coordinates for this chunk
             const worldX = chunkX * this.terrainConfig.chunkSize + this.terrainConfig.chunkSize / 2;
             const worldZ = chunkZ * this.terrainConfig.chunkSize + this.terrainConfig.chunkSize / 2;
             
             // Get zone at this position
             const position = new THREE.Vector3(worldX, 0, worldZ);
-            const zone = this.worldManager.getZoneAt(position);
+            const zone = this.MapManager.getZoneAt(position);
             
             if (zone) {
                 zoneType = zone.name;
@@ -263,8 +263,8 @@ export class TerrainChunkManager {
         this.templateManager.getOrCreateTerrainTemplate(zoneType, this.terrainConfig.chunkSize, 16);
         
         // Notify structure manager to pre-generate structures for this chunk
-        if (this.worldManager && this.worldManager.structureManager) {
-            this.worldManager.structureManager.generateStructuresForChunk(chunkX, chunkZ, true); // true = data only
+        if (this.MapManager && this.MapManager.structureManager) {
+            this.MapManager.structureManager.generateStructuresForChunk(chunkX, chunkZ, true); // true = data only
         }
         
         console.debug(`Buffered terrain chunk placeholder created: ${chunkKey}`);

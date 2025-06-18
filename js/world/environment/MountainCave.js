@@ -8,15 +8,15 @@ export class MountainCave {
     /**
      * Create a new mountain cave
      * @param {THREE.Scene} scene - The scene to add the mountain cave to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the mountain cave
      * @param {number} size - The size of the mountain cave
      * @param {Object} data - Additional data for the mountain cave
      */
-    constructor(scene, worldManager, position, size = 1, data = {}) {
+    constructor(scene, MapManager, position, size = 1, data = {}) {
         // Store references
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.position = position;
         
         // Randomize cave properties

@@ -5,9 +5,9 @@ import * as THREE from 'three';
  * Creates natural-looking groupings of mushrooms for forest environments
  */
 export class MushroomCluster {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
     
     /**
@@ -38,8 +38,8 @@ export class MushroomCluster {
             const mushroomZ = position.z + Math.sin(angle) * distance;
             
             // Get terrain height for this position
-            const mushroomY = this.worldManager ? 
-                this.worldManager.getTerrainHeight(mushroomX, mushroomZ) : 
+            const mushroomY = this.MapManager ? 
+                this.MapManager.getTerrainHeight(mushroomX, mushroomZ) : 
                 position.y;
             
             const mushroomPosition = new THREE.Vector3(mushroomX, mushroomY, mushroomZ);

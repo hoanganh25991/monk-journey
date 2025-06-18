@@ -416,7 +416,7 @@ export class CameraControlUI extends UIComponent {
                 
                 console.debug("Tap detected at normalized coordinates:", {x, y});
                 
-                // Create a raycaster directly here instead of relying on WorldManager
+                // Create a raycaster directly here instead of relying on MapManager
                 const raycaster = new THREE.Raycaster();
                 raycaster.setFromCamera(new THREE.Vector2(x, y), this.game.camera);
                 

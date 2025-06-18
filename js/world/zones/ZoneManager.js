@@ -5,9 +5,9 @@ import { ZONE_COLORS } from '../../config/colors.js';
  * Manages world zones and their properties
  */
 export class ZoneManager {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.game = null;
         
         // Zone collections
@@ -69,13 +69,13 @@ export class ZoneManager {
     updateTerrainColors() {
         console.debug('Updating terrain colors based on zones...');
         
-        if (!this.worldManager || !this.worldManager.terrainManager) {
+        if (!this.MapManager || !this.MapManager.terrainManager) {
             console.warn('TerrainManager not available for color updates');
             return;
         }
         
         // Get all visible terrain chunks
-        const terrainChunks = this.worldManager.terrainManager.terrainChunks;
+        const terrainChunks = this.MapManager.terrainManager.terrainChunks;
         if (!terrainChunks) {
             console.warn('No terrain chunks available for color updates');
             return;
@@ -137,18 +137,18 @@ export class ZoneManager {
                 const themeColors = this.getThemeColorsForZoneType(zoneType);
                 
                 // Apply the zone-appropriate color to the terrain chunk
-                this.worldManager.terrainManager.colorTerrainUniform(chunk, zoneType, themeColors);
+                this.MapManager.terrainManager.colorTerrainUniform(chunk, zoneType, themeColors);
             }
         });
         
         // Also update the base terrain if it exists
-        if (this.worldManager.terrainManager.terrain) {
-            const baseTerrain = this.worldManager.terrainManager.terrain;
+        if (this.MapManager.terrainManager.terrain) {
+            const baseTerrain = this.MapManager.terrainManager.terrain;
             const mainZoneType = mainZone ? mainZone.name : 'Terrant';
             const themeColors = this.getThemeColorsForZoneType(mainZoneType);
             
             console.debug(`Coloring base terrain with zone type ${mainZoneType} and theme colors:`, themeColors);
-            this.worldManager.terrainManager.colorTerrainUniform(baseTerrain, mainZoneType, themeColors);
+            this.MapManager.terrainManager.colorTerrainUniform(baseTerrain, mainZoneType, themeColors);
         }
         
         console.debug('Terrain colors updated successfully');
@@ -164,13 +164,13 @@ export class ZoneManager {
      * @param {Object} colors - Specific colors to apply (overrides zone-based colors)
      */
     updateTerrainColorsInArea(worldX, worldZ, width, depth, colors) {
-        if (!this.worldManager || !this.worldManager.terrainManager) {
+        if (!this.MapManager || !this.MapManager.terrainManager) {
             console.warn('TerrainManager not available for area color updates');
             return;
         }
         
         // Get all visible terrain chunks
-        const terrainChunks = this.worldManager.terrainManager.terrainChunks;
+        const terrainChunks = this.MapManager.terrainManager.terrainChunks;
         if (!terrainChunks) {
             console.warn('No terrain chunks available for area color updates');
             return;
@@ -187,7 +187,7 @@ export class ZoneManager {
             if (chunk && !chunk.isPlaceholder) {
                 const chunkX = chunk.position.x;
                 const chunkZ = chunk.position.z;
-                const chunkSize = this.worldManager.terrainManager.terrainChunkSize || 50;
+                const chunkSize = this.MapManager.terrainManager.terrainChunkSize || 50;
                 
                 // Check if this chunk intersects with our area
                 const chunkMinX = chunkX - chunkSize / 2;
@@ -206,14 +206,14 @@ export class ZoneManager {
                         const zoneType = zone ? zone.name : 'Terrant';
                         
                         // Apply the colors to the terrain chunk
-                        this.worldManager.terrainManager.colorTerrainUniform(chunk, zoneType, colors);
+                        this.MapManager.terrainManager.colorTerrainUniform(chunk, zoneType, colors);
                     } else {
                         // Otherwise, use the standard zone-based coloring
                         const zone = this.getZoneAt(new THREE.Vector3(chunkX, 0, chunkZ));
                         const zoneType = zone ? zone.name : 'Terrant';
                         const themeColors = this.getThemeColorsForZoneType(zoneType);
                         
-                        this.worldManager.terrainManager.colorTerrainUniform(chunk, zoneType, themeColors);
+                        this.MapManager.terrainManager.colorTerrainUniform(chunk, zoneType, themeColors);
                     }
                 }
             }
@@ -310,7 +310,7 @@ export class ZoneManager {
             );
             marker.position.set(
                 zone.center.x,
-                this.worldManager.getTerrainHeight(zone.center.x, zone.center.z) + 2.5,
+                this.MapManager.getTerrainHeight(zone.center.x, zone.center.z) + 2.5,
                 zone.center.z
             );
             this.scene.add(marker);
@@ -384,7 +384,7 @@ export class ZoneManager {
         }
         
         // Calculate chunk center position
-        const chunkSize = this.worldManager?.terrainManager?.terrainChunkSize || 50;
+        const chunkSize = this.MapManager?.terrainManager?.terrainChunkSize || 50;
         const worldX = chunkX * chunkSize + chunkSize / 2;
         const worldZ = chunkZ * chunkSize + chunkSize / 2;
         

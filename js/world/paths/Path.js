@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * Base Path class - Provides common functionality for all path types
  */
 export class Path {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
     
     /**

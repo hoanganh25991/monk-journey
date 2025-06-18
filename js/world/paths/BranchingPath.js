@@ -15,11 +15,11 @@ export class BranchingPath extends Path {
      */
     createPath(points, width, options = {}) {
         // Get zone information for coloring
-        const zoneAt = this.worldManager.zoneManager.getZoneAt(points[0]);
+        const zoneAt = this.MapManager.zoneManager.getZoneAt(points[0]);
         const zoneName = zoneAt ? zoneAt.name : 'Terrant';
         
         // Get theme colors
-        const themeColors = this.worldManager.currentMap?.theme?.colors || {};
+        const themeColors = this.MapManager.currentMap?.theme?.colors || {};
         
         // Create materials
         const pathMaterial = this.getPathMaterial(zoneName, themeColors);

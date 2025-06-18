@@ -6,8 +6,8 @@ import { EnvironmentObject } from './EnvironmentObject.js';
  * Creates a beautiful group of luminescent flowers that emit soft light
  */
 export class GlowingFlowers extends EnvironmentObject {
-    constructor(scene, worldManager) {
-        super(scene, worldManager);
+    constructor(scene, MapManager) {
+        super(scene, MapManager);
         this.type = 'glowing_flowers';
         this.name = 'Glowing Flowers';
         this.description = 'A magical cluster of flowers that glow with ethereal light';

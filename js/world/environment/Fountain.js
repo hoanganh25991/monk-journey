@@ -5,9 +5,9 @@ import * as THREE from 'three';
  * A decorative fountain structure for village environments
  */
 export class Fountain {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

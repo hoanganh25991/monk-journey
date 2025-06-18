@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { WorldManager } from '../world/WorldManager.js';
+import { MapManager } from '../world/MapManager.js';
 import { Player } from '../entities/player/Player.js';
 import { InputHandler } from '../InputHandler.js';
 import { HUDManager } from '../hud-manager/HUDManager.js';
@@ -42,7 +42,7 @@ import storageService from '../save-manager/StorageService.js';
  * @property {THREE.PerspectiveCamera} camera - The main camera used for rendering the scene
  * @property {OrbitControls} controls - Camera controls for development/debugging purposes
  * @property {PerformanceManager} performanceManager - Manages performance optimizations and settings
- * @property {WorldManager} world - Manages the game world, terrain, and environment
+ * @property {MapManager} world - Manages the game world, terrain, and environment
  * @property {Player} player - The player character with model, animations, and controls
  * @property {InputHandler} inputHandler - Handles user input (keyboard, mouse, touch)
  * @property {EffectsManager} effectsManager - Manages visual effects, particles, and skill effects
@@ -239,7 +239,7 @@ export class Game {
             
             // Initialize world with loading state
             this.isWorldLoading = true;
-            this.world = new WorldManager(this.scene, this.loadingManager, this);
+            this.world = new MapManager(this.scene, this.loadingManager, this);
             
             // Show a more detailed loading message for terrain generation
             this.updateLoadingProgress(25, 'Generating terrain...', 'This may take a moment');

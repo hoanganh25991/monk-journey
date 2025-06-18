@@ -8,15 +8,15 @@ export class CrystalFormation {
     /**
      * Create a new crystal formation
      * @param {THREE.Scene} scene - The scene to add the crystal formation to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the crystal formation
      * @param {number} size - The size of the crystal formation
      * @param {Object} data - Additional data for the crystal formation
      */
-    constructor(scene, worldManager, position, size = 1, data = {}) {
+    constructor(scene, MapManager, position, size = 1, data = {}) {
         // Store references
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.position = position;
         
         // Randomize crystal properties

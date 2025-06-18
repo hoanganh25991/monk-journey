@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /**
  * Memory Manager class that handles memory management and cleanup
- * Extracted from WorldManager for better maintainability
+ * Extracted from MapManager for better maintainability
  */
 export class MemoryManager {
     constructor(scene, terrainManager, environmentManager, structureManager) {

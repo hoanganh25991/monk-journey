@@ -8,11 +8,11 @@ export class LODManager {
     /**
      * Create a new LOD Manager
      * @param {THREE.Scene} scene - The Three.js scene
-     * @param {Object} worldManager - Reference to the world manager
+     * @param {Object} MapManager - Reference to the world manager
      */
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         
         // Configuration for LOD distances
         this.config = {

@@ -10,12 +10,12 @@ export class RarePlant extends EnvironmentObject {
     /**
      * Create a new rare plant
      * @param {THREE.Scene} scene - The scene to add the plant to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the plant
      * @param {number} size - The size of the plant
      */
-    constructor(scene, worldManager, position, size = 1) {
-        super(scene, worldManager, position, size, 'rare_plant');
+    constructor(scene, MapManager, position, size = 1) {
+        super(scene, MapManager, position, size, 'rare_plant');
         
         // Randomize plant properties
         this.plantHeight = 0.8 + Math.random() * 1.2;
@@ -23,7 +23,7 @@ export class RarePlant extends EnvironmentObject {
         this.hasFlowers = Math.random() > 0.3; // 70% chance to have flowers
         
         // Get zone type from world manager if available
-        this.zoneType = worldManager?.getCurrentZoneType(position) || 'Forest';
+        this.zoneType = MapManager?.getCurrentZoneType(position) || 'Forest';
         
         // Create the plant
         this.object = this.create();

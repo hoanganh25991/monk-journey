@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * LavaRock - Creates volcanic rocks with glowing cracks and emissive properties
  */
 export class LavaRock {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

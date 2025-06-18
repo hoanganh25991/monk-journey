@@ -11,13 +11,13 @@ import { TerrainCleanupManager } from './TerrainCleanupManager.js';
  * Main orchestrator class that coordinates all terrain-related functionality
  */
 export class TerrainManager {
-    constructor(scene, worldManager, game = null) {
+    constructor(scene, MapManager, game = null) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.game = game;
         
         // Get world scale for consistent scaling
-        const worldScale = this.worldManager.worldScale || 1.0;
+        const worldScale = this.MapManager.worldScale || 1.0;
         
         // Terrain properties from config
         this.terrainSize = TERRAIN_CONFIG.size * worldScale; // Scale base terrain with world scale
@@ -63,13 +63,13 @@ export class TerrainManager {
         
         this.chunkManager = new TerrainChunkManager(
             scene, 
-            worldManager, 
+            MapManager, 
             scaledTerrainConfig, 
             this.templateManager, 
             this.coloringManager
         );
         this.queueManager = new TerrainQueueManager(this.chunkManager, scaledTerrainConfig);
-        this.cleanupManager = new TerrainCleanupManager(scene, worldManager, scaledTerrainConfig);
+        this.cleanupManager = new TerrainCleanupManager(scene, MapManager, scaledTerrainConfig);
         
         // Set game reference for queue manager
         if (game) {

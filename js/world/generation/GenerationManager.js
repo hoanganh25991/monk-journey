@@ -3,7 +3,7 @@ import BIOMES from '../../config/map/biomes.js';
 
 /**
  * Generation Manager class that handles procedural content generation
- * Extracted from WorldManager for better maintainability
+ * Extracted from MapManager for better maintainability
  */
 export class GenerationManager {
     constructor(scene, terrainManager, structureManager, environmentManager, zoneManager) {
@@ -70,9 +70,9 @@ export class GenerationManager {
             let lastPlayerPosition = null;
             
             // Get last player position from world manager if available
-            if (this.terrainManager && this.terrainManager.worldManager && 
-                this.terrainManager.worldManager.lastPlayerPosition) {
-                lastPlayerPosition = this.terrainManager.worldManager.lastPlayerPosition;
+            if (this.terrainManager && this.terrainManager.MapManager && 
+                this.terrainManager.MapManager.lastPlayerPosition) {
+                lastPlayerPosition = this.terrainManager.MapManager.lastPlayerPosition;
             }
             
             if (lastPlayerPosition && playerPosition) {
@@ -429,10 +429,10 @@ export class GenerationManager {
     
     /**
      * Generate environment objects for a chunk
-     * This is a placeholder - the actual implementation would be moved from WorldManager
+     * This is a placeholder - the actual implementation would be moved from MapManager
      */
     generateEnvironmentObjectsForChunk(chunkX, chunkZ, zoneType, zoneDensity) {
-        // This would contain the implementation from WorldManager.generateEnvironmentObjectsForChunk
+        // This would contain the implementation from MapManager.generateEnvironmentObjectsForChunk
         // For brevity, we're not including the full implementation here
         if (this.environmentManager && this.environmentManager.generateEnvironmentForChunk) {
             this.environmentManager.generateEnvironmentForChunk(chunkX, chunkZ, zoneType, zoneDensity);
@@ -441,10 +441,10 @@ export class GenerationManager {
     
     /**
      * Generate structures for a chunk
-     * This is a placeholder - the actual implementation would be moved from WorldManager
+     * This is a placeholder - the actual implementation would be moved from MapManager
      */
     generateStructuresForChunk(chunkX, chunkZ, zoneType, zoneDensity) {
-        // This would contain the implementation from WorldManager.generateStructuresForChunk
+        // This would contain the implementation from MapManager.generateStructuresForChunk
         // For brevity, we're not including the full implementation here
         if (this.structureManager && this.structureManager.generateStructuresForChunk) {
             this.structureManager.generateStructuresForChunk(chunkX, chunkZ, zoneType, zoneDensity);

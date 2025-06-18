@@ -5,9 +5,9 @@ import * as THREE from 'three';
  * Features a bush-like structure with clusters of berries
  */
 export class BerryBush {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
     
     /**

@@ -10,12 +10,12 @@ export class TeleportManager {
     /**
      * Create a new TeleportManager
      * @param {THREE.Scene} scene - The Three.js scene
-     * @param {import("./../WorldManager.js").WorldManager} worldManager - Reference to the world manager
+     * @param {import("./../MapManager.js").MapManager} MapManager - Reference to the world manager
      * @param {import("./../../game/Game.js").Game} game
      */
-    constructor(scene, worldManager, game) {
+    constructor(scene, MapManager, game) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.game = game;
         
         // Create portal model factory
@@ -419,9 +419,9 @@ export class TeleportManager {
         
         // Adjust Y position based on terrain height
         try {
-            if (this.worldManager && this.worldManager.getTerrainHeight) {
-                sourcePosition.y = this.worldManager.getTerrainHeight(sourcePosition.x, sourcePosition.z) + 0.5;
-                targetPosition.y = this.worldManager.getTerrainHeight(targetPosition.x, targetPosition.z) + 0.5;
+            if (this.MapManager && this.MapManager.getTerrainHeight) {
+                sourcePosition.y = this.MapManager.getTerrainHeight(sourcePosition.x, sourcePosition.z) + 0.5;
+                targetPosition.y = this.MapManager.getTerrainHeight(targetPosition.x, targetPosition.z) + 0.5;
             }
             
             // Elevate the source position (this will affect the portal's height)
@@ -731,8 +731,8 @@ export class TeleportManager {
             let targetY = portal.targetPosition.y;
             
             // If we have terrain height information, use it
-            if (this.worldManager && this.worldManager.getTerrainHeight) {
-                targetY = this.worldManager.getTerrainHeight(portal.targetPosition.x, portal.targetPosition.z) + 0.5;
+            if (this.MapManager && this.MapManager.getTerrainHeight) {
+                targetY = this.MapManager.getTerrainHeight(portal.targetPosition.x, portal.targetPosition.z) + 0.5;
                 console.debug(`Adjusted target height to terrain: ${targetY}`);
             }
             
@@ -836,7 +836,7 @@ export class TeleportManager {
                 this.spawnMultiplierEnemies(portal.multiplier, portal.targetPosition);
                 
                 // Modify terrain if we have a destination terrain type
-                if (portal.destinationTerrain && this.worldManager && this.worldManager.terrainManager) {
+                if (portal.destinationTerrain && this.MapManager && this.MapManager.terrainManager) {
                     this.modifyDestinationTerrain(portal.targetPosition, portal.destinationTerrain);
                 }
             }
@@ -1168,7 +1168,7 @@ export class TeleportManager {
      */
     modifyDestinationTerrain(position, terrainType) {
         // Skip if no terrain manager
-        if (!this.worldManager || !this.worldManager.terrainManager) {
+        if (!this.MapManager || !this.MapManager.terrainManager) {
             console.warn("Cannot modify destination terrain: terrain manager not found");
             return;
         }
@@ -1179,7 +1179,7 @@ export class TeleportManager {
         const modificationRadius = terrainType.size || 100;
         
         // Get all terrain chunks within the radius
-        const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const chunkSize = this.MapManager.terrainManager.terrainChunkSize;
         const centerChunkX = Math.floor(position.x / chunkSize);
         const centerChunkZ = Math.floor(position.z / chunkSize);
         const chunkRadius = Math.ceil(modificationRadius / chunkSize) + 1;
@@ -1190,7 +1190,7 @@ export class TeleportManager {
         for (let x = centerChunkX - chunkRadius; x <= centerChunkX + chunkRadius; x++) {
             for (let z = centerChunkZ - chunkRadius; z <= centerChunkZ + chunkRadius; z++) {
                 const chunkKey = `${x},${z}`;
-                const chunk = this.worldManager.terrainManager.terrainChunks[chunkKey];
+                const chunk = this.MapManager.terrainManager.terrainChunks[chunkKey];
                 
                 if (chunk) {
                     // Calculate distance from center to chunk center
@@ -1409,8 +1409,8 @@ export class TeleportManager {
             targetPosition = new THREE.Vector3(0, 0, 0);
             // Adjust target Y position based on terrain height
             try {
-                if (this.worldManager && this.worldManager.getTerrainHeight) {
-                    targetPosition.y = this.worldManager.getTerrainHeight(0, 0) + 0.5;
+                if (this.MapManager && this.MapManager.getTerrainHeight) {
+                    targetPosition.y = this.MapManager.getTerrainHeight(0, 0) + 0.5;
                 }
             } catch (e) {
                 console.warn('Error adjusting target portal height:', e);

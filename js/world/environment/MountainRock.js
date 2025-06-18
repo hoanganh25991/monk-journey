@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * MountainRock - Creates large, angular rocks suitable for mountain environments
  */
 export class MountainRock {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

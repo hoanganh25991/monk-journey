@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * DesertPlant - Creates desert plants like cacti and succulents
  */
 export class DesertPlant {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

@@ -10,12 +10,12 @@ export class ObsidianFormation extends EnvironmentObject {
     /**
      * Create a new obsidian formation
      * @param {THREE.Scene} scene - The scene to add the formation to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the formation
      * @param {number} size - The size of the formation
      */
-    constructor(scene, worldManager, position, size = 1) {
-        super(scene, worldManager, position, size, 'obsidian_formation');
+    constructor(scene, MapManager, position, size = 1) {
+        super(scene, MapManager, position, size, 'obsidian_formation');
         
         // Randomize formation properties
         this.formationType = Math.floor(Math.random() * 3); // 0: spikes, 1: slab, 2: cluster
@@ -23,7 +23,7 @@ export class ObsidianFormation extends EnvironmentObject {
         this.reflectivity = 0.3 + Math.random() * 0.4; // Random reflectivity between 0.3-0.7
         
         // Get zone type from world manager if available
-        this.zoneType = worldManager?.getCurrentZoneType(position) || 'Volcanic Wastes';
+        this.zoneType = MapManager?.getCurrentZoneType(position) || 'Volcanic Wastes';
         
         // Create the formation
         this.object = this.create();

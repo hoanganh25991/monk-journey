@@ -16,9 +16,9 @@ import { NaturalPath } from './NaturalPath.js';
  * Centralizes path creation and provides a registry for all types
  */
 export class PathFactory {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.registry = new Map();
         
         // Register all path creators
@@ -31,22 +31,22 @@ export class PathFactory {
     registerPathCreators() {
         // Register path patterns with dedicated classes
         this.register(PATH_PATTERNS.STRAIGHT, (points, width, options) => 
-            new StraightPath(this.scene, this.worldManager).createPath(points, width, options));
+            new StraightPath(this.scene, this.MapManager).createPath(points, width, options));
             
         this.register(PATH_PATTERNS.CURVED, (points, width, options) => 
-            new CurvedPath(this.scene, this.worldManager).createPath(points, width, options));
+            new CurvedPath(this.scene, this.MapManager).createPath(points, width, options));
             
         this.register(PATH_PATTERNS.SPIRAL, (points, width, options) => 
-            new SpiralPath(this.scene, this.worldManager).createPath(points, width, options));
+            new SpiralPath(this.scene, this.MapManager).createPath(points, width, options));
             
         this.register(PATH_PATTERNS.BRANCHING, (points, width, options) => 
-            new BranchingPath(this.scene, this.worldManager).createPath(points, width, options));
+            new BranchingPath(this.scene, this.MapManager).createPath(points, width, options));
             
         this.register(PATH_PATTERNS.CIRCULAR, (points, width, options) => 
-            new CircularPath(this.scene, this.worldManager).createPath(points, width, options));
+            new CircularPath(this.scene, this.MapManager).createPath(points, width, options));
             
         this.register(PATH_PATTERNS.NATURAL, (points, width, options) => 
-            new NaturalPath(this.scene, this.worldManager).createPath(points, width, options));
+            new NaturalPath(this.scene, this.MapManager).createPath(points, width, options));
     }
     
     /**

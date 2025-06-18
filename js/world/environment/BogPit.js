@@ -5,8 +5,8 @@ import { EnvironmentObject } from './EnvironmentObject.js';
  * Bog Pit - Creates a murky, swampy pit in the environment
  */
 export class BogPit extends EnvironmentObject {
-    constructor(scene, worldManager, position, size) {
-        super(scene, worldManager, position, size, 'bog_pit');
+    constructor(scene, MapManager, position, size) {
+        super(scene, MapManager, position, size, 'bog_pit');
         return this.create();
     }
     

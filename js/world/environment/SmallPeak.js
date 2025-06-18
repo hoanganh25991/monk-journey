@@ -5,8 +5,8 @@ import { EnvironmentObject } from './EnvironmentObject.js';
  * Small Peak - Creates a small mountain peak in the environment
  */
 export class SmallPeak extends EnvironmentObject {
-    constructor(scene, worldManager, position, size) {
-        super(scene, worldManager, position, size, 'small_peak');
+    constructor(scene, MapManager, position, size) {
+        super(scene, MapManager, position, size, 'small_peak');
         return this.create();
     }
     

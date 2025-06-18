@@ -10,9 +10,9 @@ import { BossSpawnPoint } from './BossSpawnPoint.js';
  * Simplified to focus only on loading interactive objects from map data.
  */
 export class InteractiveObjectManager {
-    constructor(scene, worldManager, game = null) {
+    constructor(scene, MapManager, game = null) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.game = game;
         
         // Interactive object collections
@@ -126,7 +126,7 @@ export class InteractiveObjectManager {
         const chestGroup = chest.createMesh();
         
         // Position chest on terrain
-        const y = this.worldManager.getTerrainHeight(x, z);
+        const y = this.MapManager.getTerrainHeight(x, z);
         chestGroup.position.set(x, y, z);
         
         // Add to scene
@@ -184,7 +184,7 @@ export class InteractiveObjectManager {
         const markerGroup = questMarker.createMesh();
         
         // Position marker on terrain
-        markerGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+        markerGroup.position.set(x, this.MapManager.getTerrainHeight(x, z), z);
         
         // Add to scene
         this.scene.add(markerGroup);
@@ -194,7 +194,7 @@ export class InteractiveObjectManager {
             type: 'quest',
             name: questName,
             mesh: markerGroup,
-            position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z),
+            position: new THREE.Vector3(x, this.MapManager.getTerrainHeight(x, z), z),
             interactionRadius: 3,
             onInteract: () => {
                 // Return quest information
@@ -228,7 +228,7 @@ export class InteractiveObjectManager {
         const markerGroup = bossSpawn.createMesh();
         
         // Position marker on terrain
-        markerGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+        markerGroup.position.set(x, this.MapManager.getTerrainHeight(x, z), z);
         
         // Add to scene
         this.scene.add(markerGroup);
@@ -238,7 +238,7 @@ export class InteractiveObjectManager {
             type: 'boss_spawn',
             name: `${bossType} Spawn`,
             mesh: markerGroup,
-            position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z),
+            position: new THREE.Vector3(x, this.MapManager.getTerrainHeight(x, z), z),
             interactionRadius: 5,
             bossType: bossType,
             onInteract: () => {

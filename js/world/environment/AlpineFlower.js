@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * AlpineFlower - Creates hardy mountain flowers that can survive in cold, high-altitude environments
  */
 export class AlpineFlower {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

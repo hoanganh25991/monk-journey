@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * RuneStone - Creates a stone with ancient runes carved into it
  */
 export class RuneStone {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

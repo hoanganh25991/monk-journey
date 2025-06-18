@@ -10,12 +10,12 @@ export class AncientArtifact extends EnvironmentObject {
     /**
      * Create a new ancient artifact
      * @param {THREE.Scene} scene - The scene to add the artifact to
-     * @param {Object} worldManager - The world manager
+     * @param {Object} MapManager - The world manager
      * @param {THREE.Vector3} position - The position of the artifact
      * @param {number} size - The size of the artifact
      */
-    constructor(scene, worldManager, position, size = 1) {
-        super(scene, worldManager, position, size, 'ancient_artifact');
+    constructor(scene, MapManager, position, size = 1) {
+        super(scene, MapManager, position, size, 'ancient_artifact');
         
         // Randomize artifact properties
         this.artifactType = Math.floor(Math.random() * 4); // 0: orb, 1: tablet, 2: statue, 3: mechanism
@@ -23,7 +23,7 @@ export class AncientArtifact extends EnvironmentObject {
         this.isActivated = Math.random() > 0.7; // 30% chance to be activated/glowing
         
         // Get zone type from world manager if available
-        const zoneInfo = worldManager?.getCurrentZoneInfo?.(position);
+        const zoneInfo = MapManager?.getCurrentZoneInfo?.(position);
         this.zoneType = zoneInfo?.type || 'Ruins';
         
         // Create the artifact

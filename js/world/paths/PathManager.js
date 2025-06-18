@@ -7,13 +7,13 @@ import { PATH_PATTERNS, PATH_TYPES, PATH_MATERIALS } from '../../config/paths.js
  * Centralizes path management and provides dynamic path generation
  */
 export class PathManager {
-    constructor(scene, worldManager, game = null) {
+    constructor(scene, MapManager, game = null) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.game = game;
         
         // Initialize the path factory
-        this.pathFactory = new PathFactory(scene, worldManager);
+        this.pathFactory = new PathFactory(scene, MapManager);
         
         // Path collections
         this.paths = {};
@@ -66,7 +66,7 @@ export class PathManager {
      */
     updateForPlayer(playerPosition, drawDistanceMultiplier = 1.0) {
         // Calculate which terrain chunk the player is in
-        const terrainChunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const terrainChunkSize = this.MapManager.terrainManager.terrainChunkSize;
         const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
         const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
         
@@ -140,7 +140,7 @@ export class PathManager {
         console.debug('Path generation is disabled - generateSingleLongPath called but not executed');
         return;
         
-        const terrainChunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const terrainChunkSize = this.MapManager.terrainManager.terrainChunkSize;
         const pathId = `path_${this.pathIdCounter++}`;
         
         // Determine path characteristics based on zone type
@@ -273,7 +273,7 @@ export class PathManager {
      * @returns {Array} - Array of Vector3 points
      */
     generateLongPathPoints(startChunkX, startChunkZ, pathLength, pathPattern) {
-        const terrainChunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const terrainChunkSize = this.MapManager.terrainManager.terrainChunkSize;
         const points = [];
         
         // Starting position (random within the starting chunk)
@@ -332,7 +332,7 @@ export class PathManager {
      * @param {Array} points - Path points
      */
     registerPathInChunks(pathId, points) {
-        const terrainChunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const terrainChunkSize = this.MapManager.terrainManager.terrainChunkSize;
         const pathData = this.globalPaths.get(pathId);
         
         if (!pathData) return;
@@ -379,7 +379,7 @@ export class PathManager {
         return [];
         
         const paths = [];
-        const terrainChunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const terrainChunkSize = this.MapManager.terrainManager.terrainChunkSize;
         
         // Determine path characteristics based on zone type
         let pathPattern, pathType, pathMaterial, pathWidth;
@@ -774,9 +774,9 @@ export class PathManager {
      */
     getZoneTypeAt(x, z) {
         // Use the world manager to get the zone at this position
-        if (this.worldManager && this.worldManager.getZoneAt) {
+        if (this.MapManager && this.MapManager.getZoneAt) {
             const position = new THREE.Vector3(x, 0, z);
-            const zone = this.worldManager.getZoneAt(position);
+            const zone = this.MapManager.getZoneAt(position);
             if (zone) {
                 return zone.type;
             }
@@ -794,13 +794,13 @@ export class PathManager {
      */
     getTerrainHeightAt(x, z) {
         // First try to get terrain height from world manager
-        if (this.worldManager && this.worldManager.getTerrainHeight) {
-            return this.worldManager.getTerrainHeight(x, z);
+        if (this.MapManager && this.MapManager.getTerrainHeight) {
+            return this.MapManager.getTerrainHeight(x, z);
         }
         
         // If world manager method not available, try terrain manager directly
-        if (this.worldManager && this.worldManager.terrainManager && this.worldManager.terrainManager.getHeightAt) {
-            return this.worldManager.terrainManager.getHeightAt(x, z);
+        if (this.MapManager && this.MapManager.terrainManager && this.MapManager.terrainManager.getHeightAt) {
+            return this.MapManager.terrainManager.getHeightAt(x, z);
         }
         
         // If no terrain height available, use a simple height calculation

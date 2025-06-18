@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * LilyPad - Creates a lily pad for water surfaces
  */
 export class LilyPad {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

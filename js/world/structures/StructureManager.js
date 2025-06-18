@@ -7,13 +7,13 @@ import { STRUCTURE_TYPES } from '../../config/map/structure.js';
  * Refactored to use StructureFactory for better maintainability
  */
 export class StructureManager {
-    constructor(scene, worldManager, game = null) {
+    constructor(scene, MapManager, game = null) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.game = game;
         
         // Initialize structure factory
-        this.structureFactory = new StructureFactory(scene, worldManager);
+        this.structureFactory = new StructureFactory(scene, MapManager);
         
         // Structure collections
         this.structures = [];
@@ -225,8 +225,8 @@ export class StructureManager {
         const position = new THREE.Vector3(x, 0, z);
         
         // Get terrain height if available
-        if (this.worldManager && this.worldManager.getTerrainHeight) {
-            position.y = this.worldManager.getTerrainHeight(x, z);
+        if (this.MapManager && this.MapManager.getTerrainHeight) {
+            position.y = this.MapManager.getTerrainHeight(x, z);
         }
         
         // Create structure using factory
@@ -344,8 +344,8 @@ export class StructureManager {
             const endZ = centerZ + Math.sin(endAngle) * radius;
             
             // Create path segment
-            if (this.game && this.game.worldManager && this.game.worldManager.createPathSegment) {
-                this.game.worldManager.createPathSegment(startX, startZ, endX, endZ);
+            if (this.game && this.game.MapManager && this.game.MapManager.createPathSegment) {
+                this.game.MapManager.createPathSegment(startX, startZ, endX, endZ);
             }
         }
     }
@@ -359,8 +359,8 @@ export class StructureManager {
      */
     createVillageHousePath(centerX, centerZ, houseX, houseZ) {
         // Create a path from the village center to the house
-        if (this.game && this.game.worldManager && this.game.worldManager.createPathSegment) {
-            this.game.worldManager.createPathSegment(centerX, centerZ, houseX, houseZ);
+        if (this.game && this.game.MapManager && this.game.MapManager.createPathSegment) {
+            this.game.MapManager.createPathSegment(centerX, centerZ, houseX, houseZ);
         }
     }
     
@@ -441,7 +441,7 @@ export class StructureManager {
         }
         
         // Create a path through the mountain range if we have enough points
-        if (pathPoints.length >= 2 && this.game && this.game.worldManager && this.game.worldManager.createPathSegment) {
+        if (pathPoints.length >= 2 && this.game && this.game.MapManager && this.game.MapManager.createPathSegment) {
             // Sort path points to create a sensible path
             if (isLinear) {
                 // For linear ranges, sort by distance along the range direction
@@ -469,10 +469,10 @@ export class StructureManager {
                 const midZ = (start.z + end.z) / 2 + (Math.random() - 0.5) * 5;
                 
                 // Create first half
-                this.game.worldManager.createPathSegment(start.x, start.z, midX, midZ);
+                this.game.MapManager.createPathSegment(start.x, start.z, midX, midZ);
                 
                 // Create second half
-                this.game.worldManager.createPathSegment(midX, midZ, end.x, end.z);
+                this.game.MapManager.createPathSegment(midX, midZ, end.x, end.z);
             }
         }
         
@@ -501,21 +501,21 @@ export class StructureManager {
         // If zoneType is not provided or is a boolean, get it from the world manager
         if (!zoneType || typeof zoneType === 'boolean') {
             // Calculate world coordinates for this chunk
-            const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
+            const chunkSize = this.MapManager.terrainManager.terrainChunkSize;
             const worldX = chunkX * chunkSize;
             const worldZ = chunkZ * chunkSize;
             
             // Get zone type from the world manager
-            if (this.worldManager && this.worldManager.generationManager) {
-                zoneType = this.worldManager.generationManager.getZoneTypeAt(worldX, worldZ);
+            if (this.MapManager && this.MapManager.generationManager) {
+                zoneType = this.MapManager.generationManager.getZoneTypeAt(worldX, worldZ);
             } else {
                 // Default to Forest if we can't determine zone type
                 zoneType = 'Forest';
             }
             
             // Get zone density from the world manager
-            if (this.worldManager && this.worldManager.zoneDensities) {
-                zoneDensity = this.worldManager.zoneDensities[zoneType];
+            if (this.MapManager && this.MapManager.zoneDensities) {
+                zoneDensity = this.MapManager.zoneDensities[zoneType];
             }
         }
         
@@ -526,7 +526,7 @@ export class StructureManager {
         }
         
         // Calculate world coordinates for this chunk
-        const chunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const chunkSize = this.MapManager.terrainManager.terrainChunkSize;
         const worldX = chunkX * chunkSize;
         const worldZ = chunkZ * chunkSize;
         
@@ -560,7 +560,7 @@ export class StructureManager {
         // Apply the structure density setting as a multiplier
         const baseProbability = 0.2; // Base probability of placing a structure
         const densityFactor = zoneDensity.structures || 0.2;
-        const probability = baseProbability * densityFactor * this.worldManager.worldScale;
+        const probability = baseProbability * densityFactor * this.MapManager.worldScale;
         
         // Determine if we should place a structure in this chunk
         if (Math.random() < probability) {
@@ -653,7 +653,7 @@ export class StructureManager {
                 this.structures.push({
                     type: structureType,
                     object: structure,
-                    position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z),
+                    position: new THREE.Vector3(x, this.MapManager.getTerrainHeight(x, z), z),
                     chunkKey: chunkKey
                 });
                 
@@ -680,7 +680,7 @@ export class StructureManager {
             const [chunkX, chunkZ] = chunkKey.split(',').map(Number);
             
             // Calculate world coordinates for this chunk
-            const terrainChunkSize = this.worldManager.terrainManager.terrainChunkSize;
+            const terrainChunkSize = this.MapManager.terrainManager.terrainChunkSize;
             const worldX = chunkX * terrainChunkSize;
             const worldZ = chunkZ * terrainChunkSize;
             
@@ -759,28 +759,28 @@ export class StructureManager {
     getZoneTypeAt(x, z) {
         try {
             // Use the world manager to get the zone at this position
-            if (this.worldManager && this.worldManager.zoneManager) {
+            if (this.MapManager && this.MapManager.zoneManager) {
                 // Calculate which chunk this position is in
-                const terrainChunkSize = this.worldManager.terrainManager.terrainChunkSize;
+                const terrainChunkSize = this.MapManager.terrainManager.terrainChunkSize;
                 const chunkX = Math.floor(x / terrainChunkSize);
                 const chunkZ = Math.floor(z / terrainChunkSize);
                 
                 // Try to get zone type from the zone manager's chunk cache
-                const zoneType = this.worldManager.zoneManager.getZoneTypeForChunk(chunkX, chunkZ);
+                const zoneType = this.MapManager.zoneManager.getZoneTypeForChunk(chunkX, chunkZ);
                 if (zoneType) {
                     return zoneType;
                 }
                 
                 // Fallback to position-based lookup
                 const position = new THREE.Vector3(x, 0, z);
-                const zone = this.worldManager.zoneManager.getZoneAt(position);
+                const zone = this.MapManager.zoneManager.getZoneAt(position);
                 if (zone) {
                     return zone.name;
                 }
-            } else if (this.worldManager && this.worldManager.getZoneAt) {
+            } else if (this.MapManager && this.MapManager.getZoneAt) {
                 // Legacy method
                 const position = new THREE.Vector3(x, 0, z);
-                const zone = this.worldManager.getZoneAt(position);
+                const zone = this.MapManager.getZoneAt(position);
                 if (zone) {
                     return zone.name;
                 }
@@ -810,7 +810,7 @@ export class StructureManager {
         const buildingGroup = building.createMesh();
         
         // Position building on terrain
-        buildingGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+        buildingGroup.position.set(x, this.MapManager.getTerrainHeight(x, z), z);
         
         // Add to scene
         this.scene.add(buildingGroup);
@@ -830,7 +830,7 @@ export class StructureManager {
         const towerGroup = tower.createMesh();
         
         // Position tower on terrain
-        towerGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+        towerGroup.position.set(x, this.MapManager.getTerrainHeight(x, z), z);
         
         // Add to scene
         this.scene.add(towerGroup);
@@ -850,7 +850,7 @@ export class StructureManager {
         const ruinsGroup = ruins.createMesh();
         
         // Position ruins on terrain
-        ruinsGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+        ruinsGroup.position.set(x, this.MapManager.getTerrainHeight(x, z), z);
         
         // Add to scene
         this.scene.add(ruinsGroup);
@@ -870,15 +870,15 @@ export class StructureManager {
         const sanctumGroup = darkSanctum.createMesh();
         
         // Position sanctum on terrain
-        sanctumGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+        sanctumGroup.position.set(x, this.MapManager.getTerrainHeight(x, z), z);
         
         // Add to scene
         this.scene.add(sanctumGroup);
         this.structures.push(sanctumGroup);
         
         // Add a boss spawn point
-        if (this.worldManager && this.worldManager.interactiveManager) {
-            this.worldManager.interactiveManager.createBossSpawnPoint(x, z, 'necromancer_lord');
+        if (this.MapManager && this.MapManager.interactiveManager) {
+            this.MapManager.interactiveManager.createBossSpawnPoint(x, z, 'necromancer_lord');
         }
         
         return sanctumGroup;
@@ -905,7 +905,7 @@ export class StructureManager {
         mountainGroup.rotation.y = Math.random() * Math.PI * 2;
         
         // Position mountain on terrain
-        mountainGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+        mountainGroup.position.set(x, this.MapManager.getTerrainHeight(x, z), z);
         
         // Add to scene
         this.scene.add(mountainGroup);
@@ -925,23 +925,23 @@ export class StructureManager {
         const villageGroup = village.createMesh();
         
         // Position village on terrain
-        villageGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+        villageGroup.position.set(x, this.MapManager.getTerrainHeight(x, z), z);
         
         // Add to scene
         this.scene.add(villageGroup);
         this.structures.push(villageGroup);
         
         // Add interactive objects like NPCs and treasure chests
-        if (this.worldManager && this.worldManager.interactiveManager) {
+        if (this.MapManager && this.MapManager.interactiveManager) {
             // Add a treasure chest
             const chestX = x + (Math.random() * 10 - 5);
             const chestZ = z + (Math.random() * 10 - 5);
-            this.worldManager.interactiveManager.createTreasureChest(chestX, chestZ);
+            this.MapManager.interactiveManager.createTreasureChest(chestX, chestZ);
             
             // Add quest marker
             const questX = x + (Math.random() * 10 - 5);
             const questZ = z + (Math.random() * 10 - 5);
-            this.worldManager.interactiveManager.createQuestMarker(questX, questZ, 'village_quest');
+            this.MapManager.interactiveManager.createQuestMarker(questX, questZ, 'village_quest');
         }
         
         return villageGroup;
@@ -959,7 +959,7 @@ export class StructureManager {
         const bridgeGroup = bridge.createMesh();
         
         // Position bridge on terrain
-        bridgeGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+        bridgeGroup.position.set(x, this.MapManager.getTerrainHeight(x, z), z);
         
         // Randomly rotate the bridge
         bridgeGroup.rotation.y = Math.random() * Math.PI;

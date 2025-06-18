@@ -5,9 +5,9 @@ import * as THREE from 'three';
  * Features more vibrant colors and unique shapes compared to standard flowers
  */
 export class ForestFlower {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
     
     /**

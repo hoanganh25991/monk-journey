@@ -5,8 +5,8 @@ import { EnvironmentObject } from './EnvironmentObject.js';
  * Snow Patch - Creates a patch of snow in the environment
  */
 export class SnowPatch extends EnvironmentObject {
-    constructor(scene, worldManager, position, size) {
-        super(scene, worldManager, position, size, 'snow_patch');
+    constructor(scene, MapManager, position, size) {
+        super(scene, MapManager, position, size, 'snow_patch');
         return this.create();
     }
     

@@ -5,9 +5,9 @@ import * as THREE from 'three';
  * Provides common functionality and structure
  */
 export class EnvironmentObject {
-    constructor(scene, worldManager, position, size, type) {
+    constructor(scene, MapManager, position, size, type) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
         this.position = position;
         this.size = size || 1;
         this.type = type;
@@ -31,7 +31,7 @@ export class EnvironmentObject {
      * @returns {number} - Terrain height
      */
     getTerrainHeight(x, z) {
-        return this.worldManager.getTerrainHeight(x, z);
+        return this.MapManager.getTerrainHeight(x, z);
     }
     
     /**

@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * SwampTree - Creates a twisted, gnarled tree suitable for swamp environments
  */
 export class SwampTree {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**

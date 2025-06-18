@@ -5,9 +5,9 @@ import * as THREE from 'three';
  * Used for forest floor decoration and magical environments
  */
 export class SmallMushroom {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
     
     /**

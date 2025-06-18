@@ -4,9 +4,9 @@ import * as THREE from 'three';
  * SwampPlant - Creates various plant types suitable for swamp environments
  */
 export class SwampPlant {
-    constructor(scene, worldManager) {
+    constructor(scene, MapManager) {
         this.scene = scene;
-        this.worldManager = worldManager;
+        this.MapManager = MapManager;
     }
 
     /**
