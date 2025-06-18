@@ -9,7 +9,16 @@ import { FogManager } from './environment/FogManager.js';
 import { TeleportManager } from './teleport/TeleportManager.js';
 import { LODManager } from './LODManager.js';
 import { ENVIRONMENT_OBJECTS, THEME_SPECIFIC_OBJECTS, CROSS_THEME_FEATURES } from '../config/environment.js';
-import { STRUCTURE_TYPES } from '../config/structure.js';
+import { STRUCTURE_TYPES, THEME_SPECIFIC_STRUCTURES } from '../config/structure.js';
+
+// Define biome constants for better code maintainability
+const BIOMES = {
+    FOREST: 'Forest',
+    DESERT: 'Desert',
+    MOUNTAIN: 'Mountain',
+    SWAMP: 'Swamp',
+    MAGICAL: 'Magical'
+};
 
 // Import new modular managers
 import { PerformanceManager } from './managers/PerformanceManager.js';
@@ -83,7 +92,7 @@ export class WorldManager {
         
         // Zone definitions and densities
         this.zoneDensities = {
-            'Forest': { 
+            [BIOMES.FOREST]: { 
                 environment: 1.5, // Reduced from 2.5
                 structures: 0.25, // Reduced from 0.4
                 environmentTypes: [
@@ -101,9 +110,16 @@ export class WorldManager {
                     ENVIRONMENT_OBJECTS.FOREST_DEBRIS,
                     ENVIRONMENT_OBJECTS.SMALL_MUSHROOM
                 ],
-                structureTypes: ['ruins', 'village', 'house', 'tower', 'temple', 'altar']
+                structureTypes: [
+                    STRUCTURE_TYPES.RUINS,
+                    STRUCTURE_TYPES.VILLAGE,
+                    STRUCTURE_TYPES.HOUSE,
+                    STRUCTURE_TYPES.TOWER,
+                    STRUCTURE_TYPES.TEMPLE,
+                    STRUCTURE_TYPES.ALTAR
+                ]
             },
-            'Desert': { 
+            [BIOMES.DESERT]: { 
                 environment: 1.0, // Reduced from 1.8
                 structures: 0.2, // Reduced from 0.35
                 environmentTypes: [
@@ -117,9 +133,15 @@ export class WorldManager {
                     ENVIRONMENT_OBJECTS.LAVA_ROCK,
                     ENVIRONMENT_OBJECTS.OBSIDIAN
                 ],
-                structureTypes: ['ruins', 'temple', 'altar', 'house', 'tower']
+                structureTypes: [
+                    STRUCTURE_TYPES.RUINS,
+                    STRUCTURE_TYPES.TEMPLE,
+                    STRUCTURE_TYPES.ALTAR,
+                    STRUCTURE_TYPES.HOUSE,
+                    STRUCTURE_TYPES.TOWER
+                ]
             },
-            'Mountain': { 
+            [BIOMES.MOUNTAIN]: { 
                 environment: 1.2, // Reduced from 2.0
                 structures: 0.18, // Reduced from 0.3
                 environmentTypes: [
@@ -133,9 +155,16 @@ export class WorldManager {
                     ENVIRONMENT_OBJECTS.ROCK_FORMATION,
                     ENVIRONMENT_OBJECTS.TREE
                 ],
-                structureTypes: ['ruins', 'fortress', 'tower', 'mountain', 'house', 'altar']
+                structureTypes: [
+                    STRUCTURE_TYPES.RUINS,
+                    STRUCTURE_TYPES.FORTRESS,
+                    STRUCTURE_TYPES.TOWER,
+                    STRUCTURE_TYPES.MOUNTAIN,
+                    STRUCTURE_TYPES.HOUSE,
+                    STRUCTURE_TYPES.ALTAR
+                ]
             },
-            'Swamp': { 
+            [BIOMES.SWAMP]: { 
                 environment: 1.8, // Reduced from 3.0
                 structures: 0.25, // Reduced from 0.4
                 environmentTypes: [
@@ -150,9 +179,15 @@ export class WorldManager {
                     ENVIRONMENT_OBJECTS.FALLEN_LOG,
                     ENVIRONMENT_OBJECTS.MUSHROOM
                 ],
-                structureTypes: ['ruins', 'dark_sanctum', 'altar', 'house', 'tower']
+                structureTypes: [
+                    STRUCTURE_TYPES.RUINS,
+                    STRUCTURE_TYPES.DARK_SANCTUM,
+                    STRUCTURE_TYPES.ALTAR,
+                    STRUCTURE_TYPES.HOUSE,
+                    STRUCTURE_TYPES.TOWER
+                ]
             },
-            'Magical': { 
+            [BIOMES.MAGICAL]: { 
                 environment: 1.5, // Reduced from 2.5
                 structures: 0.25, // Reduced from 0.45
                 environmentTypes: [
@@ -167,7 +202,13 @@ export class WorldManager {
                     ENVIRONMENT_OBJECTS.RUNE_STONE,
                     ENVIRONMENT_OBJECTS.MAGIC_CIRCLE
                 ],
-                structureTypes: ['ruins', 'temple', 'altar', 'tower', 'dark_sanctum']
+                structureTypes: [
+                    STRUCTURE_TYPES.RUINS,
+                    STRUCTURE_TYPES.TEMPLE,
+                    STRUCTURE_TYPES.ALTAR,
+                    STRUCTURE_TYPES.TOWER,
+                    STRUCTURE_TYPES.DARK_SANCTUM
+                ]
             }
         };
         
