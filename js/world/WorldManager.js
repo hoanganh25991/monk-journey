@@ -496,8 +496,8 @@ export class WorldManager {
                             );
                             
                             if (object) {
-                                // Set rotation if specified
-                                if (objData.rotation !== undefined) {
+                                // Set rotation if specified and object has rotation property
+                                if (objData.rotation !== undefined && object.rotation) {
                                     object.rotation.y = objData.rotation;
                                 }
                                 
@@ -564,8 +564,8 @@ export class WorldManager {
                         );
                         
                         if (structure) {
-                            // Set rotation if specified
-                            if (structData.rotation !== undefined) {
+                            // Set rotation if specified and structure has rotation property
+                            if (structData.rotation !== undefined && structure.rotation) {
                                 structure.rotation.y = structData.rotation;
                             }
                             
@@ -1570,8 +1570,8 @@ export class WorldManager {
                                 object: object
                             });
                             
-                            // Set rotation if specified and object exists
-                            if (object && objData.rotation !== undefined) {
+                            // Set rotation if specified and object exists with rotation property
+                            if (object && objData.rotation !== undefined && object.rotation) {
                                 object.rotation.y = objData.rotation;
                             }
                             
