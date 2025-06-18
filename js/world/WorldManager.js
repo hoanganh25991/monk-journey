@@ -1276,6 +1276,24 @@ export class WorldManager {
                     position: { x: -halfSize, y: 0, z: i }
                 });
             }
+            
+            // Add terrain elevation markers
+            if (this.terrainManager.getTerrainHeight) {
+                // Sample terrain heights at various points to create elevation markers
+                const sampleDistance = 20; // Distance between sample points
+                for (let x = -halfSize + 10; x < halfSize; x += sampleDistance) {
+                    for (let z = -halfSize + 10; z < halfSize; z += sampleDistance) {
+                        const height = this.terrainManager.getTerrainHeight(x, z);
+                        if (height > 2) { // Only mark significant elevations
+                            this.terrainFeatures.push({
+                                type: 'elevation',
+                                position: { x, y: height, z },
+                                height: height
+                            });
+                        }
+                    }
+                }
+            }
         }
         
         // Add structures as walls
@@ -1283,7 +1301,8 @@ export class WorldManager {
             this.structureManager.structures.forEach(structure => {
                 this.terrainFeatures.push({
                     type: 'wall',
-                    position: structure.position
+                    position: structure.position,
+                    structureType: structure.type || 'generic'
                 });
             });
         }
@@ -1295,7 +1314,9 @@ export class WorldManager {
                 this.environmentManager.trees.forEach(tree => {
                     this.terrainFeatures.push({
                         type: 'tree',
-                        position: tree.position
+                        position: tree.position,
+                        treeType: tree.type || 'generic',
+                        height: tree.height || 5
                     });
                 });
             }
@@ -1305,7 +1326,9 @@ export class WorldManager {
                 this.environmentManager.rocks.forEach(rock => {
                     this.terrainFeatures.push({
                         type: 'rock',
-                        position: rock.position
+                        position: rock.position,
+                        rockType: rock.type || 'generic',
+                        size: rock.size || 'medium'
                     });
                 });
             }
@@ -1315,10 +1338,139 @@ export class WorldManager {
                 this.environmentManager.waterBodies.forEach(water => {
                     this.terrainFeatures.push({
                         type: 'water',
-                        position: water.position
+                        position: water.position,
+                        waterType: water.type || 'generic',
+                        depth: water.depth || 2,
+                        radius: water.radius || 5
                     });
                 });
             }
+            
+            // Add bushes
+            if (this.environmentManager.bushes) {
+                this.environmentManager.bushes.forEach(bush => {
+                    this.terrainFeatures.push({
+                        type: 'bush',
+                        position: bush.position,
+                        bushType: bush.type || 'generic'
+                    });
+                });
+            }
+            
+            // Add flowers
+            if (this.environmentManager.flowers) {
+                this.environmentManager.flowers.forEach(flower => {
+                    this.terrainFeatures.push({
+                        type: 'flower',
+                        position: flower.position,
+                        flowerType: flower.type || 'generic'
+                    });
+                });
+            }
+            
+            // Add tall grass
+            if (this.environmentManager.tallGrass) {
+                this.environmentManager.tallGrass.forEach(grass => {
+                    this.terrainFeatures.push({
+                        type: 'grass',
+                        position: grass.position
+                    });
+                });
+            }
+            
+            // Add ancient trees
+            if (this.environmentManager.ancientTrees) {
+                this.environmentManager.ancientTrees.forEach(tree => {
+                    this.terrainFeatures.push({
+                        type: 'ancient_tree',
+                        position: tree.position,
+                        height: tree.height || 15
+                    });
+                });
+            }
+            
+            // Add small plants
+            if (this.environmentManager.smallPlants) {
+                this.environmentManager.smallPlants.forEach(plant => {
+                    this.terrainFeatures.push({
+                        type: 'plant',
+                        position: plant.position,
+                        plantType: plant.type || 'generic'
+                    });
+                });
+            }
+            
+            // Add any special environment objects
+            if (this.environmentManager.environmentObjects) {
+                this.environmentManager.environmentObjects.forEach(obj => {
+                    if (obj.userData && obj.userData.type) {
+                        this.terrainFeatures.push({
+                            type: obj.userData.type,
+                            position: obj.position,
+                            objectType: obj.userData.objectType || 'generic',
+                            size: obj.userData.size || 'medium',
+                            interactive: obj.userData.interactive || false
+                        });
+                    }
+                });
+            }
+        }
+        
+        // Add zone-specific features
+        if (this.zoneManager && this.zoneManager.zones) {
+            this.zoneManager.zones.forEach(zone => {
+                // Add zone boundaries
+                if (zone.boundary) {
+                    const boundary = zone.boundary;
+                    const centerX = (boundary.minX + boundary.maxX) / 2;
+                    const centerZ = (boundary.minZ + boundary.maxZ) / 2;
+                    
+                    this.terrainFeatures.push({
+                        type: 'zone_center',
+                        position: { x: centerX, y: 0, z: centerZ },
+                        zoneName: zone.name,
+                        zoneType: zone.type
+                    });
+                }
+                
+                // Add zone landmarks
+                if (zone.landmarks) {
+                    zone.landmarks.forEach(landmark => {
+                        this.terrainFeatures.push({
+                            type: 'landmark',
+                            position: landmark.position,
+                            landmarkType: landmark.type,
+                            zoneName: zone.name
+                        });
+                    });
+                }
+            });
+        }
+        
+        // Add teleport locations
+        if (this.teleportManager && this.teleportManager.teleportLocations) {
+            this.teleportManager.teleportLocations.forEach(teleport => {
+                this.terrainFeatures.push({
+                    type: 'teleport',
+                    position: teleport.position,
+                    destination: teleport.destination
+                });
+            });
+        }
+        
+        // Add paths between structures if they exist
+        if (this.paths) {
+            this.paths.forEach(path => {
+                if (path.points && path.points.length > 0) {
+                    path.points.forEach(point => {
+                        this.terrainFeatures.push({
+                            type: 'path',
+                            position: point,
+                            pathType: path.type || 'dirt'
+                        });
+                    });
+                }
+            });
         }
         
         return this.terrainFeatures;
