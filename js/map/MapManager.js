@@ -2055,7 +2055,7 @@ export class MapManager {
                         Math.pow(objInfo.position.z - centerZ, 2)
                     );
                     
-                    return distance > radius;
+                    return distance > outerRadius;
                 }
                 return true;
             });
