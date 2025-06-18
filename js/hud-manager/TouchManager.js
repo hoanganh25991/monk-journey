@@ -43,18 +43,29 @@ export class TouchManager {
         for (const [activePurpose, activeTouch] of Object.entries(this.activeTouches)) {
             if (activePurpose === purpose) continue;
             
-            // Allow simultaneous touches for joystick and skills
+            // Always allow simultaneous touches for joystick and skills
             // This enables using joystick with one finger and skills with another
             if ((purpose === 'skills' && activePurpose === 'joystick') || 
                 (purpose === 'joystick' && activePurpose === 'skills')) {
                 continue;
             }
             
+            // Check if this touch ID is already being used
             if (activePurpose === 'skills') {
-                if (activeTouch.has(touchId)) return false;
+                if (activeTouch && activeTouch.has(touchId)) return false;
             } else {
                 if (activeTouch === touchId) return false;
             }
+        }
+        
+        // If we're trying to claim for skills, always allow it
+        if (purpose === 'skills') {
+            return true;
+        }
+        
+        // If we're trying to claim for joystick and it's already active, don't allow
+        if (purpose === 'joystick' && this.activeTouches.joystick !== null) {
+            return false;
         }
         
         return true;
@@ -121,27 +132,29 @@ export class TouchManager {
     setupGlobalTouchHandlers() {
         // Global touch move handler
         document.addEventListener('touchmove', (event) => {
+            let handledByCamera = false;
+            
             for (let i = 0; i < event.touches.length; i++) {
                 const touch = event.touches[i];
                 
                 // Route to joystick handler
                 if (this.touchBelongsTo(touch, 'joystick') && this.handlers.joystick) {
-                    // Don't prevent default for joystick to allow skill button touches
-                    // event.preventDefault();
                     this.handlers.joystick.handleMove(touch);
                 }
                 
                 // Route to camera handler
                 if (this.touchBelongsTo(touch, 'camera') && this.handlers.camera) {
-                    event.preventDefault();
                     this.handlers.camera.handleMove(touch);
+                    handledByCamera = true;
                 }
                 
-                // Route to skills handler if implemented
-                if (this.touchBelongsTo(touch, 'skills') && this.handlers.skills) {
-                    // Skills have their own event handlers, but we could route here if needed
-                    // this.handlers.skills.handleMove(touch);
-                }
+                // Skills have their own event handlers in SkillsUI.js
+            }
+            
+            // Only prevent default if camera is being used
+            // This allows other touch interactions to work normally
+            if (handledByCamera) {
+                event.preventDefault();
             }
         }, { passive: false });
         
@@ -152,15 +165,12 @@ export class TouchManager {
                 
                 // Route to joystick handler
                 if (this.touchBelongsTo(touch, 'joystick') && this.handlers.joystick) {
-                    // Don't prevent default for joystick to allow skill button touches
-                    // event.preventDefault();
                     this.handlers.joystick.handleEnd(touch);
                     this.releaseTouch(touch, 'joystick');
                 }
                 
                 // Route to camera handler
                 if (this.touchBelongsTo(touch, 'camera') && this.handlers.camera) {
-                    event.preventDefault();
                     this.handlers.camera.handleEnd(touch);
                     this.releaseTouch(touch, 'camera');
                 }
@@ -170,7 +180,7 @@ export class TouchManager {
                     this.releaseTouch(touch, 'skills');
                 }
             }
-        });
+        }, { passive: true });
         
         // Global touch cancel handler
         document.addEventListener('touchcancel', (event) => {
@@ -179,15 +189,12 @@ export class TouchManager {
                 
                 // Route to joystick handler
                 if (this.touchBelongsTo(touch, 'joystick') && this.handlers.joystick) {
-                    // Don't prevent default for joystick to allow skill button touches
-                    // event.preventDefault();
                     this.handlers.joystick.handleEnd(touch);
                     this.releaseTouch(touch, 'joystick');
                 }
                 
                 // Route to camera handler
                 if (this.touchBelongsTo(touch, 'camera') && this.handlers.camera) {
-                    event.preventDefault();
                     this.handlers.camera.handleEnd(touch);
                     this.releaseTouch(touch, 'camera');
                 }
@@ -197,7 +204,7 @@ export class TouchManager {
                     this.releaseTouch(touch, 'skills');
                 }
             }
-        });
+        }, { passive: true });
     }
     
     /**

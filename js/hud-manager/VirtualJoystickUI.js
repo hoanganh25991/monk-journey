@@ -94,27 +94,30 @@ export class VirtualJoystickUI extends UIComponent {
         // Touch start event on the larger overlay area
         this.joystickOverlay.addEventListener('touchstart', (event) => {
             // Don't prevent default to allow skill button touches
-            // event.preventDefault();
             // Don't stop propagation to allow skill button touches
-            // event.stopPropagation();
             
             // Only respond if joystick is not already active
             if (!this.joystickState.active) {
-                const touch = event.touches[0];
+                // Try to find an available touch
+                let foundTouch = null;
+                for (let i = 0; i < event.touches.length; i++) {
+                    const touch = event.touches[i];
+                    // Try to claim the touch through the touch manager
+                    if (touchManager.claimTouch(touch, 'joystick')) {
+                        foundTouch = touch;
+                        break;
+                    }
+                }
                 
-                // Try to claim the touch through the touch manager
-                if (touchManager.claimTouch(touch, 'joystick')) {
-                    this.joystickState.touchId = touch.identifier;
-                    this.handleJoystickStart(touch.clientX, touch.clientY);
+                if (foundTouch) {
+                    this.joystickState.touchId = foundTouch.identifier;
+                    this.handleJoystickStart(foundTouch.clientX, foundTouch.clientY);
                 }
             }
-        });
+        }, { passive: true }); // Use passive listener for better performance
         
         // Mouse down event on the larger overlay area (for testing on desktop)
         this.joystickOverlay.addEventListener('mousedown', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            
             // Only respond if joystick is not already active
             if (!this.joystickState.active) {
                 this.handleJoystickStart(event.clientX, event.clientY);
@@ -127,7 +130,6 @@ export class VirtualJoystickUI extends UIComponent {
         
         // Mouse move handler (defined as property to allow removal)
         this.handleMouseMove = (event) => {
-            event.preventDefault();
             if (this.joystickState.active) {
                 this.handleJoystickMove(event.clientX, event.clientY);
             }
@@ -135,12 +137,13 @@ export class VirtualJoystickUI extends UIComponent {
         
         // Mouse up handler (defined as property to allow removal)
         this.handleMouseUp = (event) => {
-            event.preventDefault();
-            this.handleJoystickEnd();
-            
-            // Remove global mouse move and up events
-            document.removeEventListener('mousemove', this.handleMouseMove);
-            document.removeEventListener('mouseup', this.handleMouseUp);
+            if (this.joystickState.active) {
+                this.handleJoystickEnd();
+                
+                // Remove global mouse move and up events
+                document.removeEventListener('mousemove', this.handleMouseMove);
+                document.removeEventListener('mouseup', this.handleMouseUp);
+            }
         };
     }
     
@@ -238,8 +241,21 @@ export class VirtualJoystickUI extends UIComponent {
     
     /**
      * Handle joystick end event
+     * @param {Touch} [touch] - Optional touch object that ended
      */
-    handleJoystickEnd() {
+    handleJoystickEnd(touch) {
+        // If a touch is provided, only end if it matches the active touch
+        if (touch && touch.identifier !== this.joystickState.touchId) {
+            return;
+        }
+        
+        // Notify touch manager to release this touch if it exists
+        if (this.joystickState.touchId !== null) {
+            // Create a mock touch object if not provided
+            const mockTouch = touch || { identifier: this.joystickState.touchId };
+            touchManager.releaseTouch(mockTouch, 'joystick');
+        }
+        
         // Reset joystick state
         this.joystickState.active = false;
         this.joystickState.direction = { x: 0, y: 0 };

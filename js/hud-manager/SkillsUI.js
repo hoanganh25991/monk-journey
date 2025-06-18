@@ -95,19 +95,25 @@ export class SkillsUI extends UIComponent {
             // Add touch events for continuous casting for all skills
             // Start continuous casting on touch start
             button.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Prevent default behavior
-                e.stopPropagation(); // Stop event from bubbling to other elements
+                // Don't prevent default or stop propagation to allow better interaction with joystick
                 
-                const touch = e.touches[0];
+                // Try to find an available touch
+                let foundTouch = null;
+                for (let i = 0; i < e.touches.length; i++) {
+                    const touch = e.touches[i];
+                    // Always claim the touch for skills - they have priority
+                    if (touchManager.claimTouch(touch, 'skills')) {
+                        foundTouch = touch;
+                        break;
+                    }
+                }
                 
-                // Try to claim the touch through the touch manager
-                // Force claim for skills to ensure they work even when joystick is active
-                if (touchManager.claimTouch(touch, 'skills')) {
+                if (foundTouch) {
                     // Clear any existing interval for this skill
                     this.stopContinuousCasting(index);
                     
                     // Store the touch ID for this skill button
-                    button.dataset.touchId = touch.identifier;
+                    button.dataset.touchId = foundTouch.identifier;
                     
                     // Trigger first cast immediately
                     if (isPrimaryAttack) {
@@ -153,41 +159,43 @@ export class SkillsUI extends UIComponent {
                     // Add active state
                     button.classList.add('skill-activated');
                 }
-            });
+            }, { passive: true });
             
             // Stop continuous casting on touch end
             button.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
                 // Check if any of the ended touches match this button's touch
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     const touch = e.changedTouches[i];
                     if (button.dataset.touchId === touch.identifier.toString()) {
                         this.stopContinuousCasting(index);
                         button.classList.remove('skill-activated');
+                        
+                        // Release the touch in the touch manager
+                        touchManager.releaseTouch(touch, 'skills');
+                        
                         delete button.dataset.touchId;
                         break;
                     }
                 }
-            });
+            }, { passive: true });
             
             // Also stop on touch cancel
             button.addEventListener('touchcancel', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
                 // Check if any of the cancelled touches match this button's touch
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     const touch = e.changedTouches[i];
                     if (button.dataset.touchId === touch.identifier.toString()) {
                         this.stopContinuousCasting(index);
                         button.classList.remove('skill-activated');
+                        
+                        // Release the touch in the touch manager
+                        touchManager.releaseTouch(touch, 'skills');
+                        
                         delete button.dataset.touchId;
                         break;
                     }
                 }
-            });
+            }, { passive: true });
             
             // Add tooltip with description on hover
             button.title = `${skill.name}: ${skill.description}`;
