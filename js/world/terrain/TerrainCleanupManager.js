@@ -61,8 +61,8 @@ export class TerrainCleanupManager {
             });
             
             // Hint for garbage collection after significant cleanup
-            if (chunksToRemove.length > 3 && this.worldManager) {
-                this.worldManager.hintGarbageCollection();
+            if (chunksToRemove.length > 3 && this.worldManager && this.worldManager.performanceManager) {
+                this.worldManager.performanceManager.hintGarbageCollection();
             }
         }
     }
@@ -230,8 +230,8 @@ export class TerrainCleanupManager {
         
         // Force a garbage collection hint after significant cleanup
         if ((chunkCountBefore - chunkCountAfter) + (bufferCountBefore - bufferCountAfter) > 5) {
-            if (this.worldManager) {
-                this.worldManager.hintGarbageCollection();
+            if (this.worldManager && this.worldManager.performanceManager) {
+                this.worldManager.performanceManager.hintGarbageCollection();
             }
         }
         
