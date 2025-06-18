@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 // Import environment configuration
 import { ENVIRONMENT_OBJECTS } from '../../config/environment.js';
+import { EnvironmentObject } from './EnvironmentObject.js';
 
 // Import environment objects
 import { WaterFeature } from './WaterFeature.js';
@@ -868,6 +869,8 @@ export class EnvironmentFactory {
         }
         
         try {
+            let createdObject;
+            
             // For objects that need the full data object (like tree_cluster)
             if (type === 'tree_cluster') {
                 // Make sure we have a valid data object with position
@@ -889,20 +892,34 @@ export class EnvironmentFactory {
                     z: position.z
                 };
                 
-                return creator(treeClusterData);
+                createdObject = creator(treeClusterData);
             }
-            
             // For objects that need data parameter
-            if (type.includes('flower') || type.includes('mushroom') || 
+            else if (type.includes('flower') || type.includes('mushroom') || 
                 type.includes('plant') || type.includes('tree') || 
                 type.includes('formation') || type.includes('stone') || 
                 type.includes('shrine') || type.includes('ruin') || 
                 type === 'moss') {
-                return creator(position, size, data || {});
+                createdObject = creator(position, size, data || {});
+            }
+            // For standard objects that just need position and size
+            else {
+                createdObject = creator(position, size);
             }
             
-            // For standard objects that just need position and size
-            return creator(position, size);
+            // Check if the created object is an instance of EnvironmentObject
+            // If so, return its internal object property instead of the class instance
+            if (createdObject && createdObject.constructor && 
+                createdObject.constructor.prototype instanceof EnvironmentObject) {
+                if (createdObject.object && createdObject.object instanceof THREE.Object3D) {
+                    return createdObject.object;
+                } else {
+                    console.warn(`Environment object of type ${type} did not create a valid THREE.Object3D`);
+                    return null;
+                }
+            }
+            
+            return createdObject;
         } catch (error) {
             console.error(`Error creating environment object of type ${type}:`, error);
             return null;
