@@ -239,13 +239,13 @@ export class Game {
             
             // Initialize world with loading state
             this.isWorldLoading = true;
-            this.world = new MapManager(this.scene, this.loadingManager, this);
+            this.mapManager = new MapManager(this.scene, this.loadingManager, this);
             
             // Show a more detailed loading message for terrain generation
             this.updateLoadingProgress(25, 'Generating terrain...', 'This may take a moment');
             
             // Initialize the world (includes terrain generation)
-            await this.world.init();
+            await this.mapManager.init();
             
             // Terrain is already pre-generated during world initialization
             this.updateLoadingProgress(30, 'Terrain generation complete', 'World chunks created');
@@ -286,7 +286,7 @@ export class Game {
             this.updateLoadingProgress(80, 'Setting up physics...', 'Initializing collision detection');
             
             // Initialize collision manager
-            this.collisionManager = new CollisionManager(this.player, this.enemyManager, this.world);
+            this.collisionManager = new CollisionManager(this.player, this.enemyManager, this.mapManager);
             
             // Initialize interaction system
             this.updateLoadingProgress(83, 'Setting up interaction system...', 'Unifying interaction methods');
@@ -749,7 +749,7 @@ export class Game {
         
         // Update world based on player position
         // Use performance-based draw distance
-        this.world.updateWorldForPlayer(this.player.getPosition(), 1.0, delta);
+        this.mapManager.updateWorldForPlayer(this.player.getPosition(), 1.0, delta);
         
         // Update enemies
         this.enemyManager.update(delta);
@@ -1018,8 +1018,8 @@ export class Game {
         }
         
         // Update LOD settings if LOD manager exists
-        if (this.world && this.world.lodManager) {
-            this.world.lodManager.updateQualitySettings(quality);
+        if (this.mapManager && this.mapManager.lodManager) {
+            this.mapManager.lodManager.updateQualitySettings(quality);
         }
         
         // Update performance manager settings

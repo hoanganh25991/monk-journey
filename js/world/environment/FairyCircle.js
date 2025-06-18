@@ -8,7 +8,7 @@ export class FairyCircle {
     /**
      * Create a new FairyCircle instance
      * @param {THREE.Scene} scene - The scene to add the fairy circle to
-     * @param {Object} MapManager - The world manager instance
+     * @param {Object} MapManager - The map manager instance
      */
     constructor(scene, MapManager) {
         this.scene = scene;

@@ -214,15 +214,15 @@ export class InputHandler {
         
         // Get all interactive objects if they exist
         let interactiveObjects = [];
-        if (this.game.world.interactiveManager && this.game.world.interactiveManager.getInteractiveObjects) {
-            const objects = this.game.world.interactiveManager.getInteractiveObjects();
+        if (this.game.mapManager.interactiveManager && this.game.mapManager.interactiveManager.getInteractiveObjects) {
+            const objects = this.game.mapManager.interactiveManager.getInteractiveObjects();
             if (objects && objects.length > 0) {
                 interactiveObjects = objects;
             }
-        } else if (this.game.world.interactiveObjects) {
+        } else if (this.game.mapManager.interactiveObjects) {
             // Fallback to old structure if it exists
             console.warn('Using legacy interactiveObjects structure');
-            interactiveObjects = this.game.world.interactiveObjects;
+            interactiveObjects = this.game.mapManager.interactiveObjects;
         } else {
             console.warn('No interactive objects manager found');
             // Reset interaction state after a short delay

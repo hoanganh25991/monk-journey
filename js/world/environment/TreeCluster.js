@@ -10,7 +10,7 @@ export class TreeCluster {
     /**
      * Create a new tree cluster
      * @param {THREE.Scene} scene - The scene to add the cluster to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {Object} data - Data object containing cluster configuration
      */
     constructor(scene, MapManager, data = null) {

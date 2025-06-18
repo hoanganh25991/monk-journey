@@ -7,7 +7,7 @@ export class Square {
     /**
      * Create a new square
      * @param {THREE.Scene} scene - The scene to add the square to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      */
     constructor(scene, MapManager) {
         this.scene = scene;

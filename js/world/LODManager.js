@@ -8,7 +8,7 @@ export class LODManager {
     /**
      * Create a new LOD Manager
      * @param {THREE.Scene} scene - The Three.js scene
-     * @param {Object} MapManager - Reference to the world manager
+     * @param {Object} MapManager - Reference to the map manager
      */
     constructor(scene, MapManager) {
         this.scene = scene;

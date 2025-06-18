@@ -37,8 +37,8 @@ export class ItemDropManager {
         itemGroup.position.z += (Math.random() - 0.5) * 0.5;
         
         // Ensure item is above ground and more visible
-        if (this.game && this.game.world) {
-            const terrainHeight = this.game.world.getTerrainHeight(position.x, position.z);
+        if (this.game && this.game.mapManager) {
+            const terrainHeight = this.game.mapManager.getTerrainHeight(position.x, position.z);
             if (terrainHeight !== null) {
                 itemGroup.position.y = terrainHeight + 0.5; // Higher above ground for better visibility
             } else {

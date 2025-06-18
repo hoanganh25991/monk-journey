@@ -16,7 +16,7 @@ export class GenerationManager {
         // Procedural generation settings
         this.generatedChunks = new Set(); // Track which chunks have been generated
         this.currentZoneType = BIOMES.FOREST; // Current zone type
-        this.worldScale = 1.0; // Scale factor to make objects appear farther apart
+        this.mapManagerScale = 1.0; // Scale factor to make objects appear farther apart
         
         // For spiral generation
         this.pendingChunks = []; // Queue of chunks waiting to be processed
@@ -26,8 +26,8 @@ export class GenerationManager {
         this.CHUNK_PROCESSING_BUDGET_MS = 5; // Maximum time to spend processing chunks per frame
         
         // Zone definitions and densities
-        this.zoneSize = 500 * this.worldScale; // Scale zone size to maintain proper zone distribution
-        this.zoneTransitionBuffer = 20 * this.worldScale; // Scale buffer zone for transitions
+        this.zoneSize = 500 * this.mapManagerScale; // Scale zone size to maintain proper zone distribution
+        this.zoneTransitionBuffer = 20 * this.mapManagerScale; // Scale buffer zone for transitions
         
         // Flag to track initial terrain creation
         this.initialTerrainCreated = false;
@@ -69,7 +69,7 @@ export class GenerationManager {
             let directionZ = 0;
             let lastPlayerPosition = null;
             
-            // Get last player position from world manager if available
+            // Get last player position from map manager if available
             if (this.terrainManager && this.terrainManager.MapManager && 
                 this.terrainManager.MapManager.lastPlayerPosition) {
                 lastPlayerPosition = this.terrainManager.MapManager.lastPlayerPosition;

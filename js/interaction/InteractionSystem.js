@@ -10,7 +10,7 @@ export class InteractionSystem {
     constructor(game) {
         this.game = game;
         this.player = game.player;
-        this.world = game.world;
+        this.mapManager = game.mapManager;
         
         // Create interaction result handler
         this.interactionHandler = new InteractionResultHandler(game);
@@ -53,7 +53,7 @@ export class InteractionSystem {
         const playerPosition = this.player.getPosition();
         
         // Get nearby interactive objects
-        const rawObjects = this.world.getInteractiveObjectsNear(
+        const rawObjects = this.mapManager.getInteractiveObjectsNear(
             playerPosition,
             INTERACTION_RANGE
         );
@@ -333,9 +333,9 @@ export class InteractionSystem {
      */
     getInteractiveObjects() {
         // If we have a world with an interactive manager, use it
-        if (this.world && this.world.interactiveManager && 
-            this.world.interactiveManager.getInteractiveObjects) {
-            return this.world.interactiveManager.getInteractiveObjects();
+        if (this.mapManager && this.mapManager.interactiveManager && 
+            this.mapManager.interactiveManager.getInteractiveObjects) {
+            return this.mapManager.interactiveManager.getInteractiveObjects();
         }
         
         // Otherwise, return an empty array

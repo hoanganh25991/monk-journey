@@ -8,7 +8,7 @@ export class MagicCircle {
     /**
      * Create a new magic circle
      * @param {THREE.Scene} scene - The scene to add the magic circle to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {THREE.Vector3} position - The position of the magic circle
      * @param {number} size - The size of the magic circle
      * @param {Object} data - Additional data for the magic circle

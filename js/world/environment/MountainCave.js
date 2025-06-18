@@ -8,7 +8,7 @@ export class MountainCave {
     /**
      * Create a new mountain cave
      * @param {THREE.Scene} scene - The scene to add the mountain cave to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {THREE.Vector3} position - The position of the mountain cave
      * @param {number} size - The size of the mountain cave
      * @param {Object} data - Additional data for the mountain cave

@@ -347,7 +347,7 @@ export class MiniMapUI extends UIComponent {
      * Render the mini map
      */
     renderMiniMap() {
-        if (!this.ctx || !this.game.world) return;
+        if (!this.ctx || !this.game.mapManager) return;
         
         // Clear the canvas
         this.ctx.clearRect(0, 0, this.mapSize, this.mapSize);
@@ -509,7 +509,7 @@ export class MiniMapUI extends UIComponent {
      * @param {number} centerY - Center Y of the mini map
      */
     drawLargeStructures(playerX, playerY, centerX, centerY) {
-        const world = this.game.world;
+        const world = this.game.mapManager;
         
         // Draw teleport portals first (underneath other structures)
         this.drawTeleportPortals(playerX, playerY, centerX, centerY);
@@ -644,7 +644,7 @@ export class MiniMapUI extends UIComponent {
      * @param {number} centerY - Center Y of the mini map
      */
     drawTeleportPortals(playerX, playerY, centerX, centerY) {
-        const world = this.game.world;
+        const world = this.game.mapManager;
         
         // Get teleport portals from the world
         if (world && world.teleportManager && world.teleportManager.getPortals) {
@@ -728,7 +728,7 @@ export class MiniMapUI extends UIComponent {
      */
     drawEnemies(playerX, playerY, centerX, centerY) {
         // Get all entities
-        const entities = this.game.world.getEntities ? this.game.world.getEntities() : [];
+        const entities = this.game.mapManager.getEntities ? this.game.mapManager.getEntities() : [];
         
         // Filter out enemies
         const enemies = entities.filter(entity => entity.isEnemy);

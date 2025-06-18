@@ -8,7 +8,7 @@ export class MysteriousPortal {
     /**
      * Create a new MysteriousPortal
      * @param {THREE.Scene} scene - The Three.js scene
-     * @param {import("../MapManager.js").MapManager} MapManager - Reference to the world manager
+     * @param {import("../MapManager.js").MapManager} MapManager - Reference to the map manager
      */
     constructor(scene, MapManager) {
         this.scene = scene;

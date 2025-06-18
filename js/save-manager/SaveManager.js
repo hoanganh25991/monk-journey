@@ -411,7 +411,7 @@ export class SaveManager extends ISaveSystem {
      * @returns {Promise<void>}
      */
     async loadWorldDataWithProgress(worldData, chunkLoader) {
-        const world = this.game.world;
+        const world = this.game.mapManager;
         
         // Mark discovered zones
         this.loadProgress.update('Loading discovered zones...', 65);

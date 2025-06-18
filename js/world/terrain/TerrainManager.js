@@ -17,7 +17,7 @@ export class TerrainManager {
         this.game = game;
         
         // Get world scale for consistent scaling
-        const worldScale = this.MapManager.worldScale || 1.0;
+        const worldScale = this.MapManager.mapManagerScale || 1.0;
         
         // Terrain properties from config
         this.terrainSize = TERRAIN_CONFIG.size * worldScale; // Scale base terrain with world scale

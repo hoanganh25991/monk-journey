@@ -7,7 +7,7 @@ export class Plaza {
     /**
      * Create a new plaza
      * @param {THREE.Scene} scene - The scene to add the plaza to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      */
     constructor(scene, MapManager) {
         this.scene = scene;

@@ -424,9 +424,9 @@ export class CameraControlUI extends UIComponent {
                 let interactiveObjects = [];
                 if (this.game.interactionSystem && this.game.interactionSystem.getInteractiveObjects) {
                     interactiveObjects = this.game.interactionSystem.getInteractiveObjects();
-                } else if (this.game.world && this.game.world.interactiveManager) {
+                } else if (this.game.mapManager && this.game.mapManager.interactiveManager) {
                     // Fallback to world's interactive manager
-                    interactiveObjects = this.game.world.interactiveManager.getInteractiveObjects();
+                    interactiveObjects = this.game.mapManager.interactiveManager.getInteractiveObjects();
                 }
                 
                 // Filter objects that have meshes

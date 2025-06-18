@@ -10,7 +10,7 @@ export class Moss extends EnvironmentObject {
     /**
      * Create a new moss patch
      * @param {THREE.Scene} scene - The scene to add the moss to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {THREE.Vector3} position - The position of the moss
      * @param {number} size - The size of the moss patch
      */
@@ -22,7 +22,7 @@ export class Moss extends EnvironmentObject {
         this.hasMushrooms = Math.random() > 0.6; // 40% chance to have small mushrooms
         this.hasGlow = Math.random() > 0.7; // 30% chance to have bioluminescent properties
         
-        // Get zone type from world manager's zone manager if available
+        // Get zone type from map manager's zone manager if available
         this.zoneType = 'Forest'; // Default to Forest
         
         // Try to get the zone type from the zone manager

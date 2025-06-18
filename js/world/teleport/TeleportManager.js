@@ -10,7 +10,7 @@ export class TeleportManager {
     /**
      * Create a new TeleportManager
      * @param {THREE.Scene} scene - The Three.js scene
-     * @param {import("./../MapManager.js").MapManager} MapManager - Reference to the world manager
+     * @param {import("./../MapManager.js").MapManager} MapManager - Reference to the map manager
      * @param {import("./../../game/Game.js").Game} game
      */
     constructor(scene, MapManager, game) {
@@ -905,7 +905,7 @@ export class TeleportManager {
         const spawnCount = multiplier;
         
         // Get current zone for appropriate enemy types
-        let currentZone = this.game.world.getZoneAt(position);
+        let currentZone = this.game.mapManager.getZoneAt(position);
 
         // Get enemy types for this zone
         const zoneEnemyTypes = this.getRandomzoneEnemyTypes();
@@ -942,7 +942,7 @@ export class TeleportManager {
                 const distance = 15 + Math.random() * 10; // 15-25 units from center
                 const x = position.x + Math.cos(angle) * distance;
                 const z = position.z + Math.sin(angle) * distance;
-                const y = this.game.world.getTerrainHeight(x, z);
+                const y = this.game.mapManager.getTerrainHeight(x, z);
                 
                 // Spawn elite enemy
                 const elitePosition = new THREE.Vector3(x, y, z);
@@ -1041,7 +1041,7 @@ export class TeleportManager {
                 const z = position.z + Math.sin(angle) * jitter;
                 
                 // Get terrain height at position
-                const y = this.game.world.getTerrainHeight(x, z);
+                const y = this.game.mapManager.getTerrainHeight(x, z);
                 
                 // Spawn enemy
                 const enemyPosition = new THREE.Vector3(x, y, z);

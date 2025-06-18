@@ -498,14 +498,14 @@ export class StructureManager {
         // This happens when called from TerrainChunkManager
         const dataOnly = typeof zoneType === 'boolean' ? zoneType : false;
         
-        // If zoneType is not provided or is a boolean, get it from the world manager
+        // If zoneType is not provided or is a boolean, get it from the map manager
         if (!zoneType || typeof zoneType === 'boolean') {
             // Calculate world coordinates for this chunk
             const chunkSize = this.MapManager.terrainManager.terrainChunkSize;
             const worldX = chunkX * chunkSize;
             const worldZ = chunkZ * chunkSize;
             
-            // Get zone type from the world manager
+            // Get zone type from the map manager
             if (this.MapManager && this.MapManager.generationManager) {
                 zoneType = this.MapManager.generationManager.getZoneTypeAt(worldX, worldZ);
             } else {
@@ -513,7 +513,7 @@ export class StructureManager {
                 zoneType = 'Forest';
             }
             
-            // Get zone density from the world manager
+            // Get zone density from the map manager
             if (this.MapManager && this.MapManager.zoneDensities) {
                 zoneDensity = this.MapManager.zoneDensities[zoneType];
             }
@@ -560,7 +560,7 @@ export class StructureManager {
         // Apply the structure density setting as a multiplier
         const baseProbability = 0.2; // Base probability of placing a structure
         const densityFactor = zoneDensity.structures || 0.2;
-        const probability = baseProbability * densityFactor * this.MapManager.worldScale;
+        const probability = baseProbability * densityFactor * this.MapManager.mapManagerScale;
         
         // Determine if we should place a structure in this chunk
         if (Math.random() < probability) {
@@ -758,7 +758,7 @@ export class StructureManager {
      */
     getZoneTypeAt(x, z) {
         try {
-            // Use the world manager to get the zone at this position
+            // Use the map manager to get the zone at this position
             if (this.MapManager && this.MapManager.zoneManager) {
                 // Calculate which chunk this position is in
                 const terrainChunkSize = this.MapManager.terrainManager.terrainChunkSize;

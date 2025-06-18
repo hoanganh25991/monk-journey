@@ -4,7 +4,7 @@ export class CollisionManager {
     constructor(player, enemyManager, world) {
         this.player = player;
         this.enemyManager = enemyManager;
-        this.world = world;
+        this.mapManager = world;
         this.collisionDistance = 1.0; // Default collision distance
         
         // Track which enemies have been hit by which skills to prevent multiple hits
@@ -30,8 +30,8 @@ export class CollisionManager {
         const currentTime = Date.now();
         
         // Check if we're in critical performance mode
-        const inCriticalMode = this.world && 
-                              this.world.criticalPerformanceMode === true;
+        const inCriticalMode = this.mapManager && 
+                              this.mapManager.criticalPerformanceMode === true;
         
         // Always check these collisions every frame (critical for gameplay)
         // Check player-enemy collisions
@@ -109,8 +109,8 @@ export class CollisionManager {
         const playerRadius = this.player.getCollisionRadius();
         
         // Check collision with structures if available
-        if (this.world && this.world.structureManager && this.world.structureManager.structures) {
-            this.world.structureManager.structures.forEach(structureData => {
+        if (this.mapManager && this.mapManager.structureManager && this.mapManager.structureManager.structures) {
+            this.mapManager.structureManager.structures.forEach(structureData => {
                 // Get the actual THREE.Object3D from the structure data
                 const object = structureData.object;
                 
@@ -151,7 +151,7 @@ export class CollisionManager {
         const playerPosition = this.player.getPosition();
         
         // Get nearby interactive objects
-        const interactiveObjects = this.world.getInteractiveObjectsNear(
+        const interactiveObjects = this.mapManager.getInteractiveObjectsNear(
             playerPosition, 
             5 // Interaction radius
         );
@@ -210,7 +210,7 @@ export class CollisionManager {
         }
         
         // Get terrain height at player position
-        const terrainHeight = this.world.getTerrainHeight(playerPosition.x, playerPosition.z);
+        const terrainHeight = this.mapManager.getTerrainHeight(playerPosition.x, playerPosition.z);
         
         // Validate terrain height
         if (isNaN(terrainHeight)) {

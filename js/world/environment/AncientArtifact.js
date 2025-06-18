@@ -10,7 +10,7 @@ export class AncientArtifact extends EnvironmentObject {
     /**
      * Create a new ancient artifact
      * @param {THREE.Scene} scene - The scene to add the artifact to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {THREE.Vector3} position - The position of the artifact
      * @param {number} size - The size of the artifact
      */
@@ -22,7 +22,7 @@ export class AncientArtifact extends EnvironmentObject {
         this.hasInscriptions = Math.random() > 0.3; // 70% chance to have inscriptions
         this.isActivated = Math.random() > 0.7; // 30% chance to be activated/glowing
         
-        // Get zone type from world manager if available
+        // Get zone type from map manager if available
         const zoneInfo = MapManager?.getCurrentZoneInfo?.(position);
         this.zoneType = zoneInfo?.type || 'Ruins';
         

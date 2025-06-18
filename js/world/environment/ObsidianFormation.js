@@ -10,7 +10,7 @@ export class ObsidianFormation extends EnvironmentObject {
     /**
      * Create a new obsidian formation
      * @param {THREE.Scene} scene - The scene to add the formation to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {THREE.Vector3} position - The position of the formation
      * @param {number} size - The size of the formation
      */
@@ -22,7 +22,7 @@ export class ObsidianFormation extends EnvironmentObject {
         this.hasGlowingCracks = Math.random() > 0.5; // 50% chance to have glowing cracks
         this.reflectivity = 0.3 + Math.random() * 0.4; // Random reflectivity between 0.3-0.7
         
-        // Get zone type from world manager if available
+        // Get zone type from map manager if available
         this.zoneType = MapManager?.getCurrentZoneType(position) || 'Volcanic Wastes';
         
         // Create the formation

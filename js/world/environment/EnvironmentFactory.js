@@ -196,7 +196,7 @@ export class EnvironmentFactory {
         });
         
         this.register(ENVIRONMENT_OBJECTS.TALL_GRASS, (position, size) => {
-            // Get zone type from world manager if available
+            // Get zone type from map manager if available
             let zoneType = 'Forest'; // Default
             if (this.MapManager && this.MapManager.getZoneAt) {
                 const zone = this.MapManager.getZoneAt(position);

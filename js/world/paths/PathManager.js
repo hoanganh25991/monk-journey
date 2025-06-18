@@ -773,7 +773,7 @@ export class PathManager {
      * @returns {string} - The zone type (Forest, Desert, etc.)
      */
     getZoneTypeAt(x, z) {
-        // Use the world manager to get the zone at this position
+        // Use the map manager to get the zone at this position
         if (this.MapManager && this.MapManager.getZoneAt) {
             const position = new THREE.Vector3(x, 0, z);
             const zone = this.MapManager.getZoneAt(position);
@@ -793,12 +793,12 @@ export class PathManager {
      * @returns {number} - The terrain height at this position
      */
     getTerrainHeightAt(x, z) {
-        // First try to get terrain height from world manager
+        // First try to get terrain height from map manager
         if (this.MapManager && this.MapManager.getTerrainHeight) {
             return this.MapManager.getTerrainHeight(x, z);
         }
         
-        // If world manager method not available, try terrain manager directly
+        // If map manager method not available, try terrain manager directly
         if (this.MapManager && this.MapManager.terrainManager && this.MapManager.terrainManager.getHeightAt) {
             return this.MapManager.terrainManager.getHeightAt(x, z);
         }

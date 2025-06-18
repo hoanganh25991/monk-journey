@@ -7,7 +7,7 @@ export class Market {
     /**
      * Create a new market
      * @param {THREE.Scene} scene - The scene to add the market to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      */
     constructor(scene, MapManager) {
         this.scene = scene;

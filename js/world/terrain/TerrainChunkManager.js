@@ -42,7 +42,7 @@ export class TerrainChunkManager {
         // Determine zone type for this terrain chunk
         let zoneType = 'Terrant'; // Default to Terrant for new terrain
         
-        // If we have a world manager with zone information, use it
+        // If we have a map manager with zone information, use it
         if (this.MapManager && this.MapManager.getZoneAt) {
             // Calculate world coordinates for this chunk
             const worldX = x * this.terrainConfig.chunkSize + this.terrainConfig.chunkSize / 2;
@@ -231,7 +231,7 @@ export class TerrainChunkManager {
         // Determine zone type for this terrain chunk
         let zoneType = 'Terrant'; // Default to Terrant for new terrain
         
-        // If we have a world manager with zone information, use it
+        // If we have a map manager with zone information, use it
         if (this.MapManager && this.MapManager.getZoneAt) {
             // Calculate world coordinates for this chunk
             const worldX = chunkX * this.terrainConfig.chunkSize + this.terrainConfig.chunkSize / 2;

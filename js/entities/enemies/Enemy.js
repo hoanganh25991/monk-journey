@@ -69,7 +69,7 @@ export class Enemy {
         this.model = null;
         
         // Reference to game world for terrain height
-        this.world = null;
+        this.mapManager = null;
         
         // Flag to control terrain height updates (useful for bosses with fixed positions)
         // Disable terrain height updates for bosses to prevent sinking
@@ -804,8 +804,8 @@ export class Enemy {
                 this.modelGroup.rotation.y = this.rotation.y;
                 
                 // Set initial Y position only once
-                if (!this.initialPositionSet && this.world) {
-                    const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
+                if (!this.initialPositionSet && this.mapManager) {
+                    const terrainHeight = this.mapManager.getTerrainHeight(this.position.x, this.position.z);
                     if (terrainHeight !== null) {
                         // Store the initial Y position for bosses
                         this.initialYPosition = terrainHeight + this.heightOffset;
@@ -831,8 +831,8 @@ export class Enemy {
         }
         
         // For non-boss enemies, update position based on terrain height if world is available and terrain updates are allowed
-        if (this.world && this.allowTerrainHeightUpdates) {
-            const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
+        if (this.mapManager && this.allowTerrainHeightUpdates) {
+            const terrainHeight = this.mapManager.getTerrainHeight(this.position.x, this.position.z);
             if (terrainHeight !== null) {
                 this.position.y = terrainHeight + this.heightOffset;
                 
@@ -877,8 +877,8 @@ export class Enemy {
                 this.position.set(x, y, z);
                 
                 // If we have a world reference, get the terrain height
-                if (this.world) {
-                    const terrainHeight = this.world.getTerrainHeight(x, z);
+                if (this.mapManager) {
+                    const terrainHeight = this.mapManager.getTerrainHeight(x, z);
                     if (terrainHeight !== null) {
                         // Use terrain height + offset for Y position
                         this.initialYPosition = terrainHeight + this.heightOffset;

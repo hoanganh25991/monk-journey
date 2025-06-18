@@ -10,7 +10,7 @@ export class MagicalStone extends EnvironmentObject {
     /**
      * Create a new magical stone
      * @param {THREE.Scene} scene - The scene to add the stone to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {THREE.Vector3} position - The position of the stone
      * @param {number} size - The size of the stone
      */
@@ -22,7 +22,7 @@ export class MagicalStone extends EnvironmentObject {
         this.hasRunes = Math.random() > 0.5; // 50% chance to have runes
         this.pulseEffect = Math.random() > 0.3; // 70% chance to have pulsing effect
         
-        // Get zone type from world manager if available
+        // Get zone type from map manager if available
         const zone = MapManager?.getZoneAt?.(position);
         this.zoneType = zone?.name || 'Forest';
         

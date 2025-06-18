@@ -581,7 +581,7 @@ export class EnvironmentManager {
      * @returns {string} - The zone type (Forest, Desert, etc.)
      */
     getZoneTypeAt(x, z) {
-        // Use the world manager to get the zone at this position
+        // Use the map manager to get the zone at this position
         if (this.MapManager && this.MapManager.getZoneAt) {
             const position = new THREE.Vector3(x, 0, z);
             const zone = this.MapManager.getZoneAt(position);
@@ -795,14 +795,14 @@ export class EnvironmentManager {
         // Handle the case when zoneType is a boolean (data-only flag)
         const dataOnly = typeof zoneType === 'boolean' ? zoneType : false;
         
-        // If zoneType is not provided or is a boolean, get it from the world manager
+        // If zoneType is not provided or is a boolean, get it from the map manager
         if (!zoneType || typeof zoneType === 'boolean') {
             // Calculate world coordinates for this chunk
             const chunkSize = this.MapManager.terrainManager.terrainChunkSize;
             const worldX = chunkX * chunkSize;
             const worldZ = chunkZ * chunkSize;
             
-            // Get zone type from the world manager
+            // Get zone type from the map manager
             if (this.MapManager && this.MapManager.generationManager) {
                 zoneType = this.MapManager.generationManager.getZoneTypeAt(worldX, worldZ);
             } else {
@@ -810,7 +810,7 @@ export class EnvironmentManager {
                 zoneType = 'Forest';
             }
             
-            // Get zone density from the world manager
+            // Get zone density from the map manager
             if (this.MapManager && this.MapManager.zoneDensities) {
                 zoneDensity = this.MapManager.zoneDensities[zoneType];
             }
@@ -857,7 +857,7 @@ export class EnvironmentManager {
         // Apply the environment density setting as a multiplier
         const baseCount = 10; // Base number of objects per chunk
         const densityFactor = zoneDensity.environment || 1.0;
-        const count = Math.floor(baseCount * densityFactor * this.environmentDensity * this.MapManager.worldScale);
+        const count = Math.floor(baseCount * densityFactor * this.environmentDensity * this.MapManager.mapManagerScale);
         
         // Generate random environment objects
         for (let i = 0; i < count; i++) {

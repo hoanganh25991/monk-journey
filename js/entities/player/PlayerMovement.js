@@ -76,10 +76,10 @@ export class PlayerMovement {
         }
         
         // Update the world based on player position
-        if (this.game && this.game.world) {
+        if (this.game && this.game.mapManager) {
             // Get delta time from game if available, otherwise use a default value
             const delta = this.game.delta || 0.016;
-            this.game.world.updateWorldForPlayer(this.position, undefined, delta);
+            this.game.mapManager.updateWorldForPlayer(this.position, undefined, delta);
         }
     }
     
@@ -133,14 +133,14 @@ export class PlayerMovement {
     
     updateTerrainHeight() {
         // Ensure player is always at the correct terrain height
-        if (this.game && this.game.world) {
-            const terrainHeight = this.game.world.getTerrainHeight(this.position.x, this.position.z);
+        if (this.game && this.game.mapManager) {
+            const terrainHeight = this.game.mapManager.getTerrainHeight(this.position.x, this.position.z);
             
             // Always maintain a fixed height above terrain to prevent vibration
             const targetHeight = terrainHeight + this.heightOffset;
             
             // Check if the world's initial terrain has been created
-            if (this.game.world.initialTerrainCreated) {
+            if (this.game.mapManager.initialTerrainCreated) {
                 // Use a very small smooth factor to prevent vibration
                 const smoothFactor = 0.05; // Lower value = smoother transition
                 this.position.y += (targetHeight - this.position.y) * smoothFactor;

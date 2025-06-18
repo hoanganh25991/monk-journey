@@ -21,7 +21,7 @@ import { GenerationManager } from './generation/GenerationManager.js';
 import { SpatialGrid } from './utils/SpatialGrid.js';
 
 /**
- * Main World Manager class that coordinates all world-related systems
+ * Main Map Manager class that coordinates all world-related systems
  * Optimized for performance with object pooling, throttling, and spatial partitioning
  * Refactored to use modular managers for better maintainability
  */
@@ -82,7 +82,7 @@ export class MapManager {
         };
         
         this.environmentDensity = this.densityLevels.medium; // Default to medium density
-        this.worldScale = 1.0; // Scale factor to make objects appear farther apart
+        this.mapManagerScale = 1.0; // Scale factor to make objects appear farther apart
         
         // Use zone densities from config
         this.zoneDensities = ZONE_DENSITIES;
@@ -1638,7 +1638,7 @@ export class MapManager {
                 // Calculate probability of placing a structure in this chunk
                 const baseProbability = 0.2; // Base probability of placing a structure
                 const densityFactor = zoneDensity.structures || 0.2;
-                const probability = baseProbability * densityFactor * this.worldScale;
+                const probability = baseProbability * densityFactor * this.mapManagerScale;
                 
                 // Determine if we should place a structure in this chunk
                 if (random() < probability) {

@@ -8,7 +8,7 @@ export class CrystalFormation {
     /**
      * Create a new crystal formation
      * @param {THREE.Scene} scene - The scene to add the crystal formation to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {THREE.Vector3} position - The position of the crystal formation
      * @param {number} size - The size of the crystal formation
      * @param {Object} data - Additional data for the crystal formation

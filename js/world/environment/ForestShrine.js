@@ -10,7 +10,7 @@ export class ForestShrine extends EnvironmentObject {
     /**
      * Create a new forest shrine
      * @param {THREE.Scene} scene - The scene to add the shrine to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {THREE.Vector3} position - The position of the shrine
      * @param {number} size - The size of the shrine
      */
@@ -22,7 +22,7 @@ export class ForestShrine extends EnvironmentObject {
         this.hasGlowingElements = Math.random() > 0.4; // 60% chance to have glowing elements
         this.hasMoss = Math.random() > 0.3; // 70% chance to have moss
         
-        // Get zone type from world manager if available
+        // Get zone type from map manager if available
         this.zoneType = MapManager?.getZoneTypeAt(position.x, position.z) || 'Forest';
         
         // Create the shrine

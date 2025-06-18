@@ -8,7 +8,7 @@ export class GiantMushroom {
     /**
      * Create a new giant mushroom
      * @param {THREE.Scene} scene - The scene to add the giant mushroom to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {THREE.Vector3} position - The position of the giant mushroom
      * @param {number} size - The size of the giant mushroom
      * @param {Object} data - Additional data for the giant mushroom

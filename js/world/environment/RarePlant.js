@@ -10,7 +10,7 @@ export class RarePlant extends EnvironmentObject {
     /**
      * Create a new rare plant
      * @param {THREE.Scene} scene - The scene to add the plant to
-     * @param {Object} MapManager - The world manager
+     * @param {Object} MapManager - The map manager
      * @param {THREE.Vector3} position - The position of the plant
      * @param {number} size - The size of the plant
      */
@@ -22,7 +22,7 @@ export class RarePlant extends EnvironmentObject {
         this.stemCount = 2 + Math.floor(Math.random() * 3);
         this.hasFlowers = Math.random() > 0.3; // 70% chance to have flowers
         
-        // Get zone type from world manager if available
+        // Get zone type from map manager if available
         this.zoneType = MapManager?.getCurrentZoneType(position) || 'Forest';
         
         // Create the plant
