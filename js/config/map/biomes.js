@@ -14,7 +14,7 @@ export const BIOMES = {
     TERRANT: 'Terrant',     // Default terrain type
     FOREST: 'Forest',
     DESERT: 'Desert',
-    MOUNTAIN: 'Mountains',  // Note: This matches the 'Mountains' string used in TerrainColoringManager
+    MOUNTAIN: 'Mountain',  // Note: This matches the 'Mountains' string used in TerrainColoringManager
     SWAMP: 'Swamp',
     RUINS: 'Ruins',
     DARK_SANCTUM: 'Dark Sanctum',
