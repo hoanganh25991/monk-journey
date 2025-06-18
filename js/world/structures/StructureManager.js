@@ -1,15 +1,10 @@
 import * as THREE from 'three';
-import { Building } from './Building.js';
-import { Tower } from './Tower.js';
-import { Ruins } from './Ruins.js';
-import { DarkSanctum } from './DarkSanctum.js';
-import { Mountain } from './Mountain.js';
-import { Bridge } from './Bridge.js';
-import { Village } from './Village.js';
+import { StructureFactory } from './StructureFactory.js';
+import { STRUCTURE_TYPES } from '../../config/structure.js';
 
 /**
  * Manages structure loading and placement from map data
- * Simplified to focus only on loading existing structures from map data
+ * Refactored to use StructureFactory for better maintainability
  */
 export class StructureManager {
     constructor(scene, worldManager, game = null) {
@@ -17,17 +12,16 @@ export class StructureManager {
         this.worldManager = worldManager;
         this.game = game;
         
+        // Initialize structure factory
+        this.structureFactory = new StructureFactory(scene, worldManager);
+        
         // Structure collections
         this.structures = [];
         this.structuresPlaced = {}; // Track which chunks have structures placed
         this.specialStructures = {}; // Track special structures like Dark Sanctum
         
-        // Structure types
-        this.structureTypes = [
-            'house', 'tower', 'ruins', 'darkSanctum', 
-            'mountain', 'bridge', 'village', 'tavern',
-            'temple', 'shop', 'fortress', 'altar'
-        ];
+        // Structure types - now using constants from config
+        this.structureTypes = Object.values(STRUCTURE_TYPES);
     }
     
     /**
@@ -38,12 +32,43 @@ export class StructureManager {
         // Only create initial structures if specifically requested
         if (createInitialStructures) {
             // Create initial structures near the player's starting position
-            this.createRuins(0, 0);
-            this.createDarkSanctum(0, -40);
+            const ruinsPosition = new THREE.Vector3(0, 0, 0);
+            const darkSanctumPosition = new THREE.Vector3(0, 0, -40);
             
-            // Mark these initial structures as placed
-            this.specialStructures['initial_ruins'] = { x: 0, z: 0, type: 'ruins' };
-            this.specialStructures['initial_darkSanctum'] = { x: 0, z: -40, type: 'darkSanctum' };
+            const ruins = this.structureFactory.createStructure(STRUCTURE_TYPES.RUINS, ruinsPosition);
+            const darkSanctum = this.structureFactory.createStructure(STRUCTURE_TYPES.DARK_SANCTUM, darkSanctumPosition);
+            
+            if (ruins) {
+                this.structures.push({
+                    type: STRUCTURE_TYPES.RUINS,
+                    object: ruins,
+                    position: ruinsPosition,
+                    id: 'initial_ruins'
+                });
+                
+                // Mark as special structure
+                this.specialStructures['initial_ruins'] = { 
+                    x: ruinsPosition.x, 
+                    z: ruinsPosition.z, 
+                    type: STRUCTURE_TYPES.RUINS 
+                };
+            }
+            
+            if (darkSanctum) {
+                this.structures.push({
+                    type: STRUCTURE_TYPES.DARK_SANCTUM,
+                    object: darkSanctum,
+                    position: darkSanctumPosition,
+                    id: 'initial_darkSanctum'
+                });
+                
+                // Mark as special structure
+                this.specialStructures['initial_darkSanctum'] = { 
+                    x: darkSanctumPosition.x, 
+                    z: darkSanctumPosition.z, 
+                    type: STRUCTURE_TYPES.DARK_SANCTUM 
+                };
+            }
             
             console.debug("Initial structures created");
         } else {
@@ -68,75 +93,23 @@ export class StructureManager {
 
         structuresData.forEach(structureData => {
             if (structureData.type && structureData.position) {
-                let structure = null;
-
-                // Create the appropriate structure based on type
-                switch (structureData.type) {
-                    case 'house':
-                        const width = structureData.width || 5;
-                        const depth = structureData.depth || 5;
-                        const height = structureData.height || 3;
-                        structure = this.createBuilding(
-                            structureData.position.x,
-                            structureData.position.z,
-                            width, depth, height
-                        );
-                        break;
-                    case 'tower':
-                        structure = this.createTower(
-                            structureData.position.x,
-                            structureData.position.z
-                        );
-                        break;
-                    case 'ruins':
-                        structure = this.createRuins(
-                            structureData.position.x,
-                            structureData.position.z
-                        );
-                        break;
-                    case 'darkSanctum':
-                        structure = this.createDarkSanctum(
-                            structureData.position.x,
-                            structureData.position.z
-                        );
-                        break;
-                    case 'mountain':
-                        structure = this.createMountain(
-                            structureData.position.x,
-                            structureData.position.z
-                        );
-                        break;
-                    case 'bridge':
-                        structure = this.createBridge(
-                            structureData.position.x,
-                            structureData.position.z
-                        );
-                        break;
-                    case 'village':
-                        structure = this.createVillage(
-                            structureData.position.x,
-                            structureData.position.z
-                        );
-                        break;
-                    case 'tavern':
-                    case 'temple':
-                    case 'shop':
-                    case 'fortress':
-                    case 'altar':
-                        // These are all building types, so create a building with appropriate dimensions
-                        const bWidth = structureData.width || 6;
-                        const bDepth = structureData.depth || 6;
-                        const bHeight = structureData.height || 4;
-                        structure = this.createBuilding(
-                            structureData.position.x,
-                            structureData.position.z,
-                            bWidth, bDepth, bHeight,
-                            structureData.type // Use type as style
-                        );
-                        break;
-                    default:
-                        console.warn(`Unknown structure type: ${structureData.type}`);
-                }
+                // Create position vector
+                const position = new THREE.Vector3(
+                    structureData.position.x,
+                    structureData.position.y || 0,
+                    structureData.position.z
+                );
+                
+                // Prepare options object with any additional properties
+                const options = {
+                    width: structureData.width,
+                    depth: structureData.depth,
+                    height: structureData.height,
+                    style: structureData.type // For building types that need style
+                };
+                
+                // Create structure using factory
+                const structure = this.structureFactory.createStructure(structureData.type, position, options);
 
                 if (structure) {
                     // Apply rotation if specified
@@ -148,11 +121,7 @@ export class StructureManager {
                     const structureInfo = {
                         type: structureData.type,
                         object: structure,
-                        position: new THREE.Vector3(
-                            structureData.position.x,
-                            structureData.position.y || 0,
-                            structureData.position.z
-                        ),
+                        position: position,
                         id: structureData.id,
                         groupId: structureData.groupId
                     };
@@ -163,11 +132,13 @@ export class StructureManager {
                     // If it's a special structure, add to special structures
                     if (structureData.isSpecial) {
                         this.specialStructures[structureData.id] = {
-                            x: structureData.position.x,
-                            z: structureData.position.z,
+                            x: position.x,
+                            z: position.z,
                             type: structureData.type
                         };
                     }
+                } else {
+                    console.warn(`Failed to create structure of type: ${structureData.type}`);
                 }
             }
         });
@@ -243,6 +214,26 @@ export class StructureManager {
     }
     
     /**
+     * Create a structure using the factory
+     * @param {string} type - The structure type
+     * @param {number} x - X coordinate
+     * @param {number} z - Z coordinate
+     * @param {Object} options - Additional options for the structure
+     * @returns {THREE.Object3D} - The created structure
+     */
+    createStructure(type, x, z, options = {}) {
+        const position = new THREE.Vector3(x, 0, z);
+        
+        // Get terrain height if available
+        if (this.worldManager && this.worldManager.getTerrainHeight) {
+            position.y = this.worldManager.getTerrainHeight(x, z);
+        }
+        
+        // Create structure using factory
+        return this.structureFactory.createStructure(type, position, options);
+    }
+    
+    /**
      * Create a village group with organized layout
      * @param {number} centerX - X coordinate of village center
      * @param {number} centerZ - Z coordinate of village center
@@ -256,12 +247,12 @@ export class StructureManager {
         const villageBuildings = [];
         
         // Create a central village structure
-        const villageCenter = this.createVillage(centerX, centerZ);
+        const villageCenter = this.createStructure(STRUCTURE_TYPES.VILLAGE, centerX, centerZ);
         
         if (villageCenter) {
             // Create village info
             const villageCenterInfo = {
-                type: 'village',
+                type: STRUCTURE_TYPES.VILLAGE,
                 object: villageCenter,
                 position: new THREE.Vector3(centerX, 0, centerZ),
                 groupId: groupId
@@ -276,7 +267,7 @@ export class StructureManager {
             
             // Create houses around the village center
             // Use a spiral pattern for more organized village layout
-            const spread = this.groupSpread['village'];
+            const spread = this.groupSpread ? this.groupSpread['village'] : 10;
             
             for (let i = 0; i < buildingCount - 1; i++) {
                 // Spiral pattern
@@ -291,7 +282,9 @@ export class StructureManager {
                 const depth = 3 + Math.random() * 4;
                 const height = 2 + Math.random() * 3;
                 
-                const house = this.createBuilding(houseX, houseZ, width, depth, height);
+                const house = this.createStructure(STRUCTURE_TYPES.HOUSE, houseX, houseZ, {
+                    width, depth, height
+                });
                 
                 if (house) {
                     // Rotate house to face village center
@@ -300,7 +293,7 @@ export class StructureManager {
                     
                     // Create house info
                     const houseInfo = {
-                        type: 'house',
+                        type: STRUCTURE_TYPES.HOUSE,
                         object: house,
                         position: new THREE.Vector3(houseX, 0, houseZ),
                         groupId: groupId
@@ -319,7 +312,7 @@ export class StructureManager {
             
             // Return info about the village
             return {
-                type: 'village',
+                type: STRUCTURE_TYPES.VILLAGE,
                 isGroup: true,
                 groupId: groupId,
                 position: new THREE.Vector3(centerX, 0, centerZ),
@@ -428,12 +421,14 @@ export class StructureManager {
             
             // Vary mountain sizes
             const scaleFactor = 0.7 + Math.random() * 0.6; // 0.7 to 1.3
-            const mountain = this.createMountain(mountainX, mountainZ, scaleFactor);
+            const mountain = this.createStructure(STRUCTURE_TYPES.MOUNTAIN, mountainX, mountainZ, {
+                scale: scaleFactor
+            });
             
             if (mountain) {
                 // Create mountain info
                 const mountainInfo = {
-                    type: 'mountain',
+                    type: STRUCTURE_TYPES.MOUNTAIN,
                     object: mountain,
                     position: new THREE.Vector3(mountainX, 0, mountainZ),
                     groupId: groupId
@@ -581,56 +576,82 @@ export class StructureManager {
             
             // Create the structure
             let structure = null;
+            let options = {};
             
-            switch (type) {
+            // Convert legacy type names to constants if needed
+            let structureType = type;
+            if (type === 'dark_sanctum') structureType = STRUCTURE_TYPES.DARK_SANCTUM;
+            
+            // Prepare options based on structure type
+            switch (structureType) {
+                case STRUCTURE_TYPES.HOUSE:
                 case 'house':
-                    const width = 4 + Math.random() * 3;
-                    const depth = 4 + Math.random() * 3;
-                    const height = 3 + Math.random() * 2;
-                    structure = this.createBuilding(x, z, width, depth, height);
+                    options = {
+                        width: 4 + Math.random() * 3,
+                        depth: 4 + Math.random() * 3,
+                        height: 3 + Math.random() * 2
+                    };
+                    structureType = STRUCTURE_TYPES.HOUSE;
                     break;
-                case 'tower':
-                    structure = this.createTower(x, z);
-                    break;
-                case 'ruins':
-                    structure = this.createRuins(x, z);
-                    break;
-                case 'dark_sanctum':
-                    structure = this.createDarkSanctum(x, z);
-                    break;
-                case 'mountain':
-                    structure = this.createMountain(x, z);
-                    break;
-                case 'village':
-                    structure = this.createVillage(x, z);
-                    break;
+                case STRUCTURE_TYPES.TEMPLE:
                 case 'temple':
-                    const tWidth = 8 + Math.random() * 4;
-                    const tDepth = 8 + Math.random() * 4;
-                    const tHeight = 6 + Math.random() * 3;
-                    structure = this.createBuilding(x, z, tWidth, tDepth, tHeight, 'temple');
+                    options = {
+                        width: 8 + Math.random() * 4,
+                        depth: 8 + Math.random() * 4,
+                        height: 6 + Math.random() * 3
+                    };
+                    structureType = STRUCTURE_TYPES.TEMPLE;
                     break;
+                case STRUCTURE_TYPES.ALTAR:
                 case 'altar':
-                    const aWidth = 4 + Math.random() * 2;
-                    const aDepth = 4 + Math.random() * 2;
-                    const aHeight = 2 + Math.random() * 1;
-                    structure = this.createBuilding(x, z, aWidth, aDepth, aHeight, 'altar');
+                    options = {
+                        width: 4 + Math.random() * 2,
+                        depth: 4 + Math.random() * 2,
+                        height: 2 + Math.random() * 1
+                    };
+                    structureType = STRUCTURE_TYPES.ALTAR;
                     break;
+                case STRUCTURE_TYPES.FORTRESS:
                 case 'fortress':
-                    const fWidth = 10 + Math.random() * 5;
-                    const fDepth = 10 + Math.random() * 5;
-                    const fHeight = 8 + Math.random() * 4;
-                    structure = this.createBuilding(x, z, fWidth, fDepth, fHeight, 'fortress');
+                    options = {
+                        width: 10 + Math.random() * 5,
+                        depth: 10 + Math.random() * 5,
+                        height: 8 + Math.random() * 4
+                    };
+                    structureType = STRUCTURE_TYPES.FORTRESS;
+                    break;
+                case STRUCTURE_TYPES.TOWER:
+                case 'tower':
+                    structureType = STRUCTURE_TYPES.TOWER;
+                    break;
+                case STRUCTURE_TYPES.RUINS:
+                case 'ruins':
+                    structureType = STRUCTURE_TYPES.RUINS;
+                    break;
+                case STRUCTURE_TYPES.DARK_SANCTUM:
+                case 'dark_sanctum':
+                    structureType = STRUCTURE_TYPES.DARK_SANCTUM;
+                    break;
+                case STRUCTURE_TYPES.MOUNTAIN:
+                case 'mountain':
+                    structureType = STRUCTURE_TYPES.MOUNTAIN;
+                    break;
+                case STRUCTURE_TYPES.VILLAGE:
+                case 'village':
+                    structureType = STRUCTURE_TYPES.VILLAGE;
                     break;
                 default:
                     console.warn(`Unknown structure type: ${type}`);
                     break;
             }
             
+            // Create the structure using our factory
+            structure = this.createStructure(structureType, x, z, options);
+            
             if (structure) {
                 // Add to structures array for tracking
                 this.structures.push({
-                    type: type,
+                    type: structureType,
                     object: structure,
                     position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z),
                     chunkKey: chunkKey

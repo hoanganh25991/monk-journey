@@ -9,6 +9,7 @@ import { FogManager } from './environment/FogManager.js';
 import { TeleportManager } from './teleport/TeleportManager.js';
 import { LODManager } from './LODManager.js';
 import { ENVIRONMENT_OBJECTS, THEME_SPECIFIC_OBJECTS, CROSS_THEME_FEATURES } from '../config/environment.js';
+import { STRUCTURE_TYPES } from '../config/structure.js';
 
 // Import new modular managers
 import { PerformanceManager } from './managers/PerformanceManager.js';
@@ -525,54 +526,42 @@ export class WorldManager {
                     if (this.structureManager && structData.type) {
                         let structure;
                         
-                        // Create structure based on type
-                        switch (structData.type) {
-                            case 'village':
-                                structure = this.structureManager.createVillage(
-                                    structData.position.x, 
-                                    structData.position.z
-                                );
-                                break;
+                        // Create structure using the factory
+                        let options = {};
+                        let structureType = structData.type;
+                        
+                        // Convert legacy type names to constants if needed
+                        if (structData.type === 'dark_sanctum') structureType = STRUCTURE_TYPES.DARK_SANCTUM;
+                        
+                        // Prepare options based on structure type
+                        switch (structureType) {
                             case 'temple':
-                                structure = this.structureManager.createBuilding(
-                                    structData.position.x, 
-                                    structData.position.z, 
-                                    8 + Math.random() * 4, // width
-                                    8 + Math.random() * 4, // depth
-                                    6 + Math.random() * 3, // height
-                                    'temple'
-                                );
+                            case STRUCTURE_TYPES.TEMPLE:
+                                options = {
+                                    width: 8 + Math.random() * 4,
+                                    depth: 8 + Math.random() * 4,
+                                    height: 6 + Math.random() * 3
+                                };
+                                structureType = STRUCTURE_TYPES.TEMPLE;
                                 break;
                             case 'fortress':
-                                structure = this.structureManager.createBuilding(
-                                    structData.position.x, 
-                                    structData.position.z, 
-                                    10 + Math.random() * 5, // width
-                                    10 + Math.random() * 5, // depth
-                                    8 + Math.random() * 4, // height
-                                    'fortress'
-                                );
-                                break;
-                            case 'mountain':
-                                structure = this.structureManager.createMountain(
-                                    structData.position.x, 
-                                    structData.position.z
-                                );
-                                break;
-                            case 'dark_sanctum':
-                                structure = this.structureManager.createDarkSanctum(
-                                    structData.position.x, 
-                                    structData.position.z
-                                );
-                                break;
-                            case 'ruins':
-                            default:
-                                structure = this.structureManager.createRuins(
-                                    structData.position.x, 
-                                    structData.position.z
-                                );
+                            case STRUCTURE_TYPES.FORTRESS:
+                                options = {
+                                    width: 10 + Math.random() * 5,
+                                    depth: 10 + Math.random() * 5,
+                                    height: 8 + Math.random() * 4
+                                };
+                                structureType = STRUCTURE_TYPES.FORTRESS;
                                 break;
                         }
+                        
+                        // Create the structure using the factory
+                        structure = this.structureManager.createStructure(
+                            structureType,
+                            structData.position.x,
+                            structData.position.z,
+                            options
+                        );
                         
                         if (structure) {
                             // Set rotation if specified
@@ -834,39 +823,64 @@ export class WorldManager {
                 this.environmentManager.addToTypeCollection('mysterious_portal', landmark);
             }
         } else {
-            // Create a structure
-            switch (landmarkType) {
-                case 'village':
-                    landmark = this.structureManager.createVillage(landmarkX, landmarkZ);
-                    break;
+            // Create a structure using the factory
+            let options = {};
+            let structureType = landmarkType;
+            
+            // Convert legacy type names to constants if needed
+            if (landmarkType === 'dark_sanctum') structureType = STRUCTURE_TYPES.DARK_SANCTUM;
+            
+            // Prepare options based on structure type
+            switch (structureType) {
                 case 'temple':
-                    const tWidth = 8 + Math.random() * 4;
-                    const tDepth = 8 + Math.random() * 4;
-                    const tHeight = 6 + Math.random() * 3;
-                    landmark = this.structureManager.createBuilding(landmarkX, landmarkZ, tWidth, tDepth, tHeight, 'temple');
+                case STRUCTURE_TYPES.TEMPLE:
+                    options = {
+                        width: 8 + Math.random() * 4,
+                        depth: 8 + Math.random() * 4,
+                        height: 6 + Math.random() * 3
+                    };
+                    structureType = STRUCTURE_TYPES.TEMPLE;
                     break;
                 case 'fortress':
-                    const fWidth = 10 + Math.random() * 5;
-                    const fDepth = 10 + Math.random() * 5;
-                    const fHeight = 8 + Math.random() * 4;
-                    landmark = this.structureManager.createBuilding(landmarkX, landmarkZ, fWidth, fDepth, fHeight, 'fortress');
+                case STRUCTURE_TYPES.FORTRESS:
+                    options = {
+                        width: 10 + Math.random() * 5,
+                        depth: 10 + Math.random() * 5,
+                        height: 8 + Math.random() * 4
+                    };
+                    structureType = STRUCTURE_TYPES.FORTRESS;
+                    break;
+                case 'village':
+                case STRUCTURE_TYPES.VILLAGE:
+                    structureType = STRUCTURE_TYPES.VILLAGE;
                     break;
                 case 'mountain':
-                    landmark = this.structureManager.createMountain(landmarkX, landmarkZ);
+                case STRUCTURE_TYPES.MOUNTAIN:
+                    structureType = STRUCTURE_TYPES.MOUNTAIN;
                     break;
                 case 'dark_sanctum':
-                    landmark = this.structureManager.createDarkSanctum(landmarkX, landmarkZ);
+                case STRUCTURE_TYPES.DARK_SANCTUM:
+                    structureType = STRUCTURE_TYPES.DARK_SANCTUM;
                     break;
                 case 'ruins':
+                case STRUCTURE_TYPES.RUINS:
                 default:
-                    landmark = this.structureManager.createRuins(landmarkX, landmarkZ);
+                    structureType = STRUCTURE_TYPES.RUINS;
                     break;
             }
+            
+            // Create the structure using the factory
+            landmark = this.structureManager.createStructure(
+                structureType,
+                landmarkX,
+                landmarkZ,
+                options
+            );
             
             if (landmark) {
                 // Add to structures tracking
                 this.structureManager.structures.push({
-                    type: landmarkType,
+                    type: structureType,
                     object: landmark,
                     position: new THREE.Vector3(landmarkX, this.terrainManager.getTerrainHeight(landmarkX, landmarkZ), landmarkZ),
                     chunkKey: `${Math.floor(landmarkX / this.terrainManager.terrainChunkSize)},${Math.floor(landmarkZ / this.terrainManager.terrainChunkSize)}`
