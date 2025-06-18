@@ -2062,10 +2062,10 @@ export class MapManager {
             
             // Clear chunk tracking for chunks in this area
             const chunkSize = this.terrainManager.terrainChunkSize;
-            const startChunkX = Math.floor((centerX - radius) / chunkSize);
-            const startChunkZ = Math.floor((centerZ - radius) / chunkSize);
-            const endChunkX = Math.floor((centerX + radius) / chunkSize);
-            const endChunkZ = Math.floor((centerZ + radius) / chunkSize);
+            const startChunkX = Math.floor((centerX - outerRadius) / chunkSize);
+            const startChunkZ = Math.floor((centerZ - outerRadius) / chunkSize);
+            const endChunkX = Math.floor((centerX + outerRadius) / chunkSize);
+            const endChunkZ = Math.floor((centerZ + outerRadius) / chunkSize);
             
             for (let x = startChunkX; x <= endChunkX; x++) {
                 for (let z = startChunkZ; z <= endChunkZ; z++) {
