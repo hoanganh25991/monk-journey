@@ -22,8 +22,8 @@ export class DesertShrine extends EnvironmentObject {
         this.hasGlyphs = Math.random() > 0.3; // 70% chance to have glyphs/hieroglyphs
         this.hasTorches = Math.random() > 0.5; // 50% chance to have torches/fire
         
-        // Get zone type from map manager if available
-        this.zoneType = MapManager?.getZoneTypeAt(position.x, position.z) || 'Desert';
+        // Get zone type from map manager's generation manager if available
+        this.zoneType = MapManager?.generationManager?.getZoneTypeAt(position.x, position.z) || 'Desert';
         
         // Create the shrine
         this.object = this.create();
