@@ -34,7 +34,7 @@ export class Shrine {
                 return 'wooden';
             case 'Desert':
                 return 'sandstone';
-            case 'Mountains':
+            case 'Mountain':
                 return 'stone';
             case 'Swamp':
                 return 'moss';

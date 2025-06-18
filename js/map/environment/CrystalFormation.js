@@ -49,7 +49,7 @@ export class CrystalFormation {
             case 'Desert':
                 crystalColor = 0xFFD700; // Gold
                 break;
-            case 'Mountains':
+            case 'Mountain':
                 crystalColor = 0xADD8E6; // Light Blue
                 break;
             case 'Swamp':

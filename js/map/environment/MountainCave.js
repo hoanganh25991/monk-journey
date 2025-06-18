@@ -24,7 +24,7 @@ export class MountainCave {
         this.size = size * (1 + this.random() * 0.5); // Apply size with some variation
         
         // Store zone type for color selection (get from data or default to Mountains)
-        this.zoneType = data.zoneType || 'Mountains';
+        this.zoneType = data.zoneType || 'Mountain';
     }
     
     /**
@@ -35,7 +35,7 @@ export class MountainCave {
         const caveGroup = new THREE.Group();
         
         // Get colors based on zone type
-        const zoneColors = ZONE_COLORS[this.zoneType] || ZONE_COLORS.Mountains;
+        const zoneColors = ZONE_COLORS[this.zoneType] || ZONE_COLORS.Mountain;
         
         // Create the mountain/hill that contains the cave
         const mountainGeometry = new THREE.ConeGeometry(this.size * 2, this.size * 2.5, 8);

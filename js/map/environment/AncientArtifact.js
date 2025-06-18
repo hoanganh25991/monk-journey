@@ -55,7 +55,7 @@ export class AncientArtifact extends EnvironmentObject {
                 glowColor = 0xFFA500; // Orange
                 inscriptionColor = 0xB8860B; // Dark Goldenrod
                 break;
-            case 'Mountains':
+            case 'Mountain':
                 artifactColor = 0xA9A9A9; // Dark Gray
                 glowColor = 0xADD8E6; // Light Blue
                 inscriptionColor = 0x87CEEB; // Sky Blue

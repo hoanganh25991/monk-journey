@@ -23,7 +23,7 @@ export class AncientTree {
                     leaves: 0x9ACD32,    // Yellow green (drought resistant)
                     accent: 0xDEB887     // Burlywood
                 };
-            case 'Mountains':
+            case 'Mountain':
                 return {
                     trunk: 0x654321,     // Dark brown
                     leaves: 0x228B22,    // Forest green

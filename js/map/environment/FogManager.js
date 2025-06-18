@@ -270,7 +270,7 @@ export class FogManager {
             case 'Desert':
                 this.targetFogColor.set(0xd8c090); // Lighter tan fog for desert
                 break;
-            case 'Mountains':
+            case 'Mountain':
                 this.targetFogColor.set(0x90a0c0); // Lighter blue fog for mountains
                 break;
             case 'Swamp':

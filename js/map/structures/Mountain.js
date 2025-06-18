@@ -11,7 +11,7 @@ export class Mountain {
      * @param {string} zoneType - The type of zone (Forest, Desert, Mountains, Terrant, etc.)
      * @param {object} options - Mountain configuration options
      */
-    constructor(zoneType = 'Mountains', options = {}) {
+    constructor(zoneType = 'Mountain', options = {}) {
         this.zoneType = zoneType;
         
         // Default options
@@ -22,7 +22,7 @@ export class Mountain {
             roughness: options.roughness || 0.8 + Math.random() * 0.4,
             resolution: options.resolution || 32,
             snowLine: options.snowLine || 0.7 + Math.random() * 0.2, // Height percentage where snow begins
-            hasSnow: options.hasSnow !== undefined ? options.hasSnow : (zoneType === 'Mountains'),
+            hasSnow: options.hasSnow !== undefined ? options.hasSnow : (zoneType === 'Mountain'),
             hasCrystals: options.hasCrystals !== undefined ? options.hasCrystals : (Math.random() > 0.7)
         };
         
@@ -38,7 +38,7 @@ export class Mountain {
         const mountainGroup = new THREE.Group();
         
         // Get colors based on zone type
-        const zoneColors = ZONE_COLORS[this.zoneType] || ZONE_COLORS.Mountains;
+        const zoneColors = ZONE_COLORS[this.zoneType] || ZONE_COLORS.Mountain;
         
         // Create the mountain geometry
         const { baseRadius, height, resolution } = this.options;

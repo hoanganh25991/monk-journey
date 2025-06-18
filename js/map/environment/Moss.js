@@ -62,7 +62,7 @@ export class Moss extends EnvironmentObject {
                 mushroomColor = 0xE0FFFF; // Light Cyan
                 glowColor = 0x40E0D0; // Turquoise
                 break;
-            case 'Mountains':
+            case 'Mountain':
                 mossColor = 0x8FBC8F; // Dark Sea Green
                 mushroomColor = 0xF0FFFF; // Azure
                 glowColor = 0xADD8E6; // Light Blue

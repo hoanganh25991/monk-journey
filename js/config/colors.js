@@ -26,7 +26,7 @@ export const ZONE_COLORS = {
         'accent': '#FF4500' // Sunset Orange
     },
     // Icy environment
-    'Mountains': {
+    'Mountain': {
         'snow': '#FFFAFA', // Snow White
         'ice': '#B0E0E6', // Ice Blue
         'rock': '#A9A9A9', // Frost Gray

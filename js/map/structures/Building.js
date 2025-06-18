@@ -859,7 +859,7 @@ export class Building {
             case 'Desert':
                 this.addAwnings(buildingGroup, zoneColors);
                 break;
-            case 'Mountains':
+            case 'Mountain':
                 this.addSnowCaps(buildingGroup, zoneColors);
                 break;
             case 'Swamp':

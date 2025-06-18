@@ -55,7 +55,7 @@ export class MagicalStone extends EnvironmentObject {
                 glowColor = 0xFFD700; // Gold
                 runeColor = 0xFFA500; // Orange
                 break;
-            case 'Mountains':
+            case 'Mountain':
                 stoneColor = 0xB0C4DE; // Light Steel Blue
                 glowColor = 0xE0FFFF; // Light Cyan
                 runeColor = 0xADD8E6; // Light Blue

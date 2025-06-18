@@ -107,7 +107,7 @@ export class TerrainManager {
             0, // Center X
             0, // Center Z
             this.terrainSize, // Use terrainSize for the base terrain
-            this.terrainResolution - 1, // Use slightly lower resolution for base terrain
+            this.terrainResolution,
             true, // Is base terrain
             new THREE.Vector3(0, 0, 0) // Position at center
         );
@@ -123,7 +123,7 @@ export class TerrainManager {
      * @param {THREE.Vector3} playerPosition - The player's current position
      * @param {number} drawDistanceMultiplier - Multiplier for draw distance
      */
-    updateForPlayer(playerPosition, drawDistanceMultiplier = 1.0) {
+    updateForPlayer(playerPosition, drawDistanceMultiplier = 1.0, retentionDistanceMultiplier = 2.0) {
         // Get the terrain chunk coordinates for the player's position
         const terrainChunkX = Math.floor(playerPosition.x / this.terrainChunkSize);
         const terrainChunkZ = Math.floor(playerPosition.z / this.terrainChunkSize);
@@ -131,8 +131,8 @@ export class TerrainManager {
         // Update player movement tracking in queue manager
         this.queueManager.updatePlayerMovement(terrainChunkX, terrainChunkZ);
         
-        // Update terrain chunks
-        this.updateTerrainChunks(terrainChunkX, terrainChunkZ, drawDistanceMultiplier);
+        // Update terrain chunks with retention distance
+        this.updateTerrainChunks(terrainChunkX, terrainChunkZ, drawDistanceMultiplier, retentionDistanceMultiplier);
     }
     
     /**
@@ -140,13 +140,15 @@ export class TerrainManager {
      * @param {number} centerX - Center X chunk coordinate
      * @param {number} centerZ - Center Z chunk coordinate
      * @param {number} drawDistanceMultiplier - Multiplier for draw distance
+     * @param {number} retentionDistanceMultiplier - Multiplier for retention distance (default: 2.0)
      */
-    updateTerrainChunks(centerX, centerZ, drawDistanceMultiplier = 1.0) {
+    updateTerrainChunks(centerX, centerZ, drawDistanceMultiplier = 1.0, retentionDistanceMultiplier = 2.0) {
         // Update terrain chunks through chunk manager
-        const { newVisibleTerrainChunks, viewDistance } = this.chunkManager.updateTerrainChunks(
+        const { newVisibleTerrainChunks, viewDistance, retentionDistance } = this.chunkManager.updateTerrainChunks(
             centerX, 
             centerZ, 
-            drawDistanceMultiplier
+            drawDistanceMultiplier,
+            retentionDistanceMultiplier
         );
         
         // Queue terrain chunks for buffering (prioritize in the direction of movement)
@@ -163,12 +165,13 @@ export class TerrainManager {
             this.queueManager.processTerrainGenerationQueue();
         }
         
-        // Handle chunk visibility changes
+        // Handle chunk visibility changes with retention distance
         this.chunkManager.handleChunkVisibilityChanges(
             newVisibleTerrainChunks, 
             centerX, 
             centerZ, 
-            viewDistance
+            viewDistance,
+            retentionDistance
         );
         
         // Periodically check buffer for chunks that are too far away

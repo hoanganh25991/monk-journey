@@ -22,7 +22,7 @@ export class TallGrass {
                     secondary: 0xF4A460, // Sandy brown lighter
                     accent: 0xDEB887     // Burlywood
                 };
-            case 'Mountains':
+            case 'Mountain':
                 return {
                     primary: 0x8FBC8F,   // Dark sea green
                     secondary: 0x9ACD32, // Yellow green

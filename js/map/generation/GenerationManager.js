@@ -298,6 +298,8 @@ export class GenerationManager {
     
     /**
      * Generate procedural content for a terrain chunk
+     * This method now only handles terrain generation and marks the chunk as processed
+     * Environment and structure generation are handled separately
      * @param {number} chunkX - Chunk X coordinate
      * @param {number} chunkZ - Chunk Z coordinate
      */
@@ -316,7 +318,32 @@ export class GenerationManager {
             return;
         }
         
-        console.debug(`Generating content for chunk ${chunkKey}`);
+        console.debug(`Generating terrain for chunk ${chunkKey}`);
+        
+        try {
+            // Mark chunk as generated - we're only handling terrain here
+            this.generatedChunks.add(chunkKey);
+        } catch (error) {
+            console.error(`Error generating terrain for chunk ${chunkKey}:`, error);
+            this.generatedChunks.add(chunkKey); // Mark as generated to prevent retries
+        }
+    }
+    
+    /**
+     * Generate environment objects for a specific chunk
+     * This is now separated from terrain generation for better control
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
+     * @returns {boolean} - True if environment was generated successfully
+     */
+    generateEnvironmentForChunk(chunkX, chunkZ) {
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // Validate chunk coordinates
+        if (isNaN(chunkX) || isNaN(chunkZ)) {
+            console.warn(`Invalid chunk coordinates for environment: ${chunkX}, ${chunkZ}`);
+            return false;
+        }
         
         // Calculate world coordinates for this chunk
         const worldX = chunkX * this.terrainManager.terrainChunkSize;
@@ -327,18 +354,16 @@ export class GenerationManager {
         
         // Handle undefined zone type
         if (!zoneType) {
-            console.warn(`Failed to determine zone type for chunk ${chunkKey}`);
-            this.generatedChunks.add(chunkKey); // Mark as generated to prevent retries
-            return;
+            console.warn(`Failed to determine zone type for environment in chunk ${chunkKey}`);
+            return false;
         }
         
         // Get zone density, defaulting to Forest if not found
         const zoneDensity = this.zoneDensities[zoneType] || this.zoneDensities['Forest'];
         
         if (!zoneDensity) {
-            console.warn(`No zone density configuration for zone type: ${zoneType}`);
-            this.generatedChunks.add(chunkKey); // Mark as generated to prevent retries
-            return;
+            console.warn(`No zone density configuration for environment in zone type: ${zoneType}`);
+            return false;
         }
         
         try {
@@ -346,23 +371,74 @@ export class GenerationManager {
             const performanceMultiplier = 0.3; // Consistent multiplier for better performance
             const reducedDensity = { 
                 ...zoneDensity,
-                environment: zoneDensity.environment * performanceMultiplier,
-                structures: zoneDensity.structures * 0.2
+                environment: zoneDensity.environment * performanceMultiplier
             };
             
             // Generate environment objects
             this.generateEnvironmentObjectsForChunk(chunkX, chunkZ, zoneType, reducedDensity);
-            
-            // Generate structures with limited probability and only after initial terrain is created
-            if (this.initialTerrainCreated && Math.random() < 0.1) {
-                this.generateStructuresForChunk(chunkX, chunkZ, zoneType, reducedDensity);
-            }
-            
-            // Mark chunk as generated
-            this.generatedChunks.add(chunkKey);
+            return true;
         } catch (error) {
-            console.error(`Error generating content for chunk ${chunkKey}:`, error);
-            this.generatedChunks.add(chunkKey); // Mark as generated to prevent retries
+            console.error(`Error generating environment for chunk ${chunkKey}:`, error);
+            return false;
+        }
+    }
+    
+    /**
+     * Generate structures for a specific chunk
+     * This is now separated from terrain generation for better control
+     * @param {number} chunkX - Chunk X coordinate
+     * @param {number} chunkZ - Chunk Z coordinate
+     * @returns {boolean} - True if structures were generated successfully
+     */
+    generateStructuresForChunk(chunkX, chunkZ) {
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // Validate chunk coordinates
+        if (isNaN(chunkX) || isNaN(chunkZ)) {
+            console.warn(`Invalid chunk coordinates for structures: ${chunkX}, ${chunkZ}`);
+            return false;
+        }
+        
+        // Calculate world coordinates for this chunk
+        const worldX = chunkX * this.terrainManager.terrainChunkSize;
+        const worldZ = chunkZ * this.terrainManager.terrainChunkSize;
+        
+        // Determine zone type for this chunk
+        const zoneType = this.getZoneTypeAt(worldX, worldZ);
+        
+        // Handle undefined zone type
+        if (!zoneType) {
+            console.warn(`Failed to determine zone type for structures in chunk ${chunkKey}`);
+            return false;
+        }
+        
+        // Get zone density, defaulting to Forest if not found
+        const zoneDensity = this.zoneDensities[zoneType] || this.zoneDensities['Forest'];
+        
+        if (!zoneDensity) {
+            console.warn(`No zone density configuration for structures in zone type: ${zoneType}`);
+            return false;
+        }
+        
+        try {
+            // Apply density reduction based on performance settings
+            const reducedDensity = { 
+                ...zoneDensity,
+                structures: zoneDensity.structures * 0.2
+            };
+            
+            // Generate structures
+            if (this.initialTerrainCreated) {
+                // Call the structure manager's method directly to avoid recursion
+                if (this.structureManager && this.structureManager.generateStructuresForChunk) {
+                    this.structureManager.generateStructuresForChunk(chunkX, chunkZ, zoneType, reducedDensity);
+                    return true;
+                }
+            }
+            return false;
+        } catch (error) {
+            console.error(`Error generating structures for chunk ${chunkKey}:`, error);
+            return false;
         }
     }
     

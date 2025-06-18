@@ -229,7 +229,7 @@ export class ZoneManager {
             { name: 'Terrant', color: ZONE_COLORS.Terrant.soil, radius: 100 },
             { name: 'Forest', color: ZONE_COLORS.Forest.foliage, radius: 80 },
             { name: 'Desert', color: ZONE_COLORS.Desert.sand, radius: 80 },
-            { name: 'Mountains', color: ZONE_COLORS.Mountains.ice, radius: 80 }
+            { name: 'Mountain', color: ZONE_COLORS.Mountain.ice, radius: 80 }
         ];
         
         // Initialize zones array with large, simple regions
@@ -255,10 +255,10 @@ export class ZoneManager {
                 color: ZONE_COLORS.Desert.sand
             },
             {
-                name: 'Mountains',
+                name: 'Mountain',
                 center: new THREE.Vector3(0, 0, 200),
                 radius: 120,
-                color: ZONE_COLORS.Mountains.ice
+                color: ZONE_COLORS.Mountain.ice
             },
             {
                 name: 'Swamp',

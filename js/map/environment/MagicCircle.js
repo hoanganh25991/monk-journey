@@ -56,7 +56,7 @@ export class MagicCircle {
                 circleColor = 0xFFD700; // Gold
                 glowColor = 0xFFA500; // Orange
                 break;
-            case 'Mountains':
+            case 'Mountain':
                 circleColor = 0x87CEEB; // Sky Blue
                 glowColor = 0xADD8E6; // Light Blue
                 break;

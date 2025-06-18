@@ -42,7 +42,7 @@ export class Rock {
         if (this.zoneType === 'Desert') {
             // Smoother, more eroded rocks for desert
             rockGeometry = new THREE.SphereGeometry(this.size, 6, 4);
-        } else if (this.zoneType === 'Mountains') {
+        } else if (this.zoneType === 'Mountain') {
             // Sharp, angular rocks for mountains
             rockGeometry = new THREE.OctahedronGeometry(this.size, 0);
         } else if (this.zoneType === 'Dark Sanctum') {

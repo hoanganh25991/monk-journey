@@ -103,7 +103,7 @@ export class Path {
             pathColor = parseInt(themeColors.sand.replace('#', '0x'), 16);
         } else if (zoneName === 'Forest' && themeColors.ground) {
             pathColor = parseInt(themeColors.ground.replace('#', '0x'), 16);
-        } else if (zoneName === 'Mountains' && themeColors.rock) {
+        } else if (zoneName === 'Mountain' && themeColors.rock) {
             pathColor = parseInt(themeColors.rock.replace('#', '0x'), 16);
         }
         

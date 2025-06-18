@@ -188,7 +188,7 @@ export class Tower {
         } else if (this.zoneType === 'Desert') {
             // Add banners for desert towers
             this.addBanners(towerGroup, zoneColors);
-        } else if (this.zoneType === 'Mountains') {
+        } else if (this.zoneType === 'Mountain') {
             // Add snow caps for mountain towers
             this.addSnowCaps(towerGroup, zoneColors);
         } else if (this.zoneType === 'Dark Sanctum') {

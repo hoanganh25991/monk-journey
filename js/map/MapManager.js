@@ -149,8 +149,29 @@ export class MapManager {
             const initialGenDistance = 1; // Reduced from 2 to 1
             console.debug(`Generating initial content in ${(initialGenDistance*2+1)*(initialGenDistance*2+1)} chunks around starting position`);
             
-            // Use a promise-based approach with setTimeout to prevent UI freezing
-            await this.generateInitialChunksProgressively(startChunkX, startChunkZ, initialGenDistance);
+            // First generate only terrain
+            console.debug("Generating initial terrain...");
+            await this.generateInitialChunksProgressively(startChunkX, startChunkZ, initialGenDistance, {
+                generateTerrain: true,
+                generateEnvironment: false,
+                generateStructures: false
+            });
+            
+            // Then generate environment objects
+            console.debug("Generating initial environment objects...");
+            await this.generateInitialChunksProgressively(startChunkX, startChunkZ, initialGenDistance, {
+                generateTerrain: false,
+                generateEnvironment: true,
+                generateStructures: false
+            });
+            
+            // Finally generate structures
+            console.debug("Generating initial structures...");
+            await this.generateInitialChunksProgressively(startChunkX, startChunkZ, initialGenDistance, {
+                generateTerrain: false,
+                generateEnvironment: false,
+                generateStructures: true
+            });
             
             // Generate a special landmark near the starting position - but with 50% chance to skip for better performance
             if (Math.random() < 0.5) {
@@ -164,12 +185,24 @@ export class MapManager {
     
     /**
      * Generate initial chunks progressively to prevent freezing
+     * This now separates terrain, environment, and structure generation
      * @param {number} startChunkX - Starting chunk X coordinate
      * @param {number} startChunkZ - Starting chunk Z coordinate
      * @param {number} distance - Distance from center to generate
+     * @param {Object} options - Generation options
+     * @param {boolean} options.generateTerrain - Whether to generate terrain (default: true)
+     * @param {boolean} options.generateEnvironment - Whether to generate environment objects (default: true)
+     * @param {boolean} options.generateStructures - Whether to generate structures (default: true)
      * @returns {Promise<void>}
      */
-    async generateInitialChunksProgressively(startChunkX, startChunkZ, distance) {
+    async generateInitialChunksProgressively(startChunkX, startChunkZ, distance, options = {}) {
+        // Set default options
+        const {
+            generateTerrain = true,
+            generateEnvironment = true,
+            generateStructures = true
+        } = options;
+        
         return new Promise(resolve => {
             const chunks = [];
             
@@ -190,7 +223,21 @@ export class MapManager {
                 }
                 
                 const chunk = chunks[index++];
-                this.generationManager.generateChunkContent(chunk.x, chunk.z);
+                
+                // Generate terrain if enabled
+                if (generateTerrain) {
+                    this.generationManager.generateChunkContent(chunk.x, chunk.z);
+                }
+                
+                // Generate environment if enabled
+                if (generateEnvironment) {
+                    this.generationManager.generateEnvironmentForChunk(chunk.x, chunk.z);
+                }
+                
+                // Generate structures if enabled
+                if (generateStructures) {
+                    this.generationManager.generateStructuresForChunk(chunk.x, chunk.z);
+                }
                 
                 // Use setTimeout to yield to the browser's rendering thread
                 setTimeout(processNextChunk, 10);
@@ -239,7 +286,9 @@ export class MapManager {
             
             // Use a priority-based update system
             // 1. Always update terrain first (most important for gameplay)
-            this.updateTerrainForPlayer(playerPosition, effectiveDrawDistance);
+            // Use a higher retention distance to prevent objects from disappearing
+            const retentionDistanceMultiplier = 3.0; // Keep chunks in memory much longer
+            this.updateTerrainForPlayer(playerPosition, effectiveDrawDistance, retentionDistanceMultiplier);
             
             // 2. Update environment objects (can be throttled more aggressively)
             // Only update environment every other frame in low performance mode
@@ -258,21 +307,58 @@ export class MapManager {
                 this._lastPreload = now;
             }
             
-            // 4. Generate procedural content (can be throttled most aggressively)
+            // 4. Generate procedural content with separate control for terrain, environment, and structures
             // Only generate content if we're not already processing chunks
-            if (!this.generationManager.processingChunk && 
-                (!this._lastContentGeneration || now - this._lastContentGeneration > 500)) {
-                // Use requestAnimationFrame to defer content generation to next frame
-                requestAnimationFrame(() => {
-                    this.generationManager.generateProceduralContent(
-                        playerChunkX, 
-                        playerChunkZ, 
-                        playerPosition, 
-                        Math.floor(effectiveDrawDistance * 0.5), // Reduce generation distance
-                        this.performanceManager.isLowPerformanceMode()
-                    );
-                    this._lastContentGeneration = performance.now();
-                });
+            if (!this.generationManager.processingChunk) {
+                // 4a. Generate terrain (highest priority, most frequent updates)
+                if (!this._lastTerrainGeneration || now - this._lastTerrainGeneration > 300) {
+                    requestAnimationFrame(() => {
+                        this.generationManager.generateProceduralContent(
+                            playerChunkX, 
+                            playerChunkZ, 
+                            playerPosition, 
+                            Math.floor(effectiveDrawDistance * 0.5), // Reduce generation distance
+                            this.performanceManager.isLowPerformanceMode()
+                        );
+                        this._lastTerrainGeneration = performance.now();
+                    });
+                }
+                
+                // 4b. Generate environment objects (medium priority, less frequent updates)
+                if (!this._lastEnvironmentGeneration || now - this._lastEnvironmentGeneration > 800) {
+                    setTimeout(() => {
+                        // Process chunks around player for environment objects
+                        const envGenDistance = Math.floor(effectiveDrawDistance * 0.4);
+                        for (let x = playerChunkX - envGenDistance; x <= playerChunkX + envGenDistance; x++) {
+                            for (let z = playerChunkZ - envGenDistance; z <= playerChunkZ + envGenDistance; z++) {
+                                // Skip distant chunks for better performance
+                                const distance = Math.max(Math.abs(x - playerChunkX), Math.abs(z - playerChunkZ));
+                                if (distance <= envGenDistance) {
+                                    this.generationManager.generateEnvironmentForChunk(x, z);
+                                }
+                            }
+                        }
+                        this._lastEnvironmentGeneration = performance.now();
+                    }, 50); // Small delay to prioritize terrain generation
+                }
+                
+                // 4c. Generate structures (lowest priority, least frequent updates)
+                if (!this._lastStructureGeneration || now - this._lastStructureGeneration > 1500) {
+                    setTimeout(() => {
+                        // Process chunks around player for structures
+                        const structGenDistance = Math.floor(effectiveDrawDistance * 0.3);
+                        for (let x = playerChunkX - structGenDistance; x <= playerChunkX + structGenDistance; x++) {
+                            for (let z = playerChunkZ - structGenDistance; z <= playerChunkZ + structGenDistance; z++) {
+                                // Skip distant chunks and add randomness for better performance
+                                const distance = Math.max(Math.abs(x - playerChunkX), Math.abs(z - playerChunkZ));
+                                if (distance <= structGenDistance && Math.random() < 0.3) {
+                                    this.generationManager.generateStructuresForChunk(x, z);
+                                }
+                            }
+                        }
+                        this._lastStructureGeneration = performance.now();
+                    }, 100); // Larger delay to prioritize terrain and environment
+                }
             }
             
             // 5. Update world systems (lighting, fog, etc.)
@@ -286,12 +372,13 @@ export class MapManager {
      * @private
      * @param {THREE.Vector3} playerPosition - Player position
      * @param {number} effectiveDrawDistance - Effective draw distance
+     * @param {number} retentionDistanceMultiplier - Multiplier for retention distance (default: 2.0)
      */
-    updateTerrainForPlayer(playerPosition, effectiveDrawDistance) {
+    updateTerrainForPlayer(playerPosition, effectiveDrawDistance, retentionDistanceMultiplier = 2.0) {
         if (this.terrainManager) {
             // Use a try-catch to prevent errors from breaking the game loop
             try {
-                this.terrainManager.updateForPlayer(playerPosition, effectiveDrawDistance);
+                this.terrainManager.updateForPlayer(playerPosition, effectiveDrawDistance, retentionDistanceMultiplier);
             } catch (error) {
                 console.error("Error updating terrain:", error);
             }
@@ -1789,5 +1876,251 @@ export class MapManager {
             seed = (seed * 9301 + 49297) % 233280;
             return seed / 233280;
         };
+    }
+    
+    /**
+     * Generate environment objects for a specific area
+     * This method allows direct control over environment generation
+     * @param {number} centerX - Center X coordinate in world space
+     * @param {number} centerZ - Center Z coordinate in world space
+     * @param {number} radius - Radius around center to generate environment (in world units)
+     * @param {Object} options - Generation options
+     * @param {number} options.density - Density multiplier (0.0 to 1.0)
+     * @param {Array<string>} options.types - Specific environment types to generate
+     * @returns {Promise<boolean>} - True if generation was successful
+     */
+    async generateEnvironmentInArea(centerX, centerZ, radius, options = {}) {
+        console.debug(`Generating environment in area around (${centerX}, ${centerZ}) with radius ${radius}`);
+        
+        // Calculate chunk coordinates
+        const chunkSize = this.terrainManager.terrainChunkSize;
+        const startChunkX = Math.floor((centerX - radius) / chunkSize);
+        const startChunkZ = Math.floor((centerZ - radius) / chunkSize);
+        const endChunkX = Math.floor((centerX + radius) / chunkSize);
+        const endChunkZ = Math.floor((centerZ + radius) / chunkSize);
+        
+        // Set density if provided
+        if (options.density !== undefined && this.environmentManager.setDensity) {
+            this.environmentManager.setDensity(options.density);
+        }
+        
+        // Process each chunk in the area
+        for (let x = startChunkX; x <= endChunkX; x++) {
+            for (let z = startChunkZ; z <= endChunkZ; z++) {
+                // Calculate chunk center
+                const chunkCenterX = (x * chunkSize) + (chunkSize / 2);
+                const chunkCenterZ = (z * chunkSize) + (chunkSize / 2);
+                
+                // Skip chunks outside the radius
+                const distance = Math.sqrt(
+                    Math.pow(chunkCenterX - centerX, 2) + 
+                    Math.pow(chunkCenterZ - centerZ, 2)
+                );
+                
+                if (distance <= radius) {
+                    // Generate environment for this chunk
+                    this.generationManager.generateEnvironmentForChunk(x, z);
+                    
+                    // Small delay to prevent freezing
+                    await new Promise(resolve => setTimeout(resolve, 5));
+                }
+            }
+        }
+        
+        // Reset density if it was changed
+        if (options.density !== undefined && this.environmentManager.setDensity) {
+            this.environmentManager.setDensity(this.environmentDensity);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Generate structures for a specific area
+     * This method allows direct control over structure generation
+     * @param {number} centerX - Center X coordinate in world space
+     * @param {number} centerZ - Center Z coordinate in world space
+     * @param {number} radius - Radius around center to generate structures (in world units)
+     * @param {Object} options - Generation options
+     * @param {number} options.density - Density multiplier (0.0 to 1.0)
+     * @param {Array<string>} options.types - Specific structure types to generate
+     * @returns {Promise<boolean>} - True if generation was successful
+     */
+    async generateStructuresInArea(centerX, centerZ, radius, options = {}) {
+        console.debug(`Generating structures in area around (${centerX}, ${centerZ}) with radius ${radius}`);
+        
+        // Calculate chunk coordinates
+        const chunkSize = this.terrainManager.terrainChunkSize;
+        const startChunkX = Math.floor((centerX - radius) / chunkSize);
+        const startChunkZ = Math.floor((centerZ - radius) / chunkSize);
+        const endChunkX = Math.floor((centerX + radius) / chunkSize);
+        const endChunkZ = Math.floor((centerZ + radius) / chunkSize);
+        
+        // Process each chunk in the area
+        for (let x = startChunkX; x <= endChunkX; x++) {
+            for (let z = startChunkZ; z <= endChunkZ; z++) {
+                // Calculate chunk center
+                const chunkCenterX = (x * chunkSize) + (chunkSize / 2);
+                const chunkCenterZ = (z * chunkSize) + (chunkSize / 2);
+                
+                // Skip chunks outside the radius
+                const distance = Math.sqrt(
+                    Math.pow(chunkCenterX - centerX, 2) + 
+                    Math.pow(chunkCenterZ - centerZ, 2)
+                );
+                
+                if (distance <= radius) {
+                    // Generate structures for this chunk
+                    this.generationManager.generateStructuresForChunk(x, z);
+                    
+                    // Small delay to prevent freezing
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Clear environment objects in a specific area
+     * @param {number} centerX - Center X coordinate in world space
+     * @param {number} centerZ - Center Z coordinate in world space
+     * @param {number} radius - Radius around center to clear (in world units)
+     * @returns {number} - Number of objects cleared
+     */
+    clearEnvironmentInArea(centerX, centerZ, radius) {
+        console.debug(`Clearing environment in area around (${centerX}, ${centerZ}) with radius ${radius}`);
+        
+        let clearedCount = 0;
+        
+        // Filter environment objects to keep only those outside the radius
+        if (this.environmentManager && this.environmentManager.environmentObjects) {
+            const objectsToRemove = [];
+            
+            // Find objects within the radius
+            this.environmentManager.environmentObjects.forEach(objInfo => {
+                if (objInfo && objInfo.position) {
+                    const distance = Math.sqrt(
+                        Math.pow(objInfo.position.x - centerX, 2) + 
+                        Math.pow(objInfo.position.z - centerZ, 2)
+                    );
+                    
+                    if (distance <= radius) {
+                        objectsToRemove.push(objInfo);
+                    }
+                }
+            });
+            
+            // Remove objects from the scene
+            objectsToRemove.forEach(objInfo => {
+                if (objInfo.object && objInfo.object.parent) {
+                    objInfo.object.parent.remove(objInfo.object);
+                    clearedCount++;
+                }
+            });
+            
+            // Update the environment objects array
+            this.environmentManager.environmentObjects = this.environmentManager.environmentObjects.filter(objInfo => {
+                if (objInfo && objInfo.position) {
+                    const distance = Math.sqrt(
+                        Math.pow(objInfo.position.x - centerX, 2) + 
+                        Math.pow(objInfo.position.z - centerZ, 2)
+                    );
+                    
+                    return distance > radius;
+                }
+                return true;
+            });
+            
+            // Clear chunk tracking for chunks in this area
+            const chunkSize = this.terrainManager.terrainChunkSize;
+            const startChunkX = Math.floor((centerX - radius) / chunkSize);
+            const startChunkZ = Math.floor((centerZ - radius) / chunkSize);
+            const endChunkX = Math.floor((centerX + radius) / chunkSize);
+            const endChunkZ = Math.floor((centerZ + radius) / chunkSize);
+            
+            for (let x = startChunkX; x <= endChunkX; x++) {
+                for (let z = startChunkZ; z <= endChunkZ; z++) {
+                    const chunkKey = `${x},${z}`;
+                    if (this.environmentManager.environmentObjectsByChunk[chunkKey]) {
+                        delete this.environmentManager.environmentObjectsByChunk[chunkKey];
+                    }
+                }
+            }
+        }
+        
+        return clearedCount;
+    }
+    
+    /**
+     * Clear structures in a specific area
+     * @param {number} centerX - Center X coordinate in world space
+     * @param {number} centerZ - Center Z coordinate in world space
+     * @param {number} radius - Radius around center to clear (in world units)
+     * @returns {number} - Number of structures cleared
+     */
+    clearStructuresInArea(centerX, centerZ, radius) {
+        console.debug(`Clearing structures in area around (${centerX}, ${centerZ}) with radius ${radius}`);
+        
+        let clearedCount = 0;
+        
+        // Filter structures to keep only those outside the radius
+        if (this.structureManager && this.structureManager.structures) {
+            const structuresToRemove = [];
+            
+            // Find structures within the radius
+            this.structureManager.structures.forEach(structure => {
+                if (structure && structure.position) {
+                    const distance = Math.sqrt(
+                        Math.pow(structure.position.x - centerX, 2) + 
+                        Math.pow(structure.position.z - centerZ, 2)
+                    );
+                    
+                    if (distance <= radius) {
+                        structuresToRemove.push(structure);
+                    }
+                }
+            });
+            
+            // Remove structures from the scene
+            structuresToRemove.forEach(structure => {
+                if (structure.mesh && structure.mesh.parent) {
+                    structure.mesh.parent.remove(structure.mesh);
+                    clearedCount++;
+                }
+            });
+            
+            // Update the structures array
+            this.structureManager.structures = this.structureManager.structures.filter(structure => {
+                if (structure && structure.position) {
+                    const distance = Math.sqrt(
+                        Math.pow(structure.position.x - centerX, 2) + 
+                        Math.pow(structure.position.z - centerZ, 2)
+                    );
+                    
+                    return distance > radius;
+                }
+                return true;
+            });
+            
+            // Clear chunk tracking for chunks in this area
+            const chunkSize = this.terrainManager.terrainChunkSize;
+            const startChunkX = Math.floor((centerX - radius) / chunkSize);
+            const startChunkZ = Math.floor((centerZ - radius) / chunkSize);
+            const endChunkX = Math.floor((centerX + radius) / chunkSize);
+            const endChunkZ = Math.floor((centerZ + radius) / chunkSize);
+            
+            for (let x = startChunkX; x <= endChunkX; x++) {
+                for (let z = startChunkZ; z <= endChunkZ; z++) {
+                    const chunkKey = `${x},${z}`;
+                    if (this.structureManager.structuresPlaced[chunkKey]) {
+                        delete this.structureManager.structuresPlaced[chunkKey];
+                    }
+                }
+            }
+        }
+        
+        return clearedCount;
     }
 }

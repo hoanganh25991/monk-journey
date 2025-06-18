@@ -54,7 +54,7 @@ export class RarePlant extends EnvironmentObject {
                 flowerColor = 0xFFD700; // Gold
                 glowColor = 0xFFA500; // Orange
                 break;
-            case 'Mountains':
+            case 'Mountain':
                 plantColor = 0x87CEFA; // Light Sky Blue
                 flowerColor = 0xE0FFFF; // Light Cyan
                 glowColor = 0xADD8E6; // Light Blue

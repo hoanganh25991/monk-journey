@@ -11,6 +11,82 @@ export class TerrainTemplateManager {
         
         // Cache for generated textures by color
         this.textureCache = {};
+        
+        // Seed for noise generation
+        this.seed = Math.random();
+    }
+    
+    /**
+     * Generate coherent noise value at a given position
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @param {number} z - Z coordinate
+     * @returns {number} - Noise value between -1 and 1
+     */
+    generateCoherentNoise(x, y, z) {
+        // Simple implementation of Perlin-like noise
+        // This is a basic implementation that provides coherent noise
+        
+        // Add seed to coordinates to get different terrain each time
+        x += this.seed;
+        z += this.seed;
+        
+        // Convert coordinates to grid cell coordinates and local coordinates
+        const X = Math.floor(x);
+        const Y = Math.floor(y);
+        const Z = Math.floor(z);
+        
+        // Get local coordinates (0 to 1) within the grid cell
+        const x_frac = x - X;
+        const y_frac = y - Y;
+        const z_frac = z - Z;
+        
+        // Generate pseudo-random gradient vectors at grid points
+        const gradients = [
+            this.getGradient(X, Y, Z),
+            this.getGradient(X + 1, Y, Z),
+            this.getGradient(X, Y + 1, Z),
+            this.getGradient(X + 1, Y + 1, Z),
+            this.getGradient(X, Y, Z + 1),
+            this.getGradient(X + 1, Y, Z + 1),
+            this.getGradient(X, Y + 1, Z + 1),
+            this.getGradient(X + 1, Y + 1, Z + 1)
+        ];
+        
+        // Calculate dot products between gradients and distance vectors
+        const dots = [
+            this.dot([x_frac, y_frac, z_frac], gradients[0]),
+            this.dot([x_frac - 1, y_frac, z_frac], gradients[1]),
+            this.dot([x_frac, y_frac - 1, z_frac], gradients[2]),
+            this.dot([x_frac - 1, y_frac - 1, z_frac], gradients[3]),
+            this.dot([x_frac, y_frac, z_frac - 1], gradients[4]),
+            this.dot([x_frac - 1, y_frac, z_frac - 1], gradients[5]),
+            this.dot([x_frac, y_frac - 1, z_frac - 1], gradients[6]),
+            this.dot([x_frac - 1, y_frac - 1, z_frac - 1], gradients[7])
+        ];
+        
+        // Interpolate dot products using smoothstep function
+        const u = this.smoothstep(x_frac);
+        const v = this.smoothstep(y_frac);
+        const w = this.smoothstep(z_frac);
+        
+        // Trilinear interpolation
+        const value = this.lerp(
+            this.lerp(
+                this.lerp(dots[0], dots[1], u),
+                this.lerp(dots[2], dots[3], u),
+                v
+            ),
+            this.lerp(
+                this.lerp(dots[4], dots[5], u),
+                this.lerp(dots[6], dots[7], u),
+                v
+            ),
+            w
+        );
+        
+        // Scale to range [-1, 1]
+        return value * 2;
     }
 
     /**
@@ -55,17 +131,6 @@ export class TerrainTemplateManager {
             color: 0xffffff // White base color, will be overridden by vertex colors
         };
         
-        // Apply debug settings if enabled
-        if (TERRAIN_CONFIG.debug.enabled) {
-            if (TERRAIN_CONFIG.debug.transparent) {
-                materialOptions.transparent = true;
-                materialOptions.opacity = TERRAIN_CONFIG.debug.opacity;
-            }
-            if (TERRAIN_CONFIG.debug.wireframe) {
-                materialOptions.wireframe = true;
-            }
-        }
-        
         const material = new THREE.MeshStandardMaterial(materialOptions);
         
         // Store simplified template
@@ -98,5 +163,69 @@ export class TerrainTemplateManager {
         // Reset caches
         this.textureCache = {};
         this.terrainTemplates = {};
+    }
+    
+    /**
+     * Generate a pseudo-random gradient vector based on coordinates
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @param {number} z - Z coordinate
+     * @returns {Array} - Gradient vector [x, y, z]
+     */
+    getGradient(x, y, z) {
+        // Simple hash function to get a consistent pseudo-random value
+        const h = this.hash(x + this.hash(y + this.hash(z)));
+        
+        // Use the hash to select a gradient vector
+        const theta = h * Math.PI * 2;
+        const phi = h * Math.PI;
+        
+        return [
+            Math.cos(theta) * Math.sin(phi),
+            Math.sin(theta) * Math.sin(phi),
+            Math.cos(phi)
+        ];
+    }
+    
+    /**
+     * Simple hash function for pseudo-random number generation
+     * @param {number} n - Input value
+     * @returns {number} - Pseudo-random value between 0 and 1
+     */
+    hash(n) {
+        // Simple hash function that returns a value between 0 and 1
+        const x = Math.sin(n) * 10000;
+        return x - Math.floor(x);
+    }
+    
+    /**
+     * Calculate dot product of two vectors
+     * @param {Array} a - First vector
+     * @param {Array} b - Second vector
+     * @returns {number} - Dot product
+     */
+    dot(a, b) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    }
+    
+    /**
+     * Smooth step function for interpolation
+     * @param {number} t - Input value between 0 and 1
+     * @returns {number} - Smoothed value
+     */
+    smoothstep(t) {
+        // Improved smoothstep function: 6t^5 - 15t^4 + 10t^3
+        return t * t * t * (t * (t * 6 - 15) + 10);
+    }
+    
+    /**
+     * Linear interpolation between two values
+     * @param {number} a - First value
+     * @param {number} b - Second value
+     * @param {number} t - Interpolation factor (0-1)
+     * @returns {number} - Interpolated value
+     */
+    lerp(a, b, t) {
+        return a + t * (b - a);
     }
 }

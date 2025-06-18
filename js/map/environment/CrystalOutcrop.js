@@ -26,7 +26,7 @@ export class CrystalOutcrop {
         this.crystalCount = 8 + Math.floor(this.random() * 7); // 8-14 crystals
         
         // Store zone type for color selection (get from data or default to Mountains)
-        this.zoneType = data.zoneType || 'Mountains';
+        this.zoneType = data.zoneType || 'Mountain';
     }
     
     /**
@@ -37,7 +37,7 @@ export class CrystalOutcrop {
         const crystalGroup = new THREE.Group();
         
         // Get colors based on zone type
-        const zoneColors = ZONE_COLORS[this.zoneType] || ZONE_COLORS.Mountains;
+        const zoneColors = ZONE_COLORS[this.zoneType] || ZONE_COLORS.Mountain;
         
         // Determine crystal color based on zone
         let crystalColor;
@@ -50,7 +50,7 @@ export class CrystalOutcrop {
             case 'Desert':
                 crystalColor = 0xFFD700; // Gold
                 break;
-            case 'Mountains':
+            case 'Mountain':
                 crystalColor = 0x87CEEB; // Sky Blue
                 break;
             case 'Swamp':
