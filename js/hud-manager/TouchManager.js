@@ -103,11 +103,31 @@ export class TouchManager {
         
         if (purpose === 'skills') {
             this.activeTouches.skills.delete(touchId);
+            console.debug(`Released touch ${touchId} from skills`);
         } else {
             if (this.activeTouches[purpose] === touchId) {
                 this.activeTouches[purpose] = null;
+                console.debug(`Released touch ${touchId} from ${purpose}`);
             }
         }
+        
+        // Notify handlers if they have a handleRelease method
+        if (purpose === 'skills' && this.handlers.skills && this.handlers.skills.handleRelease) {
+            this.handlers.skills.handleRelease(touch);
+        }
+    }
+    
+    /**
+     * Force release all touches for a specific purpose
+     * @param {string} purpose - The purpose (joystick, camera, skills)
+     */
+    releaseAllTouches(purpose) {
+        if (purpose === 'skills') {
+            this.activeTouches.skills.clear();
+        } else {
+            this.activeTouches[purpose] = null;
+        }
+        console.debug(`Released all touches for ${purpose}`);
     }
     
     /**
@@ -160,6 +180,10 @@ export class TouchManager {
         
         // Global touch end handler
         document.addEventListener('touchend', (event) => {
+            // First, check if we have any touches left
+            const hasRemainingTouches = event.touches.length > 0;
+            
+            // Process each ended touch
             for (let i = 0; i < event.changedTouches.length; i++) {
                 const touch = event.changedTouches[i];
                 
@@ -180,10 +204,32 @@ export class TouchManager {
                     this.releaseTouch(touch, 'skills');
                 }
             }
+            
+            // If no touches remain, ensure all touch tracking is reset
+            if (!hasRemainingTouches) {
+                console.debug('No touches remain, releasing all touch tracking');
+                
+                // If handlers have a handleAllReleased method, call it
+                if (this.handlers.joystick && this.handlers.joystick.handleAllReleased) {
+                    this.handlers.joystick.handleAllReleased();
+                }
+                
+                if (this.handlers.skills && this.handlers.skills.handleAllReleased) {
+                    this.handlers.skills.handleAllReleased();
+                }
+                
+                // Reset all touch tracking
+                this.activeTouches.joystick = null;
+                this.activeTouches.camera = null;
+                this.activeTouches.skills.clear();
+            }
         }, { passive: true });
         
         // Global touch cancel handler
         document.addEventListener('touchcancel', (event) => {
+            console.debug('Touch cancel event received');
+            
+            // Process each cancelled touch
             for (let i = 0; i < event.changedTouches.length; i++) {
                 const touch = event.changedTouches[i];
                 
@@ -204,6 +250,23 @@ export class TouchManager {
                     this.releaseTouch(touch, 'skills');
                 }
             }
+            
+            // On touch cancel, we should reset all touch tracking to be safe
+            console.debug('Touch cancel: releasing all touch tracking');
+            
+            // If handlers have a handleAllReleased method, call it
+            if (this.handlers.joystick && this.handlers.joystick.handleAllReleased) {
+                this.handlers.joystick.handleAllReleased();
+            }
+            
+            if (this.handlers.skills && this.handlers.skills.handleAllReleased) {
+                this.handlers.skills.handleAllReleased();
+            }
+            
+            // Reset all touch tracking
+            this.activeTouches.joystick = null;
+            this.activeTouches.camera = null;
+            this.activeTouches.skills.clear();
         }, { passive: true });
     }
     

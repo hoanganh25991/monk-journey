@@ -61,6 +61,43 @@ export class SkillsUI extends UIComponent {
         // Create skill overlay for right half of screen
         this.createSkillOverlay();
         
+        // Register with touch manager
+        touchManager.registerHandler('skills', this);
+        
+        // Add global touch end handler to ensure skills stop when touches end anywhere
+        document.addEventListener('touchend', (e) => {
+            // Check if any active skills need to be stopped
+            let needsCheck = false;
+            
+            // Check if we have any active skill buttons
+            this.skillButtons.forEach(button => {
+                if (button.dataset.touchId) {
+                    needsCheck = true;
+                }
+            });
+            
+            // If we have active skills, check if their touches are still active
+            if (needsCheck) {
+                // Get all current active touches
+                const activeTouchIds = new Set();
+                for (let i = 0; i < e.touches.length; i++) {
+                    activeTouchIds.add(e.touches[i].identifier.toString());
+                }
+                
+                // Check each skill button
+                this.skillButtons.forEach(button => {
+                    const touchId = button.dataset.touchId;
+                    if (touchId && !activeTouchIds.has(touchId)) {
+                        // This touch is no longer active, stop the skill
+                        const index = parseInt(button.getAttribute('data-skill-index'));
+                        this.stopContinuousCasting(index);
+                        button.classList.remove('skill-activated');
+                        delete button.dataset.touchId;
+                    }
+                });
+            }
+        }, { passive: true });
+        
         // Add event listeners to skill buttons
         this.skillButtons = this.container.querySelectorAll('.skill-button');
         this.skillButtons.forEach(button => {
@@ -227,6 +264,7 @@ export class SkillsUI extends UIComponent {
             clearInterval(this.skillCastIntervals[skillIndex]);
             this.skillCastIntervals[skillIndex] = null;
             this.skillCastCooldowns[skillIndex] = 0;
+            console.debug(`Stopped continuous casting for skill ${skillIndex}`);
         }
     }
     
@@ -234,6 +272,7 @@ export class SkillsUI extends UIComponent {
      * Stop all continuous casting
      */
     stopAllContinuousCasting() {
+        // Clear all intervals and reset all buttons
         Object.keys(this.skillCastIntervals).forEach(index => {
             if (this.skillCastIntervals[index]) {
                 clearInterval(this.skillCastIntervals[index]);
@@ -241,12 +280,42 @@ export class SkillsUI extends UIComponent {
                 this.skillCastCooldowns[index] = 0;
             }
         });
+        
+        // Also reset all skill buttons to ensure visual state is correct
+        this.skillButtons.forEach(button => {
+            button.classList.remove('skill-activated');
+            delete button.dataset.touchId;
+        });
+        
+        // Clear all touches in the touch manager for skills
+        if (touchManager.activeTouches && touchManager.activeTouches.skills) {
+            touchManager.activeTouches.skills.clear();
+        }
+        
+        console.debug('Stopped all continuous casting');
     }
     
     /**
      * Update the skills UI
      */
     update() {
+        // Safety check: if there are no active touches but we have active skill intervals, stop them
+        if (touchManager.activeTouches.skills.size === 0) {
+            // Check if any skills are still casting
+            let hasActiveCasting = false;
+            Object.keys(this.skillCastIntervals).forEach(index => {
+                if (this.skillCastIntervals[index]) {
+                    hasActiveCasting = true;
+                }
+            });
+            
+            // If we have active casting but no active touches, stop all casting
+            if (hasActiveCasting) {
+                console.debug('Found orphaned skill casting with no active touches, stopping all');
+                this.stopAllContinuousCasting();
+            }
+        }
+        
         // Update skill cooldowns
         const skills = this.game.player.getSkills();
         
@@ -305,6 +374,15 @@ export class SkillsUI extends UIComponent {
                 skillButton.classList.remove('not-enough-mana');
             }
         });
+    }
+    
+    /**
+     * Handle all touches being released (called by TouchManager)
+     * This is a safety method to ensure all skills stop when all touches end
+     */
+    handleAllReleased() {
+        console.debug('All touches released, stopping all skill casting');
+        this.stopAllContinuousCasting();
     }
     
     /**

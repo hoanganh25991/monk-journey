@@ -274,6 +274,17 @@ export class VirtualJoystickUI extends UIComponent {
     }
     
     /**
+     * Handle all touches being released (called by TouchManager)
+     * This is a safety method to ensure joystick is reset when all touches end
+     */
+    handleAllReleased() {
+        if (this.joystickState.active) {
+            console.debug('All touches released, resetting joystick');
+            this.handleJoystickEnd();
+        }
+    }
+    
+    /**
      * Remove event listeners when component is disposed
      * Override from UIComponent
      */
