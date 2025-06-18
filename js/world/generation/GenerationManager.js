@@ -63,9 +63,39 @@ export class GenerationManager {
             // Further reduce content generation distance in low performance mode
             const effectiveDistance = lowPerformanceMode ? Math.max(2, contentGenDistance - 1) : contentGenDistance;
             
+            // Get player movement direction if available
+            let directionX = 0;
+            let directionZ = 0;
+            let lastPlayerPosition = null;
+            
+            // Get last player position from world manager if available
+            if (this.terrainManager && this.terrainManager.worldManager && 
+                this.terrainManager.worldManager.lastPlayerPosition) {
+                lastPlayerPosition = this.terrainManager.worldManager.lastPlayerPosition;
+            }
+            
+            if (lastPlayerPosition && playerPosition) {
+                // Calculate movement direction
+                const moveX = playerPosition.x - lastPlayerPosition.x;
+                const moveZ = playerPosition.z - lastPlayerPosition.z;
+                
+                // Normalize direction
+                const length = Math.sqrt(moveX * moveX + moveZ * moveZ);
+                if (length > 0.001) {
+                    directionX = moveX / length;
+                    directionZ = moveZ / length;
+                }
+            }
+            
             // Queue chunks for processing instead of processing immediately
             // This allows us to spread the work across multiple frames
-            this.queueChunksForProcessing(playerChunkX, playerChunkZ, effectiveDistance);
+            this.queueChunksForProcessing(
+                playerChunkX, 
+                playerChunkZ, 
+                effectiveDistance, 
+                directionX, 
+                directionZ
+            );
             
             // Process a limited number of chunks from the queue
             this.processChunkQueue(this.CHUNK_PROCESSING_BUDGET_MS);
@@ -81,12 +111,14 @@ export class GenerationManager {
     }
     
     /**
-     * Queue chunks for processing in spiral order
+     * Queue chunks for processing in spiral order with direction prioritization
      * @param {number} centerX - Center chunk X coordinate
      * @param {number} centerZ - Center chunk Z coordinate
      * @param {number} distance - Maximum distance from center
+     * @param {number} directionX - X component of player movement direction (normalized)
+     * @param {number} directionZ - Z component of player movement direction (normalized)
      */
-    queueChunksForProcessing(centerX, centerZ, distance) {
+    queueChunksForProcessing(centerX, centerZ, distance, directionX = 0, directionZ = 0) {
         // Generate spiral coordinates
         const spiralCoords = this.generateSpiralCoordinates(centerX, centerZ, distance);
         
@@ -101,19 +133,91 @@ export class GenerationManager {
             const alreadyPending = this.pendingChunks.some(chunk => chunk.key === chunkKey);
             if (alreadyPending) continue;
             
-            // Add to pending chunks queue with priority based on distance from center
+            // Calculate base priority based on distance from center
             const distanceFromCenter = Math.max(Math.abs(x - centerX), Math.abs(z - centerZ));
+            let priority = distance - distanceFromCenter; // Higher priority for closer chunks
+            
+            // If we have a movement direction, prioritize chunks in that direction
+            if (Math.abs(directionX) > 0.001 || Math.abs(directionZ) > 0.001) {
+                // Calculate vector from center to chunk
+                const chunkVectorX = x - centerX;
+                const chunkVectorZ = z - centerZ;
+                
+                // Calculate dot product to determine if chunk is in movement direction
+                // Higher dot product means chunk is more aligned with movement direction
+                const dotProduct = chunkVectorX * directionX + chunkVectorZ * directionZ;
+                
+                // Boost priority for chunks in movement direction
+                if (dotProduct > 0) {
+                    // Normalize the boost based on distance and alignment
+                    const directionBoost = dotProduct / (distanceFromCenter || 1);
+                    priority += directionBoost * 3; // Significant boost for chunks in movement direction
+                }
+                
+                // Extra boost for chunks directly ahead
+                if (dotProduct > 0.7 && distanceFromCenter <= distance * 0.7) {
+                    priority += 5; // Extra boost for chunks directly ahead
+                }
+            }
+            
+            // Add to pending chunks queue
             this.pendingChunks.push({
                 key: chunkKey,
                 x: x,
                 z: z,
-                priority: distance - distanceFromCenter, // Higher priority for closer chunks
+                priority: priority,
                 timestamp: Date.now()
             });
         }
         
         // Sort pending chunks by priority (highest first)
         this.pendingChunks.sort((a, b) => b.priority - a.priority);
+        
+        // If we have a movement direction, add extra chunks farther ahead
+        if ((Math.abs(directionX) > 0.001 || Math.abs(directionZ) > 0.001) && distance > 2) {
+            // Look ahead distance (in chunks)
+            const lookAheadDistance = distance * 1.5;
+            
+            // Calculate target chunk in movement direction
+            const targetChunkX = Math.floor(centerX + directionX * lookAheadDistance);
+            const targetChunkZ = Math.floor(centerZ + directionZ * lookAheadDistance);
+            
+            // Add chunks in a smaller radius around the target position
+            const targetRadius = Math.floor(distance * 0.5);
+            for (let x = targetChunkX - targetRadius; x <= targetChunkX + targetRadius; x++) {
+                for (let z = targetChunkZ - targetRadius; z <= targetChunkZ + targetRadius; z++) {
+                    const chunkKey = `${x},${z}`;
+                    
+                    // Skip if already generated or already in queue
+                    if (this.generatedChunks.has(chunkKey)) continue;
+                    
+                    // Check if chunk is already in pending queue
+                    const alreadyPending = this.pendingChunks.some(chunk => chunk.key === chunkKey);
+                    if (alreadyPending) continue;
+                    
+                    // Calculate distance from target
+                    const distanceFromTarget = Math.max(
+                        Math.abs(x - targetChunkX),
+                        Math.abs(z - targetChunkZ)
+                    );
+                    
+                    // Higher priority for chunks closer to target
+                    const priority = 10 + (targetRadius - distanceFromTarget);
+                    
+                    // Add to pending chunks queue
+                    this.pendingChunks.push({
+                        key: chunkKey,
+                        x: x,
+                        z: z,
+                        priority: priority,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+            
+            // Re-sort pending chunks by priority
+            this.pendingChunks.sort((a, b) => b.priority - a.priority);
+        }
     }
     
     /**

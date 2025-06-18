@@ -665,19 +665,40 @@ export class EnvironmentManager {
      * @param {number} drawDistanceMultiplier - Multiplier for draw distance (0.0 to 1.0)
      */
     updateForPlayer(playerPosition, drawDistanceMultiplier = 1.0) {
+        // Skip if no player position
+        if (!playerPosition) return;
+        
         // Calculate which chunk the player is in
-        const chunkSize = 64; // Default chunk size - can be made configurable
+        const chunkSize = this.worldManager.terrainManager.terrainChunkSize || 64;
         const playerChunkX = Math.floor(playerPosition.x / chunkSize);
         const playerChunkZ = Math.floor(playerPosition.z / chunkSize);
         
         // Calculate effective view distance based on multiplier
-        const baseViewDistance = 3; // Base view distance in chunks
-        const effectiveViewDistance = Math.max(1, Math.floor(baseViewDistance * drawDistanceMultiplier));
+        // Increased base view distance from 3 to 5 for better preloading
+        const baseViewDistance = 5; // Increased base view distance in chunks
+        const effectiveViewDistance = Math.max(2, Math.floor(baseViewDistance * drawDistanceMultiplier));
+        
+        // Get player movement direction if available
+        let directionX = 0;
+        let directionZ = 0;
+        
+        if (this.worldManager.lastPlayerPosition) {
+            // Calculate movement direction
+            const moveX = playerPosition.x - this.worldManager.lastPlayerPosition.x;
+            const moveZ = playerPosition.z - this.worldManager.lastPlayerPosition.z;
+            
+            // Normalize direction
+            const length = Math.sqrt(moveX * moveX + moveZ * moveZ);
+            if (length > 0.001) {
+                directionX = moveX / length;
+                directionZ = moveZ / length;
+            }
+        }
         
         // Update visible chunks
         const currentChunks = new Set();
         
-        // Generate chunks around player position
+        // Generate chunks around player position with emphasis on movement direction
         for (let x = playerChunkX - effectiveViewDistance; x <= playerChunkX + effectiveViewDistance; x++) {
             for (let z = playerChunkZ - effectiveViewDistance; z <= playerChunkZ + effectiveViewDistance; z++) {
                 const chunkKey = `${x},${z}`;
@@ -686,6 +707,30 @@ export class EnvironmentManager {
                 // Mark chunk as visible
                 if (!this.visibleChunks[chunkKey]) {
                     this.visibleChunks[chunkKey] = true;
+                }
+            }
+        }
+        
+        // Add extra chunks in the direction of movement (look ahead)
+        if (Math.abs(directionX) > 0.001 || Math.abs(directionZ) > 0.001) {
+            // Look ahead distance (in chunks)
+            const lookAheadDistance = 3;
+            
+            // Calculate target chunk in movement direction
+            const targetChunkX = Math.floor(playerChunkX + directionX * lookAheadDistance);
+            const targetChunkZ = Math.floor(playerChunkZ + directionZ * lookAheadDistance);
+            
+            // Add chunks in a smaller radius around the target position
+            const targetRadius = 2;
+            for (let x = targetChunkX - targetRadius; x <= targetChunkX + targetRadius; x++) {
+                for (let z = targetChunkZ - targetRadius; z <= targetChunkZ + targetRadius; z++) {
+                    const chunkKey = `${x},${z}`;
+                    currentChunks.add(chunkKey);
+                    
+                    // Mark chunk as visible
+                    if (!this.visibleChunks[chunkKey]) {
+                        this.visibleChunks[chunkKey] = true;
+                    }
                 }
             }
         }
