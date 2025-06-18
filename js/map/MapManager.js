@@ -327,17 +327,19 @@ export class MapManager {
                 // 4b. Generate environment objects (medium priority, less frequent updates)
                 if (!this._lastEnvironmentGeneration || now - this._lastEnvironmentGeneration > 800) {
                     setTimeout(() => {
-                        // Process chunks around player for environment objects
-                        const envGenDistance = Math.floor(effectiveDrawDistance * 0.4);
-                        for (let x = playerChunkX - envGenDistance; x <= playerChunkX + envGenDistance; x++) {
-                            for (let z = playerChunkZ - envGenDistance; z <= playerChunkZ + envGenDistance; z++) {
-                                // Skip distant chunks for better performance
-                                const distance = Math.max(Math.abs(x - playerChunkX), Math.abs(z - playerChunkZ));
-                                if (distance <= envGenDistance) {
-                                    this.generationManager.generateEnvironmentForChunk(x, z);
-                                }
+                        // Use our dedicated area-based environment generation
+                        const envGenRadius = Math.floor(effectiveDrawDistance * 0.4 * this.terrainManager.terrainChunkSize);
+                        
+                        // Generate environment objects in the area around the player
+                        this.generateEnvironmentInArea(
+                            playerPosition.x,
+                            playerPosition.z,
+                            envGenRadius,
+                            {
+                                density: this.generationManager.getCurrentZoneDensity(playerPosition)
                             }
-                        }
+                        );
+                        
                         this._lastEnvironmentGeneration = performance.now();
                     }, 50); // Small delay to prioritize terrain generation
                 }
@@ -345,17 +347,19 @@ export class MapManager {
                 // 4c. Generate structures (lowest priority, least frequent updates)
                 if (!this._lastStructureGeneration || now - this._lastStructureGeneration > 1500) {
                     setTimeout(() => {
-                        // Process chunks around player for structures
-                        const structGenDistance = Math.floor(effectiveDrawDistance * 0.3);
-                        for (let x = playerChunkX - structGenDistance; x <= playerChunkX + structGenDistance; x++) {
-                            for (let z = playerChunkZ - structGenDistance; z <= playerChunkZ + structGenDistance; z++) {
-                                // Skip distant chunks and add randomness for better performance
-                                const distance = Math.max(Math.abs(x - playerChunkX), Math.abs(z - playerChunkZ));
-                                if (distance <= structGenDistance && Math.random() < 0.3) {
-                                    this.generationManager.generateStructuresForChunk(x, z);
-                                }
+                        // Use our dedicated area-based structure generation
+                        const structGenRadius = Math.floor(effectiveDrawDistance * 0.3 * this.terrainManager.terrainChunkSize);
+                        
+                        // Generate structures in the area around the player
+                        this.generateStructuresInArea(
+                            playerPosition.x,
+                            playerPosition.z,
+                            structGenRadius,
+                            {
+                                density: this.generationManager.getCurrentZoneDensity(playerPosition)
                             }
-                        }
+                        );
+                        
                         this._lastStructureGeneration = performance.now();
                     }, 100); // Larger delay to prioritize terrain and environment
                 }
@@ -392,14 +396,35 @@ export class MapManager {
      * @param {number} effectiveDrawDistance - Effective draw distance
      */
     updateEnvironmentForPlayer(playerPosition, effectiveDrawDistance) {
-        if (this.environmentManager && this.environmentManager.updateForPlayer) {
+        if (this.environmentManager) {
             // Use a try-catch to prevent errors from breaking the game loop
             try {
                 // First, check if we have any preloaded objects to add to the scene
                 this.addPreloadedObjectsToScene(playerPosition, effectiveDrawDistance);
                 
-                // Then update environment as usual
-                this.environmentManager.updateForPlayer(playerPosition, effectiveDrawDistance);
+                // Clear environment objects that are too far from the player
+                const clearRadius = effectiveDrawDistance * 1.5 * this.terrainManager.terrainChunkSize;
+                const visibleRadius = effectiveDrawDistance * this.terrainManager.terrainChunkSize;
+                
+                // Only clear objects outside the visible radius but within the clear radius
+                // This creates a buffer zone to prevent objects from disappearing suddenly
+                this.clearEnvironmentInArea(
+                    playerPosition.x, 
+                    playerPosition.z, 
+                    clearRadius, 
+                    visibleRadius
+                );
+                
+                // Generate new environment objects in the visible area
+                // This uses our dedicated method for area-based generation
+                this.generateEnvironmentInArea(
+                    playerPosition.x,
+                    playerPosition.z,
+                    visibleRadius,
+                    {
+                        density: this.generationManager.getCurrentZoneDensity(playerPosition)
+                    }
+                );
             } catch (error) {
                 console.error("Error updating environment:", error);
             }
@@ -1986,11 +2011,12 @@ export class MapManager {
      * Clear environment objects in a specific area
      * @param {number} centerX - Center X coordinate in world space
      * @param {number} centerZ - Center Z coordinate in world space
-     * @param {number} radius - Radius around center to clear (in world units)
+     * @param {number} outerRadius - Outer radius around center to clear (in world units)
+     * @param {number} innerRadius - Optional inner radius to preserve (in world units)
      * @returns {number} - Number of objects cleared
      */
-    clearEnvironmentInArea(centerX, centerZ, radius) {
-        console.debug(`Clearing environment in area around (${centerX}, ${centerZ}) with radius ${radius}`);
+    clearEnvironmentInArea(centerX, centerZ, outerRadius, innerRadius = 0) {
+        console.debug(`Clearing environment in area around (${centerX}, ${centerZ}) with outer radius ${outerRadius}, inner radius ${innerRadius}`);
         
         let clearedCount = 0;
         
@@ -1998,7 +2024,7 @@ export class MapManager {
         if (this.environmentManager && this.environmentManager.environmentObjects) {
             const objectsToRemove = [];
             
-            // Find objects within the radius
+            // Find objects within the outer radius but outside the inner radius
             this.environmentManager.environmentObjects.forEach(objInfo => {
                 if (objInfo && objInfo.position) {
                     const distance = Math.sqrt(
@@ -2006,7 +2032,8 @@ export class MapManager {
                         Math.pow(objInfo.position.z - centerZ, 2)
                     );
                     
-                    if (distance <= radius) {
+                    // Only remove objects that are outside the inner radius but inside the outer radius
+                    if (distance > innerRadius && distance <= outerRadius) {
                         objectsToRemove.push(objInfo);
                     }
                 }

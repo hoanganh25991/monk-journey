@@ -443,6 +443,21 @@ export class GenerationManager {
     }
     
     /**
+     * Get the current zone density for a given position
+     * @param {THREE.Vector3} position - The position to check
+     * @returns {number} - The density value (0.0 to 1.0)
+     */
+    getCurrentZoneDensity(position) {
+        if (!position) return 0.5; // Default density
+        
+        // Get zone type for this position
+        const zoneType = this.getZoneTypeAt(position.x, position.z);
+        
+        // Return density for this zone type
+        return this.zoneDensities[zoneType] || 0.5;
+    }
+    
+    /**
      * Determine zone type based on world position
      * @param {number} x - World X coordinate
      * @param {number} z - World Z coordinate
