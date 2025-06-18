@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 // Import structure configuration
-import { STRUCTURE_TYPES, STRUCTURE_PROPERTIES } from '../../config/structure.js';
+import { STRUCTURE_TYPES, STRUCTURE_PROPERTIES } from '../../config/map/structure.js';
 
 // Import structure classes
 import { Building } from './Building.js';

@@ -1,6 +1,6 @@
 // Skills configuration
-import { SKILL_ICONS } from './skill/skill-icons.js';
-import { SKILL_SOUNDS } from './sounds.js';
+import { SKILL_ICONS } from './skill-icons.js';
+import { SKILL_SOUNDS } from './../sounds.js';
 // Type definitions are available in skill-types.js
 // @ts-check
 /** @typedef {import('./skill/skill-types.js').SkillConfig} SkillConfig */

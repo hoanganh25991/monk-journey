@@ -5,9 +5,9 @@
 
 import { SettingsTab } from './SettingsTab.js';
 import { SkillPreview } from './SkillPreview.js';
-import { SKILLS } from '../../config/skills.js';
+import { SKILLS } from '../../config/skill/skills.js';
 import { STORAGE_KEYS } from '../../config/storage-keys.js';
-import { SKILL_TREES } from '../../config/skill-trees.js';
+import { SKILL_TREES } from '../../config/skill/skill-trees.js';
 
 export class SkillsPreviewTab extends SettingsTab {
     /**

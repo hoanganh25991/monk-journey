@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 // Import environment configuration
-import { ENVIRONMENT_OBJECTS } from '../../config/environment.js';
+import { ENVIRONMENT_OBJECTS } from '../../config/map/environment.js';
 import { EnvironmentObject } from './EnvironmentObject.js';
 
 // Import environment objects

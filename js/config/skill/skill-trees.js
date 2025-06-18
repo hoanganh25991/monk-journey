@@ -1,4 +1,4 @@
-import { applyBuffsToVariants } from '../utils/SkillTreeUtils.js';
+import { applyBuffsToVariants } from '../../utils/SkillTreeUtils.js';
 
 // Define the base skill trees
 const BASE_SKILL_TREES = {
