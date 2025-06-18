@@ -1507,6 +1507,12 @@ export class WorldManager {
                 return;
             }
             
+            // Validate chunk key format
+            if (!chunkKey || typeof chunkKey !== 'string' || !chunkKey.includes(',')) {
+                console.warn(`Invalid chunk key format: ${chunkKey}`);
+                return;
+            }
+            
             // Mark buffer as processed to prevent duplicate processing
             buffer.processed = true;
             
@@ -1526,16 +1532,23 @@ export class WorldManager {
                 for (let i = processedCount; i < endIdx; i++) {
                     const objData = buffer.environment[i];
                     
+                    // Validate object data before processing
+                    if (!objData || !objData.position || typeof objData.position.x !== 'number' || typeof objData.position.z !== 'number') {
+                        console.warn(`Invalid environment object data at index ${i} for chunk ${chunkKey}`, objData);
+                        continue;
+                    }
+                    
                     // Create the actual object but don't add to scene yet
                     if (this.environmentManager && objData.type) {
                         const object = this.environmentManager.createEnvironmentObject(
                             objData.type,
                             objData.position.x,
                             objData.position.z,
-                            objData.scale,
+                            objData.scale || 1.0,
                             true // offscreenCreation = true
                         );
                         
+                        // Only process valid objects
                         if (object) {
                             // Store the created object with its data
                             preCreatedObjects.push({
@@ -1543,16 +1556,18 @@ export class WorldManager {
                                 object: object
                             });
                             
-                            // Set rotation if specified
-                            if (objData.rotation !== undefined) {
+                            // Set rotation if specified and object exists
+                            if (object && objData.rotation !== undefined) {
                                 object.rotation.y = objData.rotation;
                             }
                             
-                            // Hide the object until it's added to the scene
-                            object.visible = false;
+                            // Hide the object until it's added to the scene (only if object exists)
+                            if (object) {
+                                object.visible = false;
+                            }
                             
-                            // Apply LOD if available to improve performance
-                            if (this.lodManager && this.lodManager.applyLODToObject) {
+                            // Apply LOD if available to improve performance and object exists
+                            if (object && this.lodManager && this.lodManager.applyLODToObject) {
                                 this.lodManager.applyLODToObject(object, objData.type);
                             }
                         }
