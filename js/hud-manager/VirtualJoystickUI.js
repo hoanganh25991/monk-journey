@@ -93,8 +93,10 @@ export class VirtualJoystickUI extends UIComponent {
         
         // Touch start event on the larger overlay area
         this.joystickOverlay.addEventListener('touchstart', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
+            // Don't prevent default to allow skill button touches
+            // event.preventDefault();
+            // Don't stop propagation to allow skill button touches
+            // event.stopPropagation();
             
             // Only respond if joystick is not already active
             if (!this.joystickState.active) {

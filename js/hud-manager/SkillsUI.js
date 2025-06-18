@@ -101,6 +101,7 @@ export class SkillsUI extends UIComponent {
                 const touch = e.touches[0];
                 
                 // Try to claim the touch through the touch manager
+                // Force claim for skills to ensure they work even when joystick is active
                 if (touchManager.claimTouch(touch, 'skills')) {
                     // Clear any existing interval for this skill
                     this.stopContinuousCasting(index);

@@ -52,7 +52,7 @@
     left: 0;
     width: 50%; /* Only cover the left half of the screen */
     height: 100%;
-    z-index: 150; /* Higher z-index to be above skill buttons in left area */
+    z-index: 110; /* Lower z-index to be below skill buttons (z-index: 125) */
     pointer-events: auto;
     touch-action: none;
     background-color: transparent; /* Make it invisible */

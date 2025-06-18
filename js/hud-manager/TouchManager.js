@@ -43,6 +43,13 @@ export class TouchManager {
         for (const [activePurpose, activeTouch] of Object.entries(this.activeTouches)) {
             if (activePurpose === purpose) continue;
             
+            // Allow simultaneous touches for joystick and skills
+            // This enables using joystick with one finger and skills with another
+            if ((purpose === 'skills' && activePurpose === 'joystick') || 
+                (purpose === 'joystick' && activePurpose === 'skills')) {
+                continue;
+            }
+            
             if (activePurpose === 'skills') {
                 if (activeTouch.has(touchId)) return false;
             } else {
@@ -119,7 +126,8 @@ export class TouchManager {
                 
                 // Route to joystick handler
                 if (this.touchBelongsTo(touch, 'joystick') && this.handlers.joystick) {
-                    event.preventDefault();
+                    // Don't prevent default for joystick to allow skill button touches
+                    // event.preventDefault();
                     this.handlers.joystick.handleMove(touch);
                 }
                 
@@ -127,6 +135,12 @@ export class TouchManager {
                 if (this.touchBelongsTo(touch, 'camera') && this.handlers.camera) {
                     event.preventDefault();
                     this.handlers.camera.handleMove(touch);
+                }
+                
+                // Route to skills handler if implemented
+                if (this.touchBelongsTo(touch, 'skills') && this.handlers.skills) {
+                    // Skills have their own event handlers, but we could route here if needed
+                    // this.handlers.skills.handleMove(touch);
                 }
             }
         }, { passive: false });
@@ -138,7 +152,8 @@ export class TouchManager {
                 
                 // Route to joystick handler
                 if (this.touchBelongsTo(touch, 'joystick') && this.handlers.joystick) {
-                    event.preventDefault();
+                    // Don't prevent default for joystick to allow skill button touches
+                    // event.preventDefault();
                     this.handlers.joystick.handleEnd(touch);
                     this.releaseTouch(touch, 'joystick');
                 }
@@ -164,7 +179,8 @@ export class TouchManager {
                 
                 // Route to joystick handler
                 if (this.touchBelongsTo(touch, 'joystick') && this.handlers.joystick) {
-                    event.preventDefault();
+                    // Don't prevent default for joystick to allow skill button touches
+                    // event.preventDefault();
                     this.handlers.joystick.handleEnd(touch);
                     this.releaseTouch(touch, 'joystick');
                 }
