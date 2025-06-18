@@ -56,11 +56,12 @@ export class WorldManager {
         this.buildings = [];
         this.paths = [];
         
-        // Object preloading and buffering
+        // Object preloading and buffering - IMPROVED VALUES
         this.objectBuffer = new Map(); // Map to store preloaded objects
-        this.preloadDistance = 200; // Distance ahead of player to preload objects
+        this.preloadDistance = 300; // Increased from 200 to 300 - Distance ahead of player to preload objects
         this.preloadedChunks = new Set(); // Track which chunks have been preloaded
-        this.preloadRadius = 2; // Radius of chunks to preload (in chunks)
+        this.preloadRadius = 3; // Increased from 2 to 3 - Radius of chunks to preload (in chunks)
+        this.significantMovementThreshold = 3; // Reduced threshold for triggering preloading (was implicitly 5)
         
         // Spatial partitioning for faster object lookup
         this.spatialGrid = new SpatialGrid(50); // Grid-based spatial partitioning with 50 unit cell size
@@ -303,7 +304,7 @@ export class WorldManager {
         const now = performance.now();
         const minUpdateInterval = this.performanceManager.isLowPerformanceMode() ? 100 : 50; // ms between updates
         const hasMovedSignificantly = this.lastPlayerPosition && 
-            playerPosition.distanceTo(this.lastPlayerPosition) > 5;
+            playerPosition.distanceTo(this.lastPlayerPosition) > this.significantMovementThreshold;
             
         if (!this._lastWorldUpdate || 
             now - this._lastWorldUpdate > minUpdateInterval || 
@@ -326,14 +327,16 @@ export class WorldManager {
             // 2. Update environment objects (can be throttled more aggressively)
             // Only update environment every other frame in low performance mode
             if (!this.performanceManager.isLowPerformanceMode() || !this._lastEnvironmentUpdate || 
-                now - this._lastEnvironmentUpdate > 200) {
+                now - this._lastEnvironmentUpdate > 150) { // Reduced from 200 to 150ms for more frequent updates
                 this.updateEnvironmentForPlayer(playerPosition, effectiveDrawDistance);
                 this._lastEnvironmentUpdate = now;
             }
             
             // 3. Preload objects in the direction of player movement
             // This prevents objects from suddenly appearing
-            if (hasMovedSignificantly && (!this._lastPreload || now - this._lastPreload > 300)) {
+            // Reduced threshold for preloading to make it happen more frequently
+            if ((!this._lastPreload || now - this._lastPreload > 200) && this.lastPlayerPosition) { // Reduced from 300 to 200ms
+                // Always preload, not just when moved significantly
                 this.preloadObjectsInDirection(playerPosition, this.lastPlayerPosition);
                 this._lastPreload = now;
             }
@@ -413,8 +416,11 @@ export class WorldManager {
         const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
         const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
         
-        // Calculate visible chunk range
-        const chunkDrawDistance = Math.ceil(drawDistance / terrainChunkSize);
+        // Calculate visible chunk range - add 1 to ensure we have a buffer
+        const chunkDrawDistance = Math.ceil(drawDistance / terrainChunkSize) + 1;
+        
+        // Collect chunks that need to be added to the scene
+        const chunksToAdd = [];
         
         // Check each buffered chunk
         for (const [chunkKey, buffer] of this.objectBuffer.entries()) {
@@ -427,8 +433,22 @@ export class WorldManager {
                 Math.abs(chunkZ - playerChunkZ)
             );
             
-            // If chunk is within draw distance, add its objects to the scene
+            // If chunk is within draw distance, add it to the list
             if (chunkDistance <= chunkDrawDistance) {
+                chunksToAdd.push({ chunkKey, buffer, priority: chunkDistance });
+            }
+        }
+        
+        // Sort chunks by priority (closest first)
+        chunksToAdd.sort((a, b) => a.priority - b.priority);
+        
+        // Process chunks in batches to avoid frame drops
+        const processBatch = (startIdx, batchSize) => {
+            const endIdx = Math.min(startIdx + batchSize, chunksToAdd.length);
+            
+            for (let i = startIdx; i < endIdx; i++) {
+                const { chunkKey, buffer } = chunksToAdd[i];
+                
                 // Check if we have pre-created objects
                 if (buffer.preCreatedObjects && buffer.preCreatedObjects.length > 0) {
                     // Add pre-created environment objects to the scene
@@ -456,6 +476,9 @@ export class WorldManager {
                             
                             // Add to type-specific collections
                             this.environmentManager.addToTypeCollection(objData.type, object);
+                            
+                            // Add to spatial grid for faster lookup
+                            this.spatialGrid.addObject(object, objData.position);
                         }
                     }
                 } else {
@@ -488,6 +511,9 @@ export class WorldManager {
                                 
                                 // Add to type-specific collections
                                 this.environmentManager.addToTypeCollection(objData.type, object);
+                                
+                                // Add to spatial grid for faster lookup
+                                this.spatialGrid.addObject(object, objData.position);
                             }
                         }
                     }
@@ -571,6 +597,18 @@ export class WorldManager {
                 // Remove from buffer after adding to scene
                 this.objectBuffer.delete(chunkKey);
             }
+            
+            // If there are more chunks to process, schedule the next batch
+            if (endIdx < chunksToAdd.length) {
+                setTimeout(() => {
+                    processBatch(endIdx, batchSize);
+                }, 0);
+            }
+        };
+        
+        // Start processing the first batch (5 chunks at a time)
+        if (chunksToAdd.length > 0) {
+            processBatch(0, 5);
         }
     }
     
@@ -1249,44 +1287,85 @@ export class WorldManager {
             .subVectors(currentPosition, previousPosition)
             .normalize();
             
-        // Calculate target position (ahead of player in movement direction)
-        const targetPosition = new THREE.Vector3()
+        // Calculate target positions - one directly ahead and two at slight angles
+        // This creates a wider preloading area to handle direction changes
+        const targetPositions = [];
+        
+        // Main direction (directly ahead)
+        targetPositions.push(new THREE.Vector3()
             .copy(currentPosition)
-            .addScaledVector(direction, this.preloadDistance);
+            .addScaledVector(direction, this.preloadDistance));
             
-        // Calculate chunk coordinates for the target position
+        // Slightly to the left (15 degrees)
+        const leftDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 12);
+        targetPositions.push(new THREE.Vector3()
+            .copy(currentPosition)
+            .addScaledVector(leftDirection, this.preloadDistance * 0.8));
+            
+        // Slightly to the right (15 degrees)
+        const rightDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 12);
+        targetPositions.push(new THREE.Vector3()
+            .copy(currentPosition)
+            .addScaledVector(rightDirection, this.preloadDistance * 0.8));
+            
+        // Also preload in a radius around the current position
+        targetPositions.push(currentPosition.clone());
+        
+        // Track chunks to preload without duplicates
+        const chunksToPreload = new Map(); // Map of chunkKey -> priority
         const terrainChunkSize = this.terrainManager.terrainChunkSize;
-        const targetChunkX = Math.floor(targetPosition.x / terrainChunkSize);
-        const targetChunkZ = Math.floor(targetPosition.z / terrainChunkSize);
         
-        // Preload chunks in an area around the target position
-        // Use the preloadRadius property for configurability
-        
-        for (let x = targetChunkX - this.preloadRadius; x <= targetChunkX + this.preloadRadius; x++) {
-            for (let z = targetChunkZ - this.preloadRadius; z <= targetChunkZ + this.preloadRadius; z++) {
-                const chunkKey = `${x},${z}`;
-                
-                // Skip if already preloaded
-                if (this.preloadedChunks.has(chunkKey)) continue;
-                
-                // Mark as preloaded
-                this.preloadedChunks.add(chunkKey);
-                
-                // Calculate priority based on distance from target
-                const distanceFromTarget = Math.max(
-                    Math.abs(x - targetChunkX),
-                    Math.abs(z - targetChunkZ)
-                );
-                
-                // Preload content for this chunk in the background
-                // Use a small delay for chunks further away to prioritize closer chunks
-                const delay = distanceFromTarget * 50; // 0ms for center chunk, 50ms for each chunk away
-                
-                setTimeout(() => {
-                    this.preloadChunkContent(x, z);
-                }, delay);
+        // Process each target position
+        targetPositions.forEach((targetPosition, index) => {
+            // Calculate chunk coordinates for the target position
+            const targetChunkX = Math.floor(targetPosition.x / terrainChunkSize);
+            const targetChunkZ = Math.floor(targetPosition.z / terrainChunkSize);
+            
+            // Preload chunks in an area around the target position
+            for (let x = targetChunkX - this.preloadRadius; x <= targetChunkX + this.preloadRadius; x++) {
+                for (let z = targetChunkZ - this.preloadRadius; z <= targetChunkZ + this.preloadRadius; z++) {
+                    const chunkKey = `${x},${z}`;
+                    
+                    // Skip if already preloaded
+                    if (this.preloadedChunks.has(chunkKey)) continue;
+                    
+                    // Calculate priority based on distance from target and which target (main direction has higher priority)
+                    const distanceFromTarget = Math.max(
+                        Math.abs(x - targetChunkX),
+                        Math.abs(z - targetChunkZ)
+                    );
+                    
+                    // Lower index = higher priority (main direction is index 0)
+                    const priority = index * 10 + distanceFromTarget;
+                    
+                    // Store the chunk with its priority (lower value = higher priority)
+                    if (!chunksToPreload.has(chunkKey) || chunksToPreload.get(chunkKey) > priority) {
+                        chunksToPreload.set(chunkKey, priority);
+                    }
+                }
             }
-        }
+        });
+        
+        // Sort chunks by priority
+        const sortedChunks = Array.from(chunksToPreload.entries())
+            .sort((a, b) => a[1] - b[1]); // Sort by priority (ascending)
+        
+        // Preload chunks with staggered delays based on priority
+        sortedChunks.forEach(([chunkKey, priority], index) => {
+            // Mark as preloaded
+            this.preloadedChunks.add(chunkKey);
+            
+            // Extract chunk coordinates
+            const [x, z] = chunkKey.split(',').map(Number);
+            
+            // Use a small delay based on priority to avoid overwhelming the main thread
+            // Higher priority chunks (lower priority value) get processed first
+            const delay = Math.min(priority * 20, 500); // Cap at 500ms
+            
+            setTimeout(() => {
+                this.preloadChunkContent(x, z);
+            }, delay);
+        });
     }
     
     /**
@@ -1434,37 +1513,66 @@ export class WorldManager {
             // Create actual THREE.js objects for environment objects
             const preCreatedObjects = [];
             
-            for (const objData of buffer.environment) {
-                // Create the actual object but don't add to scene yet
-                if (this.environmentManager && objData.type) {
-                    const object = this.environmentManager.createEnvironmentObject(
-                        objData.type,
-                        objData.position.x,
-                        objData.position.z,
-                        objData.scale,
-                        true // offscreenCreation = true
-                    );
+            // Process objects in batches to avoid blocking the main thread
+            const batchSize = 5; // Process 5 objects at a time
+            const totalObjects = buffer.environment.length;
+            let processedCount = 0;
+            
+            const processBatch = () => {
+                // Calculate end index for this batch
+                const endIdx = Math.min(processedCount + batchSize, totalObjects);
+                
+                // Process this batch
+                for (let i = processedCount; i < endIdx; i++) {
+                    const objData = buffer.environment[i];
                     
-                    if (object) {
-                        // Store the created object with its data
-                        preCreatedObjects.push({
-                            data: objData,
-                            object: object
-                        });
+                    // Create the actual object but don't add to scene yet
+                    if (this.environmentManager && objData.type) {
+                        const object = this.environmentManager.createEnvironmentObject(
+                            objData.type,
+                            objData.position.x,
+                            objData.position.z,
+                            objData.scale,
+                            true // offscreenCreation = true
+                        );
                         
-                        // Set rotation if specified
-                        if (objData.rotation !== undefined) {
-                            object.rotation.y = objData.rotation;
+                        if (object) {
+                            // Store the created object with its data
+                            preCreatedObjects.push({
+                                data: objData,
+                                object: object
+                            });
+                            
+                            // Set rotation if specified
+                            if (objData.rotation !== undefined) {
+                                object.rotation.y = objData.rotation;
+                            }
+                            
+                            // Hide the object until it's added to the scene
+                            object.visible = false;
+                            
+                            // Apply LOD if available to improve performance
+                            if (this.lodManager && this.lodManager.applyLODToObject) {
+                                this.lodManager.applyLODToObject(object, objData.type);
+                            }
                         }
-                        
-                        // Hide the object until it's added to the scene
-                        object.visible = false;
                     }
                 }
-            }
+                
+                // Update processed count
+                processedCount = endIdx;
+                
+                // Store pre-created objects in the buffer after each batch
+                buffer.preCreatedObjects = preCreatedObjects;
+                
+                // If there are more objects to process, schedule the next batch
+                if (processedCount < totalObjects) {
+                    setTimeout(processBatch, 0);
+                }
+            };
             
-            // Store pre-created objects in the buffer
-            buffer.preCreatedObjects = preCreatedObjects;
+            // Start processing the first batch
+            processBatch();
             
         } catch (error) {
             console.error(`Error pre-creating environment objects for chunk ${chunkKey}:`, error);
