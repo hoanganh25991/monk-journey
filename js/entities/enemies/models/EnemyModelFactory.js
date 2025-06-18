@@ -10,6 +10,7 @@ import { InfernalGolemModel } from './InfernalGolemModel.js';
 import { FireElementalModel } from './FireElementalModel.js';
 import { FrostElementalModel } from './FrostElementalModel.js';
 import { CorruptedTreantModel } from './CorruptedTreantModel.js';
+import { AncientTreantModel } from './AncientTreantModel.js';
 import { SwampWitchModel } from './SwampWitchModel.js';
 import { MountainTrollModel } from './MountainTrollModel.js';
 import { VoidWraithModel } from './VoidWraithModel.js';
@@ -98,6 +99,9 @@ export class EnemyModelFactory {
             // Plant types
             case 'corrupted_treant':
                 return new CorruptedTreantModel(enemy, modelGroup);
+                
+            case 'ancient_treant':
+                return new AncientTreantModel(enemy, modelGroup);
                 
             // Mountain creatures
             case 'mountain_troll':
