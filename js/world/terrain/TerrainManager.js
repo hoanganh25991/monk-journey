@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TERRAIN_CONFIG } from '../../config/terrain.js';
+import { TERRAIN_CONFIG } from '../../config/map/terrain.js';
 import { TerrainChunkManager } from './TerrainChunkManager.js';
 import { TerrainColoringManager } from './TerrainColoringManager.js';
 import { TerrainQueueManager } from './TerrainQueueManager.js';

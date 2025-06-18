@@ -1,7 +1,7 @@
 /**
  * Handles serialization and deserialization of player inventory and equipment
  */
-import { ITEM_TEMPLATES } from '../../config/items.js';
+import { ITEM_TEMPLATES } from '../../config/item/items.js';
 
 export class InventorySerializer {
     /**

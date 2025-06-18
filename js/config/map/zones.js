@@ -131,7 +131,94 @@ export const ZONE_DENSITIES = {
             STRUCTURE_TYPES.TOWER,
             STRUCTURE_TYPES.DARK_SANCTUM
         ]
+    },
+    [BIOMES.TERRANT]: {
+        environment: 1.0,
+        structures: 0.15,
+        environmentTypes: [
+            ENVIRONMENT_OBJECTS.ROCK,
+            ENVIRONMENT_OBJECTS.BUSH,
+            ENVIRONMENT_OBJECTS.FLOWER,
+            ENVIRONMENT_OBJECTS.TALL_GRASS,
+            ENVIRONMENT_OBJECTS.SMALL_PLANT,
+            ENVIRONMENT_OBJECTS.TREE
+        ],
+        structureTypes: [
+            STRUCTURE_TYPES.RUINS,
+            STRUCTURE_TYPES.HOUSE,
+            STRUCTURE_TYPES.ALTAR
+        ]
+    },
+    [BIOMES.RUINS]: {
+        environment: 0.8,
+        structures: 0.3,
+        environmentTypes: [
+            ENVIRONMENT_OBJECTS.BROKEN_COLUMN,
+            ENVIRONMENT_OBJECTS.STATUE_FRAGMENT,
+            ENVIRONMENT_OBJECTS.ANCIENT_STONE,
+            ENVIRONMENT_OBJECTS.OVERGROWN_RUIN,
+            ENVIRONMENT_OBJECTS.ROCK,
+            ENVIRONMENT_OBJECTS.BUSH,
+            ENVIRONMENT_OBJECTS.TALL_GRASS
+        ],
+        structureTypes: [
+            STRUCTURE_TYPES.RUINS,
+            STRUCTURE_TYPES.TEMPLE,
+            STRUCTURE_TYPES.ALTAR,
+            STRUCTURE_TYPES.TOWER
+        ]
+    },
+    [BIOMES.DARK_SANCTUM]: {
+        environment: 0.7,
+        structures: 0.2,
+        environmentTypes: [
+            ENVIRONMENT_OBJECTS.ANCIENT_ALTAR,
+            ENVIRONMENT_OBJECTS.MAGIC_CIRCLE,
+            ENVIRONMENT_OBJECTS.RUNE_STONE,
+            ENVIRONMENT_OBJECTS.GLOWING_MUSHROOM,
+            ENVIRONMENT_OBJECTS.ROCK,
+            ENVIRONMENT_OBJECTS.OBSIDIAN
+        ],
+        structureTypes: [
+            STRUCTURE_TYPES.DARK_SANCTUM,
+            STRUCTURE_TYPES.ALTAR,
+            STRUCTURE_TYPES.RUINS
+        ]
     }
+    // Additional zone densities can be added for other biomes
+};
+
+/**
+ * Zone difficulty levels
+ * Defines the difficulty level for each zone type
+ */
+export const ZONE_DIFFICULTY = {
+    [BIOMES.TERRANT]: 1,
+    [BIOMES.FOREST]: 2,
+    [BIOMES.DESERT]: 3,
+    [BIOMES.MOUNTAIN]: 4,
+    [BIOMES.SWAMP]: 5,
+    [BIOMES.RUINS]: 3,
+    [BIOMES.DARK_SANCTUM]: 6,
+    [BIOMES.MAGICAL]: 4,
+    [BIOMES.ENCHANTED_GROVE]: 3,
+    [BIOMES.CRYSTAL_CAVERNS]: 5,
+    [BIOMES.CELESTIAL_REALM]: 7,
+    [BIOMES.VOLCANIC_WASTES]: 6,
+    [BIOMES.TWILIGHT_VEIL]: 8,
+    [BIOMES.TUNDRA]: 4,
+    [BIOMES.SAVANNA]: 3,
+    [BIOMES.RAINFOREST]: 5,
+    [BIOMES.CORAL_REEF]: 4,
+    [BIOMES.ALPINE]: 5,
+    [BIOMES.NEON_GRID]: 6,
+    [BIOMES.CANDY_KINGDOM]: 3,
+    [BIOMES.MONOCHROME]: 5,
+    [BIOMES.PASTEL_DREAM]: 4,
+    [BIOMES.CORRUPTED_SANCTUARY]: 7,
+    [BIOMES.ANCIENT_TECH]: 6,
+    [BIOMES.FUNGAL_NETWORK]: 5,
+    [BIOMES.QUANTUM_FLUX]: 9
 };
 
 export default ZONE_DENSITIES;

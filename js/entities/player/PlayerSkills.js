@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Skill } from '../skills/Skill.js';
 import { SkillEffectFactory } from '../skills/SkillEffectFactory.js';
-import { SKILLS, BATTLE_SKILLS } from '../../config/skills.js';
+import { SKILLS, BATTLE_SKILLS } from '../../config/skill/skills.js';
 import { STORAGE_KEYS } from '../../config/storage-keys.js';
 
 /**

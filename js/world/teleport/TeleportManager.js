@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { MULTIPLIER_PORTALS, RETURN_PORTAL, DESTINATION_TERRAINS } from '../../config/teleport-portals.js';
-import { ZONE_COLORS } from '../../config/colors.js';
+import { MULTIPLIER_PORTALS, RETURN_PORTAL, DESTINATION_TERRAINS } from '../../config/map/teleport-portals.js';
 import { ZONE_ENEMIES } from '../../config/game-balance.js';
 import { PortalModelFactory } from './PortalModelFactory.js';
 

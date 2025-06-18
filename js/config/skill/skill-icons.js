@@ -213,7 +213,7 @@ export const SKILL_ICONS = {
         color: "#ccffff"
     },
 
-    // Additional Skills from skill-tree.js
+    // Additional Skills from skill-trees.js
     "Aerial Agility": {
         emoji: "🦅",
         cssClass: "icon-aerial-agility",

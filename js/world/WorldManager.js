@@ -8,11 +8,11 @@ import { LightingManager } from './lighting/LightingManager.js';
 import { FogManager } from './environment/FogManager.js';
 import { TeleportManager } from './teleport/TeleportManager.js';
 import { LODManager } from './LODManager.js';
-import { ENVIRONMENT_OBJECTS, THEME_SPECIFIC_OBJECTS, CROSS_THEME_FEATURES } from '../config/environment.js';
-import { STRUCTURE_TYPES, THEME_SPECIFIC_STRUCTURES } from '../config/structure.js';
-import { BIOMES } from '../config/biomes.js';
-import { LANDMARK_TYPES, BIOME_LANDMARKS } from '../config/landmarks.js';
-import { ZONE_DENSITIES } from '../config/zones.js';
+import { ENVIRONMENT_OBJECTS } from '../config/map/environment.js';
+import { STRUCTURE_TYPES } from '../config/map/structure.js';
+import { BIOMES } from '../config/map/biomes.js';
+import { LANDMARK_TYPES, BIOME_LANDMARKS } from '../config/map/landmarks.js';
+import { ZONE_DENSITIES } from '../config/map/zones.js';
 
 // Import new modular managers
 import { PerformanceManager } from './managers/PerformanceManager.js';

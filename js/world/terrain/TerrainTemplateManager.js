@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TERRAIN_CONFIG } from '../../config/terrain.js';
+import { TERRAIN_CONFIG } from '../../config/map/terrain.js';
 
 /**
  * Manages terrain templates and texture caching

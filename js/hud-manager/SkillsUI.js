@@ -1,5 +1,5 @@
 import { UIComponent } from '../UIComponent.js';
-import { getSkillIcon } from '../config/skill-icons.js';
+import { getSkillIcon } from '../config/skill/skill-icons.js';
 import { CAST_INTERVAL } from '../config/input.js';
 import { touchManager } from './TouchManager.js';
 

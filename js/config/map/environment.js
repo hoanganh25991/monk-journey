@@ -175,6 +175,15 @@ export const THEME_SPECIFIC_OBJECTS = {
         { type: ENVIRONMENT_OBJECTS.ANCIENT_STONE, minSize: 0.5, maxSize: 1.5, weight: 4, variants: 3, canCluster: true, canGlow: true },
         { type: ENVIRONMENT_OBJECTS.OVERGROWN_RUIN, minSize: 0.7, maxSize: 2.0, weight: 5, variants: 3, canCluster: false, canGlow: false },
         { type: ENVIRONMENT_OBJECTS.RUNE_STONE, minSize: 0.4, maxSize: 1.0, weight: 3, variants: 4, canCluster: false, canGlow: true }
+    ],
+    
+    // Terrant (default) biome specific objects
+    TERRANT: [
+        { type: ENVIRONMENT_OBJECTS.ROCK, minSize: 0.4, maxSize: 1.2, weight: 6, variants: 4, canCluster: true, canGlow: false },
+        { type: ENVIRONMENT_OBJECTS.BUSH, minSize: 0.5, maxSize: 1.3, weight: 5, variants: 3, canCluster: true, canGlow: false },
+        { type: ENVIRONMENT_OBJECTS.FLOWER, minSize: 0.3, maxSize: 0.7, weight: 4, variants: 5, canCluster: true, canGlow: false },
+        { type: ENVIRONMENT_OBJECTS.TALL_GRASS, minSize: 0.4, maxSize: 1.0, weight: 7, variants: 3, canCluster: true, canGlow: false },
+        { type: ENVIRONMENT_OBJECTS.TREE, minSize: 0.8, maxSize: 1.8, weight: 3, variants: 4, canCluster: false, canGlow: false }
     ]
 };
 
@@ -213,6 +222,12 @@ export const CROSS_THEME_FEATURES = {
         ENVIRONMENT_OBJECTS.ANCIENT_ALTAR,
         ENVIRONMENT_OBJECTS.FORGOTTEN_STATUE,
         ENVIRONMENT_OBJECTS.MAGIC_CIRCLE
+    ],
+    
+    TERRANT: [
+        ENVIRONMENT_OBJECTS.ROCK_FORMATION,
+        ENVIRONMENT_OBJECTS.SMALL_PEAK,
+        ENVIRONMENT_OBJECTS.SHRINE
     ]
 };
 
@@ -258,6 +273,13 @@ export const BACKGROUND_OBJECT_TYPES = {
         ENVIRONMENT_OBJECTS.OVERGROWN_RUIN,
         ENVIRONMENT_OBJECTS.BROKEN_COLUMN,
         ENVIRONMENT_OBJECTS.ANCIENT_STONE
+    ],
+    
+    TERRANT: [
+        ENVIRONMENT_OBJECTS.TREE,
+        ENVIRONMENT_OBJECTS.ROCK,
+        ENVIRONMENT_OBJECTS.BUSH,
+        ENVIRONMENT_OBJECTS.TALL_GRASS
     ]
 };
 

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { StructureFactory } from './StructureFactory.js';
-import { STRUCTURE_TYPES } from '../../config/structure.js';
+import { STRUCTURE_TYPES } from '../../config/map/structure.js';
 
 /**
  * Manages structure loading and placement from map data

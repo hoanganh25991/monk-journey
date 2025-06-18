@@ -1,8 +1,8 @@
 import { UIComponent } from '../UIComponent.js';
-import { getSkillIcon } from '../config/skill-icons.js';
-import { PRIMARY_ATTACKS, NORMAL_SKILLS } from '../config/skills.js';
+import { getSkillIcon } from '../config/skill/skill-icons.js';
+import { PRIMARY_ATTACKS, NORMAL_SKILLS } from '../config/skill/skills.js';
 import { STORAGE_KEYS } from '../config/storage-keys.js';
-import { SKILL_TREES } from '../config/skill-tree.js';
+import { SKILL_TREES } from '../config/skill/skill-trees.js';
 
 /**
  * SkillSelectionUI component
@@ -27,7 +27,7 @@ export class SkillSelectionUI extends UIComponent {
         // Maximum number of normal skills that can be selected
         this.maxNormalSkills = 7;
         
-        // Get ordered skills based on skill-tree.js
+        // Get ordered skills based on skill-trees.js
         this.orderedSkills = this.getOrderedSkills();
         
         // Create HTML templates
@@ -38,11 +38,11 @@ export class SkillSelectionUI extends UIComponent {
     }
     
     /**
-     * Get skills ordered according to skill-tree.js
+     * Get skills ordered according to skill-trees.js
      * @returns {Object} Object containing ordered primary attacks and normal skills
      */
     getOrderedSkills() {
-        // Get skill names from skill-tree.js
+        // Get skill names from skill-trees.js
         const skillTreeNames = Object.keys(SKILL_TREES);
         
         // Filter primary attacks and normal skills based on skill-tree order

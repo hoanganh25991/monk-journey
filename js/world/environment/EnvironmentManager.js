@@ -5,9 +5,8 @@ import { Bush } from './Bush.js';
 import { Flower } from './Flower.js';
 import { TallGrass } from './TallGrass.js';
 import { AncientTree } from './AncientTree.js';
-import { TreeCluster } from './TreeCluster.js';
 import { EnvironmentFactory } from './EnvironmentFactory.js';
-import { ENVIRONMENT_OBJECTS, ENVIRONMENT_CATEGORIES } from '../../config/environment.js';
+import { ENVIRONMENT_OBJECTS, ENVIRONMENT_CATEGORIES } from '../../config/map/environment.js';
 
 /**
  * Manages environment objects like trees, rocks, bushes, etc.

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ZONE_COLORS } from '../../config/colors.js';
+import { BIOMES } from '../../config/map/biomes.js';
 
 /**
  * Manages terrain coloring and zone-based styling
@@ -57,7 +58,7 @@ export class TerrainColoringManager {
      * @param {string} zoneType - The type of zone (Forest, Desert, etc.)
      * @param {Object} themeColors - Optional theme colors from loaded map
      */
-    colorTerrainUniform(terrain, zoneType = 'Terrant', themeColors = null) {
+    colorTerrainUniform(terrain, zoneType = BIOMES.TERRANT, themeColors = null) {
         const colors = [];
         const positions = terrain.geometry.attributes.position.array;
         
@@ -83,33 +84,33 @@ export class TerrainColoringManager {
         // Determine the main color for this zone type
         switch (zoneType) {
             // Original zones
-            case 'Terrant':
+            case BIOMES.TERRANT:
                 baseColorHex = zoneColors.soil || zoneColors.ground;
                 tertiaryColorHex = zoneColors.stone || '#6D5A4A'; // Slightly different soil tone
                 break;
-            case 'Forest':
+            case BIOMES.FOREST:
                 baseColorHex = zoneColors.ground || zoneColors.foliage;
                 tertiaryColorHex = zoneColors.soil || '#3D2817'; // Dark soil for forest floor
                 break;
-            case 'Desert':
+            case BIOMES.DESERT:
                 baseColorHex = zoneColors.sand || zoneColors.ground;
                 tertiaryColorHex = zoneColors.stone || '#B5A282'; // Lighter sand for dunes
                 break;
-            case 'Mountains':
+            case BIOMES.MOUNTAIN:
                 baseColorHex = zoneColors.snow || zoneColors.rock;
                 secondaryColorHex = zoneColors.ice || zoneColors.rock;
                 tertiaryColorHex = zoneColors.stone || '#4A4A4A'; // Dark stone for rocky areas
                 useHeightGradient = true;
                 break;
-            case 'Swamp':
+            case BIOMES.SWAMP:
                 baseColorHex = zoneColors.vegetation || zoneColors.ground;
                 tertiaryColorHex = zoneColors.water || '#2D3B2D'; // Dark murky water color
                 break;
-            case 'Ruins':
+            case BIOMES.RUINS:
                 baseColorHex = zoneColors.stone || zoneColors.ground;
                 tertiaryColorHex = zoneColors.soil || '#5D5D5D'; // Weathered stone color
                 break;
-            case 'Dark Sanctum':
+            case BIOMES.DARK_SANCTUM:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.fire || zoneColors.accent;
                 tertiaryColorHex = zoneColors.corruption || '#1A0A0A'; // Dark corrupted soil
@@ -118,34 +119,34 @@ export class TerrainColoringManager {
                 break;
                 
             // Fantasy Realms
-            case 'Enchanted Grove':
+            case BIOMES.ENCHANTED_GROVE:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.glow;
                 tertiaryColorHex = zoneColors.foliage || '#2D4D2D'; // Magical foliage color
                 useHeightGradient = true;
                 heightThreshold = 0.6;
                 break;
-            case 'Crystal Caverns':
+            case BIOMES.CRYSTAL_CAVERNS:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.crystal;
                 tertiaryColorHex = zoneColors.rock || '#2A3B4D'; // Dark cave rock
                 useHeightGradient = true;
                 break;
-            case 'Celestial Realm':
+            case BIOMES.CELESTIAL_REALM:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.cloud;
                 tertiaryColorHex = zoneColors.glow || '#E0E8FF'; // Ethereal glow
                 useHeightGradient = true;
                 heightThreshold = 0.5;
                 break;
-            case 'Volcanic Wastes':
+            case BIOMES.VOLCANIC_WASTES:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.lava;
                 tertiaryColorHex = zoneColors.ash || '#3A3A3A'; // Volcanic ash
                 useHeightGradient = true;
                 heightThreshold = 0.3;
                 break;
-            case 'Twilight Veil':
+            case BIOMES.TWILIGHT_VEIL:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.mist;
                 tertiaryColorHex = zoneColors.shadow || '#1A1A2D'; // Shadow color
@@ -154,30 +155,30 @@ export class TerrainColoringManager {
                 break;
                 
             // Realistic Biomes
-            case 'Tundra':
+            case BIOMES.TUNDRA:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.ice;
                 tertiaryColorHex = zoneColors.snow || '#E8EFFF'; // Snow color
                 useHeightGradient = true;
                 break;
-            case 'Savanna':
+            case BIOMES.SAVANNA:
                 baseColorHex = zoneColors.ground;
                 tertiaryColorHex = zoneColors.sand || '#D2B48C'; // Dry soil color
                 break;
-            case 'Rainforest':
+            case BIOMES.RAINFOREST:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.canopy;
                 tertiaryColorHex = zoneColors.vegetation || '#1A3B1A'; // Dense vegetation
                 useHeightGradient = true;
                 heightThreshold = 0.6;
                 break;
-            case 'Coral Reef':
+            case BIOMES.CORAL_REEF:
                 baseColorHex = zoneColors.water;
                 secondaryColorHex = zoneColors.coral;
                 tertiaryColorHex = zoneColors.sand || '#E0D8B0'; // Sandy ocean floor
                 useSpecialColoring = true;
                 break;
-            case 'Alpine':
+            case BIOMES.ALPINE:
                 baseColorHex = zoneColors.rock;
                 secondaryColorHex = zoneColors.snow;
                 tertiaryColorHex = zoneColors.ice || '#A8C8E0'; // Ice color
@@ -186,26 +187,26 @@ export class TerrainColoringManager {
                 break;
                 
             // Abstract/Stylized
-            case 'Neon Grid':
+            case BIOMES.NEON_GRID:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.grid;
                 tertiaryColorHex = zoneColors.glow || '#00FFFF'; // Neon glow
                 useSpecialColoring = true;
                 break;
-            case 'Candy Kingdom':
+            case BIOMES.CANDY_KINGDOM:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.highlight;
                 tertiaryColorHex = zoneColors.accent || '#FF9AFF'; // Candy accent
                 useHeightGradient = true;
                 heightThreshold = 0.5;
                 break;
-            case 'Monochrome':
+            case BIOMES.MONOCHROME:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.accent;
                 tertiaryColorHex = zoneColors.highlight || '#CCCCCC'; // Highlight color
                 useHeightGradient = true;
                 break;
-            case 'Pastel Dream':
+            case BIOMES.PASTEL_DREAM:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.cloud;
                 tertiaryColorHex = zoneColors.highlight || '#FFE8FF'; // Pastel highlight
@@ -214,25 +215,25 @@ export class TerrainColoringManager {
                 break;
                 
             // Mixed Themes
-            case 'Corrupted Sanctuary':
+            case BIOMES.CORRUPTED_SANCTUARY:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.corruption;
                 tertiaryColorHex = zoneColors.glow || '#3A0A1A'; // Corrupted glow
                 useSpecialColoring = true;
                 break;
-            case 'Ancient Tech':
+            case BIOMES.ANCIENT_TECH:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.tech;
                 tertiaryColorHex = zoneColors.energy || '#00AAFF'; // Tech energy
                 useHeightGradient = true;
                 break;
-            case 'Fungal Network':
+            case BIOMES.FUNGAL_NETWORK:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.fungi;
                 tertiaryColorHex = zoneColors.spore || '#8A7A5A'; // Spore color
                 useSpecialColoring = true;
                 break;
-            case 'Quantum Flux':
+            case BIOMES.QUANTUM_FLUX:
                 baseColorHex = zoneColors.ground;
                 secondaryColorHex = zoneColors.energy;
                 tertiaryColorHex = zoneColors.void || '#000033'; // Void color
@@ -240,8 +241,10 @@ export class TerrainColoringManager {
                 break;
                 
             default:
-                // Fallback to soil color or a default brown
-                baseColorHex = zoneColors.ground || zoneColors.soil || '#8B4513';
+                // Fallback to Terrant biome colors
+                console.warn(`Unknown zone type: ${zoneType}, falling back to ${BIOMES.TERRANT}`);
+                zoneColors = ZONE_COLORS[BIOMES.TERRANT];
+                baseColorHex = zoneColors.soil || zoneColors.ground || '#8B4513';
                 tertiaryColorHex = zoneColors.stone || '#6D5A4A'; // Default tertiary
         }
         
@@ -325,7 +328,7 @@ export class TerrainColoringManager {
                 // Pattern based on position and noise
                 const pattern = Math.sin(x * 0.1) * Math.cos(z * 0.1) + combinedNoise * 0.5;
                 
-                if (zoneType === 'Coral Reef') {
+                if (zoneType === BIOMES.CORAL_REEF) {
                     // Coral reef pattern - coral formations rising from water
                     if (pattern > 0.3 && normalizedHeight > 0.4) {
                         color = new THREE.Color(
@@ -347,7 +350,7 @@ export class TerrainColoringManager {
                             Math.max(0, Math.min(1, baseColor.b + combinedNoise))
                         );
                     }
-                } else if (zoneType === 'Neon Grid') {
+                } else if (zoneType === BIOMES.NEON_GRID) {
                     // Enhanced grid pattern for Neon Grid with noise-based distortion
                     const gridX = Math.abs(Math.sin(x * 0.5 + combinedNoise * 0.2)) < 0.1;
                     const gridZ = Math.abs(Math.sin(z * 0.5 + combinedNoise * 0.2)) < 0.1;
@@ -372,7 +375,7 @@ export class TerrainColoringManager {
                             Math.max(0, Math.min(1, baseColor.b + combinedNoise))
                         );
                     }
-                } else if (zoneType === 'Corrupted Sanctuary') {
+                } else if (zoneType === BIOMES.CORRUPTED_SANCTUARY) {
                     // Enhanced corruption spreading pattern with noise-based variation
                     if (pattern > 0 && Math.sin(x * 0.2 + z * 0.3 + combinedNoise) > 0) {
                         color = new THREE.Color(
@@ -394,7 +397,7 @@ export class TerrainColoringManager {
                             Math.max(0, Math.min(1, baseColor.b + combinedNoise))
                         );
                     }
-                } else if (zoneType === 'Fungal Network') {
+                } else if (zoneType === BIOMES.FUNGAL_NETWORK) {
                     // Enhanced fungal growth pattern with noise-based variation
                     if (Math.abs(Math.sin(x * 0.3 + combinedNoise) * Math.cos(z * 0.3)) > 0.7) {
                         color = new THREE.Color(
@@ -416,7 +419,7 @@ export class TerrainColoringManager {
                             Math.max(0, Math.min(1, baseColor.b + combinedNoise))
                         );
                     }
-                } else if (zoneType === 'Quantum Flux') {
+                } else if (zoneType === BIOMES.QUANTUM_FLUX) {
                     // Enhanced reality distortion pattern with noise-based variation
                     const distortion = Math.sin(x * 0.05 + z * 0.05 + y * 0.1 + combinedNoise);
                     if (distortion > 0) {

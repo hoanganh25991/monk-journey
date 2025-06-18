@@ -6,6 +6,8 @@
  * and their relationships to different biomes/themes.
  */
 
+import { BIOMES } from './biomes.js';
+
 /**
  * Structure types dictionary
  * A single source of truth for all structure string literals
@@ -137,7 +139,7 @@ export const STRUCTURE_PROPERTIES = {
  */
 export const THEME_SPECIFIC_STRUCTURES = {
     // Forest biome specific structures
-    FOREST: [
+    [BIOMES.FOREST]: [
         { type: STRUCTURE_TYPES.HOUSE, weight: 5, variants: 3 },
         { type: STRUCTURE_TYPES.TOWER, weight: 3, variants: 2 },
         { type: STRUCTURE_TYPES.RUINS, weight: 2, variants: 3 },
@@ -147,7 +149,7 @@ export const THEME_SPECIFIC_STRUCTURES = {
     ],
     
     // Mountain biome specific structures
-    MOUNTAINS: [
+    [BIOMES.MOUNTAIN]: [
         { type: STRUCTURE_TYPES.TOWER, weight: 4, variants: 2 },
         { type: STRUCTURE_TYPES.MOUNTAIN, weight: 5, variants: 3 },
         { type: STRUCTURE_TYPES.FORTRESS, weight: 3, variants: 2 },
@@ -156,7 +158,7 @@ export const THEME_SPECIFIC_STRUCTURES = {
     ],
     
     // Desert biome specific structures
-    DESERT: [
+    [BIOMES.DESERT]: [
         { type: STRUCTURE_TYPES.RUINS, weight: 5, variants: 4 },
         { type: STRUCTURE_TYPES.TEMPLE, weight: 3, variants: 2 },
         { type: STRUCTURE_TYPES.TOWER, weight: 2, variants: 1 },
@@ -165,7 +167,7 @@ export const THEME_SPECIFIC_STRUCTURES = {
     ],
     
     // Swamp biome specific structures
-    SWAMP: [
+    [BIOMES.SWAMP]: [
         { type: STRUCTURE_TYPES.DARK_SANCTUM, weight: 4, variants: 2 },
         { type: STRUCTURE_TYPES.RUINS, weight: 5, variants: 3 },
         { type: STRUCTURE_TYPES.HOUSE, weight: 2, variants: 1 },
@@ -174,12 +176,35 @@ export const THEME_SPECIFIC_STRUCTURES = {
     ],
     
     // Magical biome specific structures
-    MAGICAL: [
+    [BIOMES.MAGICAL]: [
         { type: STRUCTURE_TYPES.TEMPLE, weight: 5, variants: 3 },
         { type: STRUCTURE_TYPES.ALTAR, weight: 4, variants: 3 },
         { type: STRUCTURE_TYPES.TOWER, weight: 3, variants: 2 },
         { type: STRUCTURE_TYPES.DARK_SANCTUM, weight: 2, variants: 1 },
         { type: STRUCTURE_TYPES.RUINS, weight: 1, variants: 1 }
+    ],
+    
+    // Terrant (default) biome specific structures
+    [BIOMES.TERRANT]: [
+        { type: STRUCTURE_TYPES.HOUSE, weight: 4, variants: 2 },
+        { type: STRUCTURE_TYPES.RUINS, weight: 3, variants: 2 },
+        { type: STRUCTURE_TYPES.ALTAR, weight: 2, variants: 1 },
+        { type: STRUCTURE_TYPES.TOWER, weight: 1, variants: 1 }
+    ],
+    
+    // Ruins biome specific structures
+    [BIOMES.RUINS]: [
+        { type: STRUCTURE_TYPES.RUINS, weight: 6, variants: 4 },
+        { type: STRUCTURE_TYPES.TEMPLE, weight: 3, variants: 2 },
+        { type: STRUCTURE_TYPES.ALTAR, weight: 2, variants: 2 },
+        { type: STRUCTURE_TYPES.TOWER, weight: 1, variants: 1 }
+    ],
+    
+    // Dark Sanctum biome specific structures
+    [BIOMES.DARK_SANCTUM]: [
+        { type: STRUCTURE_TYPES.DARK_SANCTUM, weight: 5, variants: 3 },
+        { type: STRUCTURE_TYPES.ALTAR, weight: 3, variants: 2 },
+        { type: STRUCTURE_TYPES.RUINS, weight: 2, variants: 1 }
     ]
 };
 
@@ -213,9 +238,57 @@ export const STRUCTURE_GROUPS = {
     ]
 };
 
+/**
+ * Structure spawn rules
+ * Defines rules for structure placement in different biomes
+ */
+export const STRUCTURE_SPAWN_RULES = {
+    [BIOMES.TERRANT]: {
+        minDistance: 50,
+        maxDensity: 0.15,
+        allowedGroups: ['VILLAGE', 'RUINS_COMPLEX']
+    },
+    [BIOMES.FOREST]: {
+        minDistance: 60,
+        maxDensity: 0.25,
+        allowedGroups: ['VILLAGE', 'TEMPLE_COMPLEX', 'RUINS_COMPLEX']
+    },
+    [BIOMES.DESERT]: {
+        minDistance: 80,
+        maxDensity: 0.2,
+        allowedGroups: ['RUINS_COMPLEX', 'TEMPLE_COMPLEX']
+    },
+    [BIOMES.MOUNTAIN]: {
+        minDistance: 100,
+        maxDensity: 0.18,
+        allowedGroups: ['FORTRESS_COMPLEX', 'RUINS_COMPLEX']
+    },
+    [BIOMES.SWAMP]: {
+        minDistance: 70,
+        maxDensity: 0.25,
+        allowedGroups: ['RUINS_COMPLEX']
+    },
+    [BIOMES.RUINS]: {
+        minDistance: 40,
+        maxDensity: 0.3,
+        allowedGroups: ['RUINS_COMPLEX', 'TEMPLE_COMPLEX']
+    },
+    [BIOMES.DARK_SANCTUM]: {
+        minDistance: 90,
+        maxDensity: 0.2,
+        allowedGroups: ['RUINS_COMPLEX']
+    },
+    [BIOMES.MAGICAL]: {
+        minDistance: 60,
+        maxDensity: 0.25,
+        allowedGroups: ['TEMPLE_COMPLEX', 'RUINS_COMPLEX']
+    }
+};
+
 export default {
     STRUCTURE_TYPES,
     STRUCTURE_PROPERTIES,
     THEME_SPECIFIC_STRUCTURES,
-    STRUCTURE_GROUPS
+    STRUCTURE_GROUPS,
+    STRUCTURE_SPAWN_RULES
 };
