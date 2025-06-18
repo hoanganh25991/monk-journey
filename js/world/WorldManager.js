@@ -20,6 +20,70 @@ const BIOMES = {
     MAGICAL: 'Magical'
 };
 
+// Define landmark types based on environment and structure objects
+const LANDMARK_TYPES = {
+    // Environment-based landmarks
+    ANCIENT_TREE: ENVIRONMENT_OBJECTS.ANCIENT_TREE,
+    OASIS: ENVIRONMENT_OBJECTS.OASIS,
+    MYSTERIOUS_PORTAL: ENVIRONMENT_OBJECTS.MYSTERIOUS_PORTAL,
+    GIANT_MUSHROOM: ENVIRONMENT_OBJECTS.GIANT_MUSHROOM,
+    CRYSTAL_FORMATION: ENVIRONMENT_OBJECTS.CRYSTAL_FORMATION,
+    FAIRY_CIRCLE: ENVIRONMENT_OBJECTS.FAIRY_CIRCLE,
+    ANCIENT_ALTAR: ENVIRONMENT_OBJECTS.ANCIENT_ALTAR,
+    FORGOTTEN_STATUE: ENVIRONMENT_OBJECTS.FORGOTTEN_STATUE,
+    MAGIC_CIRCLE: ENVIRONMENT_OBJECTS.MAGIC_CIRCLE,
+    STONE_CIRCLE: ENVIRONMENT_OBJECTS.STONE_CIRCLE,
+    MOUNTAIN_CAVE: ENVIRONMENT_OBJECTS.MOUNTAIN_CAVE,
+    
+    // Structure-based landmarks
+    VILLAGE: STRUCTURE_TYPES.VILLAGE,
+    TEMPLE: STRUCTURE_TYPES.TEMPLE,
+    FORTRESS: STRUCTURE_TYPES.FORTRESS,
+    DARK_SANCTUM: STRUCTURE_TYPES.DARK_SANCTUM,
+    RUINS: STRUCTURE_TYPES.RUINS,
+    MOUNTAIN_STRUCTURE: STRUCTURE_TYPES.MOUNTAIN
+};
+
+// Define biome-specific landmark distributions
+const BIOME_LANDMARKS = {
+    [BIOMES.FOREST]: [
+        { type: LANDMARK_TYPES.ANCIENT_TREE, weight: 30 },
+        { type: LANDMARK_TYPES.VILLAGE, weight: 25 },
+        { type: LANDMARK_TYPES.FAIRY_CIRCLE, weight: 15 },
+        { type: LANDMARK_TYPES.TEMPLE, weight: 15 },
+        { type: LANDMARK_TYPES.RUINS, weight: 10 },
+        { type: LANDMARK_TYPES.STONE_CIRCLE, weight: 5 }
+    ],
+    [BIOMES.DESERT]: [
+        { type: LANDMARK_TYPES.TEMPLE, weight: 30 },
+        { type: LANDMARK_TYPES.OASIS, weight: 25 },
+        { type: LANDMARK_TYPES.RUINS, weight: 20 },
+        { type: LANDMARK_TYPES.ANCIENT_ALTAR, weight: 15 },
+        { type: LANDMARK_TYPES.FORGOTTEN_STATUE, weight: 10 }
+    ],
+    [BIOMES.MOUNTAIN]: [
+        { type: LANDMARK_TYPES.MOUNTAIN_STRUCTURE, weight: 30 },
+        { type: LANDMARK_TYPES.FORTRESS, weight: 25 },
+        { type: LANDMARK_TYPES.MOUNTAIN_CAVE, weight: 20 },
+        { type: LANDMARK_TYPES.CRYSTAL_FORMATION, weight: 15 },
+        { type: LANDMARK_TYPES.TEMPLE, weight: 10 }
+    ],
+    [BIOMES.SWAMP]: [
+        { type: LANDMARK_TYPES.DARK_SANCTUM, weight: 30 },
+        { type: LANDMARK_TYPES.RUINS, weight: 25 },
+        { type: LANDMARK_TYPES.GIANT_MUSHROOM, weight: 20 },
+        { type: LANDMARK_TYPES.MAGIC_CIRCLE, weight: 15 },
+        { type: LANDMARK_TYPES.FORGOTTEN_STATUE, weight: 10 }
+    ],
+    [BIOMES.MAGICAL]: [
+        { type: LANDMARK_TYPES.MYSTERIOUS_PORTAL, weight: 30 },
+        { type: LANDMARK_TYPES.TEMPLE, weight: 25 },
+        { type: LANDMARK_TYPES.CRYSTAL_FORMATION, weight: 20 },
+        { type: LANDMARK_TYPES.FAIRY_CIRCLE, weight: 15 },
+        { type: LANDMARK_TYPES.MAGIC_CIRCLE, weight: 10 }
+    ]
+};
+
 // Import new modular managers
 import { PerformanceManager } from './managers/PerformanceManager.js';
 import { MemoryManager } from './managers/MemoryManager.js';
@@ -775,8 +839,8 @@ export class WorldManager {
      * @param {string} zoneType - The zone type
      */
     generateZoneLandmark(playerPosition, zoneType) {
-        // Only generate landmark with 50% probability
-        if (Math.random() < 0.5) return;
+        // Only generate landmark with 70% probability (increased from 50% to add more landmarks)
+        if (Math.random() < 0.3) return;
         
         // Calculate position for landmark (ahead of player in random direction)
         const angle = Math.random() * Math.PI * 2;
@@ -785,25 +849,52 @@ export class WorldManager {
         const landmarkX = playerPosition.x + Math.cos(angle) * distance;
         const landmarkZ = playerPosition.z + Math.sin(angle) * distance;
         
-        // Choose landmark type based on zone
-        let landmarkType = 'ruins'; // Default
+        // Choose landmark type based on zone using weighted selection from BIOME_LANDMARKS
+        let landmarkType = LANDMARK_TYPES.RUINS; // Default fallback
         
+        // Map the string zone type to our BIOMES constant
+        let biomeKey = null;
         switch (zoneType) {
-            case 'Forest':
-                landmarkType = Math.random() < 0.5 ? 'ancient_tree' : 'village';
+            case BIOMES.FOREST:
+                biomeKey = BIOMES.FOREST;
                 break;
-            case 'Desert':
-                landmarkType = Math.random() < 0.5 ? 'temple' : 'oasis';
+            case BIOMES.DESERT:
+                biomeKey = BIOMES.DESERT;
                 break;
-            case 'Mountain':
-                landmarkType = Math.random() < 0.5 ? 'fortress' : 'mountain';
+            case BIOMES.MOUNTAIN:
+                biomeKey = BIOMES.MOUNTAIN;
                 break;
-            case 'Swamp':
-                landmarkType = Math.random() < 0.5 ? 'dark_sanctum' : 'ruins';
+            case BIOMES.SWAMP:
+                biomeKey = BIOMES.SWAMP;
                 break;
-            case 'Magical':
-                landmarkType = Math.random() < 0.5 ? 'mysterious_portal' : 'temple';
+            case BIOMES.MAGICAL:
+                biomeKey = BIOMES.MAGICAL;
                 break;
+            default:
+                // If we don't recognize the zone type, use a random biome
+                const biomeKeys = Object.keys(BIOMES);
+                biomeKey = BIOMES[biomeKeys[Math.floor(Math.random() * biomeKeys.length)]];
+        }
+        
+        // Get the landmark options for this biome
+        const landmarkOptions = BIOME_LANDMARKS[biomeKey] || BIOME_LANDMARKS[BIOMES.FOREST];
+        
+        // Weighted random selection
+        if (landmarkOptions && landmarkOptions.length > 0) {
+            // Calculate total weight
+            const totalWeight = landmarkOptions.reduce((sum, option) => sum + option.weight, 0);
+            
+            // Select a random value within the total weight range
+            let random = Math.random() * totalWeight;
+            
+            // Find the selected option
+            for (const option of landmarkOptions) {
+                random -= option.weight;
+                if (random <= 0) {
+                    landmarkType = option.type;
+                    break;
+                }
+            }
         }
         
         console.debug(`Generating zone landmark: ${landmarkType} at (${landmarkX.toFixed(1)}, ${landmarkZ.toFixed(1)})`);
@@ -811,15 +902,18 @@ export class WorldManager {
         // Create the landmark
         let landmark = null;
         
-        if (landmarkType === 'ancient_tree') {
-            // Create a massive ancient tree
-            const scale = 3.0 + Math.random() * 2.0;
-            landmark = this.environmentManager.createEnvironmentObject('ancient_tree', landmarkX, landmarkZ, scale);
+        // Check if this is an environment object or a structure
+        const isEnvironmentObject = Object.values(ENVIRONMENT_OBJECTS).includes(landmarkType);
+        
+        if (isEnvironmentObject) {
+            // Create an environment object
+            const scale = 2.0 + Math.random() * 2.0; // Scale between 2.0 and 4.0
+            landmark = this.environmentManager.createEnvironmentObject(landmarkType, landmarkX, landmarkZ, scale);
             
             if (landmark) {
                 // Add to environment objects tracking
                 this.environmentManager.environmentObjects.push({
-                    type: 'ancient_tree',
+                    type: landmarkType,
                     object: landmark,
                     position: new THREE.Vector3(landmarkX, this.terrainManager.getTerrainHeight(landmarkX, landmarkZ), landmarkZ),
                     scale: scale,
@@ -827,85 +921,78 @@ export class WorldManager {
                 });
                 
                 // Add to type-specific collections
-                this.environmentManager.addToTypeCollection('ancient_tree', landmark);
-            }
-        } else if (landmarkType === 'oasis') {
-            // Create an oasis
-            landmark = this.environmentManager.createEnvironmentObject('oasis', landmarkX, landmarkZ, 2.0);
-            
-            if (landmark) {
-                // Add to environment objects tracking
-                this.environmentManager.environmentObjects.push({
-                    type: 'oasis',
-                    object: landmark,
-                    position: new THREE.Vector3(landmarkX, this.terrainManager.getTerrainHeight(landmarkX, landmarkZ), landmarkZ),
-                    scale: 2.0,
-                    chunkKey: `${Math.floor(landmarkX / this.terrainManager.terrainChunkSize)},${Math.floor(landmarkZ / this.terrainManager.terrainChunkSize)}`
-                });
-                
-                // Add to type-specific collections
-                this.environmentManager.addToTypeCollection('oasis', landmark);
-            }
-        } else if (landmarkType === 'mysterious_portal') {
-            // Create a mysterious portal
-            landmark = this.environmentManager.createEnvironmentObject('mysterious_portal', landmarkX, landmarkZ, 1.5);
-            
-            if (landmark) {
-                // Add to environment objects tracking
-                this.environmentManager.environmentObjects.push({
-                    type: 'mysterious_portal',
-                    object: landmark,
-                    position: new THREE.Vector3(landmarkX, this.terrainManager.getTerrainHeight(landmarkX, landmarkZ), landmarkZ),
-                    scale: 1.5,
-                    chunkKey: `${Math.floor(landmarkX / this.terrainManager.terrainChunkSize)},${Math.floor(landmarkZ / this.terrainManager.terrainChunkSize)}`
-                });
-                
-                // Add to type-specific collections
-                this.environmentManager.addToTypeCollection('mysterious_portal', landmark);
+                this.environmentManager.addToTypeCollection(landmarkType, landmark);
             }
         } else {
             // Create a structure using the factory
             let options = {};
             let structureType = landmarkType;
             
-            // Convert legacy type names to constants if needed
-            if (landmarkType === 'dark_sanctum') structureType = STRUCTURE_TYPES.DARK_SANCTUM;
-            
             // Prepare options based on structure type
             switch (structureType) {
-                case 'temple':
                 case STRUCTURE_TYPES.TEMPLE:
                     options = {
                         width: 8 + Math.random() * 4,
                         depth: 8 + Math.random() * 4,
                         height: 6 + Math.random() * 3
                     };
-                    structureType = STRUCTURE_TYPES.TEMPLE;
                     break;
-                case 'fortress':
                 case STRUCTURE_TYPES.FORTRESS:
                     options = {
                         width: 10 + Math.random() * 5,
                         depth: 10 + Math.random() * 5,
                         height: 8 + Math.random() * 4
                     };
-                    structureType = STRUCTURE_TYPES.FORTRESS;
                     break;
-                case 'village':
                 case STRUCTURE_TYPES.VILLAGE:
-                    structureType = STRUCTURE_TYPES.VILLAGE;
+                    options = {
+                        width: 20 + Math.random() * 10,
+                        depth: 20 + Math.random() * 10,
+                        height: 4 + Math.random() * 2
+                    };
                     break;
-                case 'mountain':
                 case STRUCTURE_TYPES.MOUNTAIN:
-                    structureType = STRUCTURE_TYPES.MOUNTAIN;
+                    options = {
+                        width: 15 + Math.random() * 10,
+                        depth: 15 + Math.random() * 10,
+                        height: 12 + Math.random() * 8
+                    };
                     break;
-                case 'dark_sanctum':
                 case STRUCTURE_TYPES.DARK_SANCTUM:
-                    structureType = STRUCTURE_TYPES.DARK_SANCTUM;
+                    options = {
+                        width: 10 + Math.random() * 5,
+                        depth: 10 + Math.random() * 5,
+                        height: 6 + Math.random() * 3
+                    };
                     break;
-                case 'ruins':
+                case STRUCTURE_TYPES.ALTAR:
+                    options = {
+                        width: 5 + Math.random() * 2,
+                        depth: 5 + Math.random() * 2,
+                        height: 3 + Math.random() * 1
+                    };
+                    break;
+                case STRUCTURE_TYPES.HOUSE:
+                    options = {
+                        width: 5 + Math.random() * 2,
+                        depth: 5 + Math.random() * 2,
+                        height: 3 + Math.random() * 1
+                    };
+                    break;
+                case STRUCTURE_TYPES.TOWER:
+                    options = {
+                        width: 4 + Math.random() * 2,
+                        depth: 4 + Math.random() * 2,
+                        height: 8 + Math.random() * 4
+                    };
+                    break;
                 case STRUCTURE_TYPES.RUINS:
                 default:
+                    options = {
+                        width: 8 + Math.random() * 4,
+                        depth: 8 + Math.random() * 4,
+                        height: 4 + Math.random() * 2
+                    };
                     structureType = STRUCTURE_TYPES.RUINS;
                     break;
             }
@@ -1244,14 +1331,60 @@ export class WorldManager {
     getVegetation() {
         const vegetation = [];
         
-        // Get vegetation from environment manager
-        if (this.environmentManager && this.environmentManager.trees) {
-            this.environmentManager.trees.forEach(tree => {
-                vegetation.push({
-                    position: tree.position,
-                    type: 'tree'
+        // Get all vegetation from environment manager using predefined categories
+        if (this.environmentManager) {
+            // Process trees
+            if (this.environmentManager.trees) {
+                this.environmentManager.trees.forEach(tree => {
+                    vegetation.push({
+                        position: tree.position,
+                        type: tree.type || ENVIRONMENT_OBJECTS.TREE
+                    });
                 });
-            });
+            }
+            
+            // Process bushes
+            if (this.environmentManager.bushes) {
+                this.environmentManager.bushes.forEach(bush => {
+                    vegetation.push({
+                        position: bush.position,
+                        type: bush.type || ENVIRONMENT_OBJECTS.BUSH
+                    });
+                });
+            }
+            
+            // Process flowers
+            if (this.environmentManager.flowers) {
+                this.environmentManager.flowers.forEach(flower => {
+                    vegetation.push({
+                        position: flower.position,
+                        type: flower.type || ENVIRONMENT_OBJECTS.FLOWER
+                    });
+                });
+            }
+            
+            // Process tall grass
+            if (this.environmentManager.tallGrass) {
+                this.environmentManager.tallGrass.forEach(grass => {
+                    vegetation.push({
+                        position: grass.position,
+                        type: grass.type || ENVIRONMENT_OBJECTS.TALL_GRASS
+                    });
+                });
+            }
+            
+            // Process other vegetation types if available
+            if (this.environmentManager.environmentObjects) {
+                this.environmentManager.environmentObjects.forEach(obj => {
+                    // Check if object belongs to vegetation category
+                    if (obj.type && ENVIRONMENT_CATEGORIES.VEGETATION.includes(obj.type)) {
+                        vegetation.push({
+                            position: obj.position,
+                            type: obj.type
+                        });
+                    }
+                });
+            }
         }
         
         return vegetation;
@@ -1265,13 +1398,29 @@ export class WorldManager {
         const rocks = [];
         
         // Get rocks from environment manager
-        if (this.environmentManager && this.environmentManager.rocks) {
-            this.environmentManager.rocks.forEach(rock => {
-                rocks.push({
-                    position: rock.position,
-                    type: 'rock'
+        if (this.environmentManager) {
+            // Process basic rocks
+            if (this.environmentManager.rocks) {
+                this.environmentManager.rocks.forEach(rock => {
+                    rocks.push({
+                        position: rock.position,
+                        type: rock.type || ENVIRONMENT_OBJECTS.ROCK
+                    });
                 });
-            });
+            }
+            
+            // Process all rock-type objects from environment objects
+            if (this.environmentManager.environmentObjects) {
+                this.environmentManager.environmentObjects.forEach(obj => {
+                    // Check if object belongs to rocks category
+                    if (obj.type && ENVIRONMENT_CATEGORIES.ROCKS.includes(obj.type)) {
+                        rocks.push({
+                            position: obj.position,
+                            type: obj.type
+                        });
+                    }
+                });
+            }
         }
         
         return rocks;
@@ -1302,8 +1451,17 @@ export class WorldManager {
      * @returns {Array} - Array of building structures
      */
     getBuildings() {
+        // Define building types using constants
+        const buildingTypes = [
+            STRUCTURE_TYPES.HOUSE,
+            STRUCTURE_TYPES.TAVERN,
+            STRUCTURE_TYPES.SHOP,
+            STRUCTURE_TYPES.TEMPLE,
+            'building' // Keep for backward compatibility
+        ];
+        
         return this.getStructures().filter(structure => 
-            ['house', 'building', 'tavern', 'shop', 'temple'].includes(structure.type)
+            buildingTypes.includes(structure.type)
         );
     }
     
@@ -1312,8 +1470,17 @@ export class WorldManager {
      * @returns {Array} - Array of tree objects
      */
     getTrees() {
+        // Define tree types using constants
+        const treeTypes = [
+            ENVIRONMENT_OBJECTS.TREE,
+            ENVIRONMENT_OBJECTS.PINE_TREE,
+            ENVIRONMENT_OBJECTS.ANCIENT_TREE,
+            ENVIRONMENT_OBJECTS.SWAMP_TREE,
+            ENVIRONMENT_OBJECTS.TREE_CLUSTER
+        ];
+        
         return this.getVegetation().filter(obj => 
-            ['tree', 'pine_tree', 'ancient_tree', 'swamp_tree'].includes(obj.type)
+            treeTypes.includes(obj.type)
         );
     }
     
