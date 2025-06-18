@@ -10,8 +10,8 @@ export class TeleportManager {
     /**
      * Create a new TeleportManager
      * @param {THREE.Scene} scene - The Three.js scene
-     * @param {import("./../MapManager.js").MapManager} MapManager - Reference to the map manager
-     * @param {import("./../../game/Game.js").Game} game
+     * @param {import("../MapManager.js").MapManager} MapManager - Reference to the map manager
+     * @param {import("../../game/Game.js").Game} game
      */
     constructor(scene, MapManager, game) {
         this.scene = scene;

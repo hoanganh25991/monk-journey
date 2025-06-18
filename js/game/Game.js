@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { MapManager } from '../world/MapManager.js';
+import { MapManager } from '../map/MapManager.js';
 import { Player } from '../entities/player/Player.js';
 import { InputHandler } from '../InputHandler.js';
 import { HUDManager } from '../hud-manager/HUDManager.js';
