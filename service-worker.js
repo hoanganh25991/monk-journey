@@ -4,13 +4,13 @@
  */
 
 const CACHE_NAME = 'monk-journey-cache';
-const CACHE_VERSION = '42';
+const CACHE_VERSION = '43';
 const CACHE_KEY = CACHE_NAME + '-v' + CACHE_VERSION;
 
 
 // Total cache size in bytes and MB
-const TOTAL_CACHE_SIZE_BYTES = 7935870;
-const TOTAL_CACHE_SIZE_MB = 7.57;
+const TOTAL_CACHE_SIZE_BYTES = 8260603;
+const TOTAL_CACHE_SIZE_MB = 7.88;
 
 // Assets to cache
 const ASSETS_TO_CACHE = [
@@ -77,6 +77,7 @@ const ASSETS_TO_CACHE = [
   'js/entities/enemies/Enemy.js',
   'js/entities/enemies/EnemyManager.js',
   'js/entities/enemies/models/AncientConstructModel.js',
+  'js/entities/enemies/models/AncientTreantModel.js',
   'js/entities/enemies/models/AncientYetiModel.js',
   'js/entities/enemies/models/CorruptedTreantModel.js',
   'js/entities/enemies/models/DefaultModel.js',
@@ -246,6 +247,8 @@ const ASSETS_TO_CACHE = [
   'js/hud-manager/SkillTreeButton.js',
   'js/hud-manager/SkillTreeUI.js',
   'js/hud-manager/SkillsUI.js',
+  'js/hud-manager/TouchDebugUI.js',
+  'js/hud-manager/TouchManager.js',
   'js/hud-manager/VirtualJoystickUI.js',
   'js/interaction/InteractionSystem.js',
   'js/menu-system/ControlsDisplay.js',
@@ -295,9 +298,11 @@ const ASSETS_TO_CACHE = [
   'js/world/environment/AncientTree.js',
   'js/world/environment/AshPile.js',
   'js/world/environment/BerryBush.js',
+  'js/world/environment/BogPit.js',
   'js/world/environment/BrokenColumn.js',
   'js/world/environment/Bush.js',
   'js/world/environment/CrystalFormation.js',
+  'js/world/environment/CrystalOutcrop.js',
   'js/world/environment/DesertPlant.js',
   'js/world/environment/DesertShrine.js',
   'js/world/environment/EmberVent.js',
@@ -310,17 +315,22 @@ const ASSETS_TO_CACHE = [
   'js/world/environment/FogManager.js',
   'js/world/environment/ForestDebris.js',
   'js/world/environment/ForestFlower.js',
+  'js/world/environment/ForestShrine.js',
   'js/world/environment/Fountain.js',
   'js/world/environment/Foutain.js',
+  'js/world/environment/GiantMushroom.js',
   'js/world/environment/GlowingFlowers.js',
   'js/world/environment/GlowingMushroom.js',
+  'js/world/environment/IceFormation.js',
   'js/world/environment/IceShard.js',
   'js/world/environment/LavaFeature.js',
   'js/world/environment/LavaRock.js',
   'js/world/environment/LilyPad.js',
+  'js/world/environment/MagicCircle.js',
   'js/world/environment/MagicalStone.js',
   'js/world/environment/Market.js',
   'js/world/environment/Moss.js',
+  'js/world/environment/MountainCave.js',
   'js/world/environment/MountainRock.js',
   'js/world/environment/MushroomCluster.js',
   'js/world/environment/MysteriousPortal.js',
@@ -352,11 +362,14 @@ const ASSETS_TO_CACHE = [
   'js/world/environment/WaterFeature.js',
   'js/world/environment/Waterfall.js',
   'js/world/environment/Well.js',
+  'js/world/generation/GenerationManager.js',
   'js/world/interactive/BossSpawnPoint.js',
   'js/world/interactive/InteractiveObjectManager.js',
   'js/world/interactive/QuestMarker.js',
   'js/world/interactive/TreasureChest.js',
   'js/world/lighting/LightingManager.js',
+  'js/world/managers/MemoryManager.js',
+  'js/world/managers/PerformanceManager.js',
   'js/world/paths/BranchingPath.js',
   'js/world/paths/CircularPath.js',
   'js/world/paths/CurvedPath.js',
@@ -385,6 +398,7 @@ const ASSETS_TO_CACHE = [
   'js/world/terrain/TerrainTemplateManager.js',
   'js/world/utils/EnvironmentObjectPool.js',
   'js/world/utils/RandomGenerator.js',
+  'js/world/utils/SpatialGrid.js',
   'js/world/utils/TerrainChunkPool.js',
   'js/world/zones/ZoneManager.js',
   'images/home.jpg',
@@ -401,6 +415,7 @@ const ASSETS_TO_CACHE = [
   'assets/audio/bell_fade.mp3',
   'assets/audio/bell_ring.mp3',
   'assets/audio/boss_death.mp3',
+  'assets/audio/boss_spawn.mp3',
   'assets/audio/boss_theme.mp3',
   'assets/audio/breath_of_heaven.mp3',
   'assets/audio/button_click.mp3',
@@ -408,6 +423,7 @@ const ASSETS_TO_CACHE = [
   'assets/audio/chains_break.mp3',
   'assets/audio/chest_open.mp3',
   'assets/audio/cyclone_strike.mp3',
+  'assets/audio/danger_warning.mp3',
   'assets/audio/deadly_reach_cast.mp3',
   'assets/audio/deadly_reach_end.mp3',
   'assets/audio/deadly_reach_impact.mp3',
@@ -415,6 +431,12 @@ const ASSETS_TO_CACHE = [
   'assets/audio/door_open.mp3',
   'assets/audio/dragon_land.mp3',
   'assets/audio/dragon_strike.mp3',
+  'assets/audio/effect_damage_boost.mp3',
+  'assets/audio/effect_defense_boost.mp3',
+  'assets/audio/effect_invulnerability.mp3',
+  'assets/audio/effect_invulnerable.mp3',
+  'assets/audio/effect_regeneration.mp3',
+  'assets/audio/effect_speed_boost.mp3',
   'assets/audio/enemy_attack.mp3',
   'assets/audio/enemy_death.mp3',
   'assets/audio/enemy_hit.mp3',
@@ -439,6 +461,7 @@ const ASSETS_TO_CACHE = [
   'assets/audio/rapid_strike.mp3',
   'assets/audio/seven_sided_strike.mp3',
   'assets/audio/strike_complete.mp3',
+  'assets/audio/teleport.mp3',
   'assets/audio/thunder_echo.mp3',
   'assets/audio/thunder_strike.mp3',
   'assets/audio/water_dissipate.mp3',
