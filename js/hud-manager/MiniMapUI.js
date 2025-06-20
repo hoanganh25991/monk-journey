@@ -51,17 +51,13 @@ export class MiniMapUI extends UIComponent {
      * @returns {boolean} - True if initialization was successful
      */
     init() {
-        const template = `
-            <div id="mini-map-controls">
-                <button id="mini-map-center-btn" title="Center Map">⌖</button>
-                <button id="mini-map-zoom-in-btn" title="Zoom In">+</button>
-                <button id="mini-map-zoom-out-btn" title="Zoom Out">−</button>
-            </div>
-            <canvas id="mini-map-canvas" width="${this.canvasSize}" height="${this.canvasSize}"></canvas>
-        `;
-        
-        // Render the template
-        this.render(template);
+        // We don't need to render the template as it's already in the HTML
+        // Just update the canvas size
+        const canvas = document.getElementById('mini-map-canvas');
+        if (canvas) {
+            canvas.width = this.canvasSize;
+            canvas.height = this.canvasSize;
+        }
         
         // Store references to elements we need to update
         this.mapElement = document.getElementById('mini-map');
@@ -145,52 +141,9 @@ export class MiniMapUI extends UIComponent {
      * Add CSS styles for map controls
      */
     addMapControlStyles() {
-        // Create a style element if it doesn't exist
-        let styleEl = document.getElementById('mini-map-control-styles');
-        if (!styleEl) {
-            styleEl = document.createElement('style');
-            styleEl.id = 'mini-map-control-styles';
-            document.head.appendChild(styleEl);
-        }
-        
-        // Add CSS rules
-        styleEl.textContent = `
-            #mini-map-controls {
-                position: absolute;
-                top: 5px;
-                right: 5px;
-                z-index: 10;
-                display: flex;
-                flex-direction: column;
-            }
-            
-            #mini-map-controls button {
-                width: 24px;
-                height: 24px;
-                margin-bottom: 5px;
-                background: rgba(0, 0, 0, 0.6);
-                color: white;
-                border: 1px solid rgba(255, 255, 255, 0.4);
-                border-radius: 3px;
-                font-size: 14px;
-                line-height: 1;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 0;
-                transition: background 0.2s;
-            }
-            
-            #mini-map-controls button:hover {
-                background: rgba(0, 0, 0, 0.8);
-                border-color: rgba(255, 255, 255, 0.6);
-            }
-            
-            #mini-map-center-btn {
-                font-size: 16px !important;
-            }
-        `;
+        // CSS styles are now defined in css/hud/minimap.css
+        // This method is kept for backward compatibility
+        console.debug('Mini map styles are now defined in CSS file');
     }
     
     /**
@@ -597,10 +550,10 @@ export class MiniMapUI extends UIComponent {
                 // Base size on the average of width and height, scaled down for the map
                 const baseSize = (properties.width + properties.height) / 2;
                 // Scale to reasonable map icon sizes (between 4 and 8)
-                map[structureType] = Math.max(4, Math.min(8, Math.floor(baseSize / 3)));
+                map[structureType] = Math.max(6, Math.min(8, Math.floor(baseSize / 3)));
             } else {
                 // Default size if properties not found
-                map[structureType] = 5;
+                map[structureType] = 6;
             }
             
             return map;
@@ -623,7 +576,7 @@ export class MiniMapUI extends UIComponent {
         };
         
         // Helper function to draw a structure at a given position
-        const drawStructure = (position, type, size = 5, shape = 'square') => {
+        const drawStructure = (position, type, size = 10, shape = 'square') => {
             // Calculate position relative to player
             const relX = (position.x - playerX) * this.scale;
             const relY = (position.z - playerY) * this.scale;
@@ -666,7 +619,7 @@ export class MiniMapUI extends UIComponent {
                 
                 // Get shape and size based on type
                 const shape = structureShapeMap[type] || 'square';
-                const size = structureSizeMap[type] || 5;
+                const size = structureSizeMap[type] || 6;
                 
                 // Draw the structure
                 drawStructure(structure.position, type, size, shape);
@@ -682,78 +635,42 @@ export class MiniMapUI extends UIComponent {
      * @param {number} centerY - Center Y of the mini map
      */
     drawTeleportPortals(playerX, playerY, centerX, centerY) {
-        const world = this.game.world;
-        
-        // Get teleport portals from the world
-        if (world && world.teleportManager && world.teleportManager.getPortals) {
-            const portals = world.teleportManager.getPortals();
-            
-            if (portals && portals.length > 0) {
-                portals.forEach(portal => {
-                    // Calculate position relative to player
-                    const relX = (portal.position.x - playerX) * this.scale;
-                    const relY = (portal.position.z - playerY) * this.scale;
+        const portals = this.game.world.teleportManager.getPortals();
+        if (portals.length > 0) {
+            portals.forEach(portal => {
+                // Calculate position relative to player
+                const relX = (portal.position.x - playerX) * this.scale;
+                const relY = (portal.position.z - playerY) * this.scale;
+                
+                // Apply map offset
+                const screenX = centerX + relX + this.mapOffsetX;
+                const screenY = centerY + relY + this.mapOffsetY;
+                
+                // Calculate distance from center (for circular bounds check)
+                const distFromCenter = Math.sqrt(
+                    Math.pow(screenX - centerX, 2) + 
+                    Math.pow(screenY - centerY, 2)
+                );
+                
+                // Only draw if within circular mini map bounds
+                if (distFromCenter <= (this.mapSize / 2 - 2)) {
+                    // Simple portal representation as a circle
+                    const size = 5;
                     
-                    // Apply map offset
-                    const screenX = centerX + relX + this.mapOffsetX;
-                    const screenY = centerY + relY + this.mapOffsetY;
+                    // circle (white)
+                    this.ctx.fillStyle = 'rgba(0, 255, 255, 0.6)';
+                    this.ctx.beginPath();
+                    this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
+                    this.ctx.fill();
                     
-                    // Calculate distance from center (for circular bounds check)
-                    const distFromCenter = Math.sqrt(
-                        Math.pow(screenX - centerX, 2) + 
-                        Math.pow(screenY - centerY, 2)
-                    );
-                    
-                    // Only draw if within circular mini map bounds
-                    if (distFromCenter <= (this.mapSize / 2 - 2)) {
-                        // Draw portal outer glow effect
-                        const size = 8;
-                        
-                        // Outer glow (larger, more transparent)
-                        this.ctx.fillStyle = 'rgba(0, 255, 255, 0.3)'; // Cyan glow
-                        this.ctx.beginPath();
-                        this.ctx.arc(screenX, screenY, size + 2, 0, Math.PI * 2);
-                        this.ctx.fill();
-                        
-                        // Main portal circle
-                        this.ctx.fillStyle = 'rgba(0, 255, 255, 0.8)'; // Bright cyan
-                        this.ctx.beginPath();
-                        this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
-                        this.ctx.fill();
-                        
-                        // Inner core (white)
-                        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                        this.ctx.beginPath();
-                        this.ctx.arc(screenX, screenY, size/2, 0, Math.PI * 2);
-                        this.ctx.fill();
-                        
-                        // Add animated ring effect
-                        const animationPhase = (Date.now() / 1000) % 2; // 2 second cycle
-                        const ringSize = size + (Math.sin(animationPhase * Math.PI) * 3);
-                        
-                        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
-                        this.ctx.lineWidth = 2;
-                        this.ctx.beginPath();
-                        this.ctx.arc(screenX, screenY, ringSize, 0, Math.PI * 2);
-                        this.ctx.stroke();
-                        
-                        // Add portal symbol (diamond shape)
-                        this.ctx.fillStyle = 'rgba(0, 255, 255, 0.7)';
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(screenX, screenY - size/2);
-                        this.ctx.lineTo(screenX + size/2, screenY);
-                        this.ctx.lineTo(screenX, screenY + size/2);
-                        this.ctx.lineTo(screenX - size/2, screenY);
-                        this.ctx.closePath();
-                        this.ctx.fill();
-                        
-                        // Add white border to diamond
-                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                        this.ctx.lineWidth = 1;
-                        this.ctx.stroke();
-                    }
-                });
-            }
+                    // Add border
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+            });
         }
     }
     

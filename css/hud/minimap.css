@@ -25,9 +25,52 @@
     transition: opacity 0.2s ease;
 }
 
+/* Mini Map Controls */
+#mini-map-controls {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+}
+
+#mini-map-controls button {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 5px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 3px;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.2s;
+}
+
+#mini-map-controls button:hover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+#mini-map-center-btn {
+    font-size: 16px !important;
+}
+
 @media (max-height: 430px) {
     #mini-map {
         width: 120px;
         height: 120px;
+    }
+    
+    #mini-map-controls button {
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
     }
 }
