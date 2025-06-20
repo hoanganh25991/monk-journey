@@ -39,6 +39,7 @@ export class StructureManager {
         // Only create initial structures if specifically requested
         if (createInitialStructures) {
             // Create initial structures near the player's starting position
+            // Use the constants directly as the type parameter
             const ruins = this.structureFactory.createStructure(STRUCTURE_OBJECTS.RUINS, { x: 0, z: 0 });
             const darkSanctum = this.structureFactory.createStructure(STRUCTURE_OBJECTS.DARK_SANCTUM, { x: 0, z: -40 });
             
@@ -658,10 +659,10 @@ export class StructureManager {
             // Create the actual 3D objects for important structures
             structures.forEach(structure => {
                 // Only create important structures like darkSanctum
-                if (structure.type === 'darkSanctum') {
-                    this.structureFactory.createStructure(STRUCTURE_OBJECTS.DARK_SANCTUM, { x: structure.x, z: structure.z });
+                if (structure.type === STRUCTURE_OBJECTS.DARK_SANCTUM) {
+                    this.structureFactory.createStructure(structure.type, { x: structure.x, z: structure.z });
                     this.specialStructures[`darkSanctum_${chunkKey}_${structures.indexOf(structure)}`] = { 
-                        x: structure.x, z: structure.z, type: 'darkSanctum' 
+                        x: structure.x, z: structure.z, type: structure.type 
                     };
                 }
             });
@@ -711,21 +712,8 @@ export class StructureManager {
         return 'Terrant';
     }
     
-    /**
-     * Create a building at the specified position
-     * @param {number} x - X coordinate
-     * @param {number} z - Z coordinate
-     * @param {number} width - Building width
-     * @param {number} depth - Building depth
-     * @param {number} height - Building height
-     * @param {string} buildingType - Optional building type (house, temple, altar, etc.)
-     * @returns {THREE.Group} - The building group
-     */
-    createBuilding(x, z, width, depth, height, buildingType = 'house') {
-        return this.structureFactory.createStructure(STRUCTURE_OBJECTS.HOUSE, {
-            x, z, width, depth, height, style: buildingType
-        });
-    }
+    // Note: createBuilding method has been removed
+    // Use structureFactory.createStructure() directly instead
     
     // Note: Specific structure creation methods have been removed
     // Use structureFactory.createStructure() directly instead

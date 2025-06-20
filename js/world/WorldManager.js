@@ -553,53 +553,32 @@ export class WorldManager {
                         let structure;
                         
                         // Create structure based on type
+                        // Prepare parameters based on structure type
+                        let params = { 
+                            x: structData.position.x, 
+                            z: structData.position.z 
+                        };
+                        
+                        // Add additional parameters for specific structure types
                         switch (structData.type) {
-                            case 'village':
-                                structure = this.structureManager.structureFactory.createStructure(
-                                    STRUCTURE_OBJECTS.VILLAGE, 
-                                    { x: structData.position.x, z: structData.position.z }
-                                );
+                            case STRUCTURE_OBJECTS.TEMPLE:
+                                params.width = 8 + Math.random() * 4;
+                                params.depth = 8 + Math.random() * 4;
+                                params.height = 6 + Math.random() * 3;
                                 break;
-                            case 'temple':
-                                structure = this.structureManager.createBuilding(
-                                    structData.position.x, 
-                                    structData.position.z, 
-                                    8 + Math.random() * 4, // width
-                                    8 + Math.random() * 4, // depth
-                                    6 + Math.random() * 3, // height
-                                    'temple'
-                                );
-                                break;
-                            case 'fortress':
-                                structure = this.structureManager.createBuilding(
-                                    structData.position.x, 
-                                    structData.position.z, 
-                                    10 + Math.random() * 5, // width
-                                    10 + Math.random() * 5, // depth
-                                    8 + Math.random() * 4, // height
-                                    'fortress'
-                                );
-                                break;
-                            case 'mountain':
-                                structure = this.structureManager.structureFactory.createStructure(
-                                    STRUCTURE_OBJECTS.MOUNTAIN, 
-                                    { x: structData.position.x, z: structData.position.z }
-                                );
-                                break;
-                            case 'dark_sanctum':
-                                structure = this.structureManager.structureFactory.createStructure(
-                                    STRUCTURE_OBJECTS.DARK_SANCTUM, 
-                                    { x: structData.position.x, z: structData.position.z }
-                                );
-                                break;
-                            case 'ruins':
-                            default:
-                                structure = this.structureManager.structureFactory.createStructure(
-                                    STRUCTURE_OBJECTS.RUINS, 
-                                    { x: structData.position.x, z: structData.position.z }
-                                );
+                            case STRUCTURE_OBJECTS.FORTRESS:
+                                params.width = 10 + Math.random() * 5;
+                                params.depth = 10 + Math.random() * 5;
+                                params.height = 8 + Math.random() * 4;
                                 break;
                         }
+                        
+                        // Create the structure using the type directly from structData
+                        // This allows for easier extension in the future
+                        structure = this.structureManager.structureFactory.createStructure(
+                            structData.type, // Use the type directly
+                            params
+                        );
                         
                         if (structure) {
                             // Set rotation if specified
@@ -862,45 +841,29 @@ export class WorldManager {
             }
         } else {
             // Create a structure
+            // Prepare parameters based on structure type
+            let params = { x: landmarkX, z: landmarkZ };
+            
+            // Add additional parameters for specific structure types
             switch (landmarkType) {
-                case 'village':
-                    landmark = this.structureManager.structureFactory.createStructure(
-                        STRUCTURE_OBJECTS.VILLAGE, 
-                        { x: landmarkX, z: landmarkZ }
-                    );
+                case STRUCTURE_OBJECTS.TEMPLE:
+                    params.width = 8 + Math.random() * 4;
+                    params.depth = 8 + Math.random() * 4;
+                    params.height = 6 + Math.random() * 3;
                     break;
-                case 'temple':
-                    const tWidth = 8 + Math.random() * 4;
-                    const tDepth = 8 + Math.random() * 4;
-                    const tHeight = 6 + Math.random() * 3;
-                    landmark = this.structureManager.createBuilding(landmarkX, landmarkZ, tWidth, tDepth, tHeight, 'temple');
-                    break;
-                case 'fortress':
-                    const fWidth = 10 + Math.random() * 5;
-                    const fDepth = 10 + Math.random() * 5;
-                    const fHeight = 8 + Math.random() * 4;
-                    landmark = this.structureManager.createBuilding(landmarkX, landmarkZ, fWidth, fDepth, fHeight, 'fortress');
-                    break;
-                case 'mountain':
-                    landmark = this.structureManager.structureFactory.createStructure(
-                        STRUCTURE_OBJECTS.MOUNTAIN, 
-                        { x: landmarkX, z: landmarkZ }
-                    );
-                    break;
-                case 'dark_sanctum':
-                    landmark = this.structureManager.structureFactory.createStructure(
-                        STRUCTURE_OBJECTS.DARK_SANCTUM, 
-                        { x: landmarkX, z: landmarkZ }
-                    );
-                    break;
-                case 'ruins':
-                default:
-                    landmark = this.structureManager.structureFactory.createStructure(
-                        STRUCTURE_OBJECTS.RUINS, 
-                        { x: landmarkX, z: landmarkZ }
-                    );
+                case STRUCTURE_OBJECTS.FORTRESS:
+                    params.width = 10 + Math.random() * 5;
+                    params.depth = 10 + Math.random() * 5;
+                    params.height = 8 + Math.random() * 4;
                     break;
             }
+            
+            // Create the structure using the type directly from landmarkType
+            // This allows for easier extension in the future
+            landmark = this.structureManager.structureFactory.createStructure(
+                landmarkType, // Use the type directly
+                params
+            );
             
             if (landmark) {
                 // Add to structures tracking
