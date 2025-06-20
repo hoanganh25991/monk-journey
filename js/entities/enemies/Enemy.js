@@ -166,8 +166,19 @@ export class Enemy {
     }
 
     update(delta) {
-        // Skip update if dead
+        // Skip update if dead, but allow minimal updates for death animation
         if (this.state.isDead) {
+            // For bosses, we want to minimize processing when dead to prevent lag
+            if (this.isBoss) {
+                // Only update if death animation is still in progress
+                if (this.deathAnimationInProgress) {
+                    // Just update the model position/rotation if needed
+                    if (this.modelGroup) {
+                        this.modelGroup.position.copy(this.position);
+                        this.modelGroup.rotation.copy(this.rotation);
+                    }
+                }
+            }
             return;
         }
         
@@ -641,6 +652,9 @@ export class Enemy {
         // Set dead state
         this.state.isDead = true;
         
+        // Track when the enemy died (used for timeout cleanup)
+        this.deathStartTime = Date.now();
+        
         // Check if we're in multiplayer mode
         if (this.player.game && 
             this.player.game.multiplayerManager && 
@@ -676,12 +690,61 @@ export class Enemy {
         // Set a flag to track animation completion
         this.deathAnimationInProgress = true;
         
-        // Trigger death animation or effects
-        this.playDeathAnimation();
+        // For bosses, use a simplified death animation to prevent lag
+        if (this.isBoss) {
+            this.playSimplifiedDeathAnimation();
+        } else {
+            // Regular enemies use the normal death animation
+            this.playDeathAnimation();
+        }
         
         // We no longer need to remove the enemy here
         // The EnemyManager will handle removal after the animation completes
         // This prevents the modelGroup from being null during the animation
+    }
+    
+    /**
+     * Simplified death animation for bosses to prevent lag
+     */
+    playSimplifiedDeathAnimation() {
+        if (this.modelGroup) {
+            // For bosses, use a simpler animation with no requestAnimationFrame
+            // This prevents potential lag from complex animations
+            
+            // Apply a simple fade out effect
+            if (this.modelGroup.traverse) {
+                this.modelGroup.traverse((object) => {
+                    if (object.material) {
+                        if (Array.isArray(object.material)) {
+                            object.material.forEach(material => {
+                                if (material.opacity !== undefined) {
+                                    material.transparent = true;
+                                    material.opacity = 0.5; // Semi-transparent
+                                }
+                            });
+                        } else if (object.material.opacity !== undefined) {
+                            object.material.transparent = true;
+                            object.material.opacity = 0.5; // Semi-transparent
+                        }
+                    }
+                });
+            }
+            
+            // Use a simple timeout instead of animation frames
+            setTimeout(() => {
+                // Mark animation as complete after a short delay
+                this.deathAnimationInProgress = false;
+                
+                // Make sure we clean up any animation frame if it was somehow set
+                if (this.deathAnimationFrameId) {
+                    cancelAnimationFrame(this.deathAnimationFrameId);
+                    this.deathAnimationFrameId = null;
+                }
+            }, 500); // 500ms delay - much shorter than regular animation
+        } else {
+            // No model to animate, mark as complete immediately
+            this.deathAnimationInProgress = false;
+        }
     }
     
     playDeathAnimation() {
@@ -775,24 +838,73 @@ export class Enemy {
         
         // Remove model from scene
         if (this.modelGroup) {
-            this.scene.remove(this.modelGroup);
-            
-            // Clean up geometry and materials
-            this.modelGroup.traverse((object) => {
-                if (object.geometry) {
-                    object.geometry.dispose();
+            // For bosses, do a more thorough cleanup to prevent memory leaks
+            if (this.isBoss) {
+                console.debug(`Performing thorough cleanup for boss ${this.id}`);
+                
+                // Ensure all animations are stopped
+                if (this.model && this.model.mixer) {
+                    this.model.mixer.stopAllAction();
+                    this.model.mixer.uncacheRoot(this.modelGroup);
                 }
                 
-                if (object.material) {
-                    if (Array.isArray(object.material)) {
-                        object.material.forEach(material => material.dispose());
-                    } else {
-                        object.material.dispose();
+                // Dispose of any textures
+                this.modelGroup.traverse((object) => {
+                    if (object.material) {
+                        const materials = Array.isArray(object.material) ? object.material : [object.material];
+                        
+                        materials.forEach(material => {
+                            // Dispose textures
+                            for (const prop in material) {
+                                if (material[prop] && material[prop].isTexture) {
+                                    material[prop].dispose();
+                                }
+                            }
+                            
+                            // Dispose material
+                            material.dispose();
+                        });
                     }
-                }
-            });
+                    
+                    // Dispose geometry
+                    if (object.geometry) {
+                        object.geometry.dispose();
+                    }
+                });
+            } else {
+                // Regular enemy cleanup
+                this.modelGroup.traverse((object) => {
+                    if (object.geometry) {
+                        object.geometry.dispose();
+                    }
+                    
+                    if (object.material) {
+                        if (Array.isArray(object.material)) {
+                            object.material.forEach(material => material.dispose());
+                        } else {
+                            object.material.dispose();
+                        }
+                    }
+                });
+            }
             
+            // Remove from scene
+            this.scene.remove(this.modelGroup);
             this.modelGroup = null;
+            
+            // Force a garbage collection hint (not guaranteed to run)
+            if (this.isBoss && window.gc) {
+                try {
+                    window.gc();
+                } catch (e) {
+                    // Ignore if gc is not available
+                }
+            }
+        }
+        
+        // Clear any special ability cooldowns for boss enemies
+        if (this.isBoss && this.specialAbilityCooldowns) {
+            this.specialAbilityCooldowns = null;
         }
     }
 

@@ -234,15 +234,52 @@ export class EnemyManager {
                 
                 // Check if death animation is still in progress
                 if (!enemy.deathAnimationInProgress) {
-                    // Remove enemy only after death animation is complete
-                    enemy.remove();
-                    this.enemies.delete(id);
-                    
-                    // Clean up processed drops entry for this enemy
-                    this.processedDrops.delete(id);
-                    
-                    // Clean up last updated timestamp
-                    this.enemyLastUpdated.delete(id);
+                    // For bosses, prioritize quick removal to prevent lag
+                    if (enemy.isBoss) {
+                        console.debug(`Removing dead boss ${enemy.id} from scene`);
+                        
+                        // Force immediate removal for bosses
+                        enemy.remove();
+                        this.enemies.delete(id);
+                        
+                        // Clean up processed drops entry for this enemy
+                        this.processedDrops.delete(id);
+                        
+                        // Clean up last updated timestamp
+                        this.enemyLastUpdated.delete(id);
+                        
+                        // Force a garbage collection hint if available
+                        if (window.gc) {
+                            try {
+                                window.gc();
+                            } catch (e) {
+                                // Ignore if gc is not available
+                            }
+                        }
+                    } else {
+                        // Regular enemy removal
+                        enemy.remove();
+                        this.enemies.delete(id);
+                        
+                        // Clean up processed drops entry for this enemy
+                        this.processedDrops.delete(id);
+                        
+                        // Clean up last updated timestamp
+                        this.enemyLastUpdated.delete(id);
+                    }
+                } else if (enemy.isBoss && enemy.deathAnimationInProgress) {
+                    // For bosses, set a maximum time for death animation to prevent lag
+                    // If the boss has been dead for more than 2 seconds, force removal
+                    if (!enemy.deathStartTime) {
+                        enemy.deathStartTime = Date.now();
+                    } else if (Date.now() - enemy.deathStartTime > 2000) {
+                        console.debug(`Force removing boss ${enemy.id} after 2 seconds`);
+                        enemy.deathAnimationInProgress = false;
+                        enemy.remove();
+                        this.enemies.delete(id);
+                        this.processedDrops.delete(id);
+                        this.enemyLastUpdated.delete(id);
+                    }
                 }
             }
         }
