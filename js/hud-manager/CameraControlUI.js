@@ -41,12 +41,32 @@ export class CameraControlUI extends UIComponent {
         
         // Camera distances for different modes
         this.cameraDistances = {
-            [this.cameraModes.THIRD_PERSON]: 20,     // Default distance for third-person
-            [this.cameraModes.OVER_SHOULDER]: 3.5    // Closer distance for over-shoulder view
+            [this.cameraModes.THIRD_PERSON]: 15,     // Default distance for third-person
+            [this.cameraModes.OVER_SHOULDER]: 15      // Increased distance for over-shoulder view to be further behind player
         };
         
         // Default camera distance (can be modified via settings)
         this.cameraDistance = this.cameraDistances[this.currentCameraMode];
+        
+        // Camera height configuration for different modes
+        this.cameraHeights = {
+            [this.cameraModes.THIRD_PERSON]: 20,     // Default height for third-person
+            [this.cameraModes.OVER_SHOULDER]: 5     // Higher position for over-shoulder view
+        };
+        
+        // Camera look offset configuration for different modes
+        this.cameraLookOffsets = {
+            [this.cameraModes.THIRD_PERSON]: 5,      // Default look offset for third-person
+            [this.cameraModes.OVER_SHOULDER]: 3      // Look slightly upward in over-shoulder view
+        };
+        
+        // Camera height configuration (can be adjusted for testing)
+        this.cameraHeightConfig = {
+            // Height offset from player position (negative values move camera down)
+            heightOffset: this.cameraHeights[this.currentCameraMode],
+            // Vertical offset for lookAt target (0 = eye level, positive = look up, negative = look down)
+            verticalLookOffset: this.cameraLookOffsets[this.currentCameraMode]
+        };
         
         // Store the initial camera position and rotation
         this.initialCameraPosition = null;
@@ -70,6 +90,9 @@ export class CameraControlUI extends UIComponent {
         // Set up event listeners for the button
         this.setupCameraControlButtonEvents();
         
+        // Create camera height adjustment controls
+        this.createCameraHeightControls();
+        
         // Store initial camera position and rotation
         if (this.game && this.game.camera) {
             this.initialCameraPosition = this.game.camera.position.clone();
@@ -80,6 +103,161 @@ export class CameraControlUI extends UIComponent {
         this.loadCameraSettings();
         
         return true;
+    }
+    
+    /**
+     * Create camera height adjustment controls
+     */
+    createCameraHeightControls() {
+        // Create container for camera height controls
+        const container = document.createElement('div');
+        container.id = 'camera-height-controls';
+        container.style.position = 'absolute';
+        container.style.bottom = '10px';
+        container.style.right = '10px';
+        container.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        container.style.padding = '10px';
+        container.style.borderRadius = '5px';
+        container.style.color = 'white';
+        container.style.zIndex = '1000';
+        container.style.display = 'none'; // Hidden by default
+        
+        // Add title
+        const title = document.createElement('div');
+        title.textContent = 'Camera Height Adjustment';
+        title.style.marginBottom = '10px';
+        title.style.fontWeight = 'bold';
+        container.appendChild(title);
+        
+        // Create height offset control
+        const heightOffsetContainer = document.createElement('div');
+        heightOffsetContainer.style.marginBottom = '10px';
+        
+        const heightOffsetLabel = document.createElement('label');
+        heightOffsetLabel.textContent = 'Camera Height: ';
+        heightOffsetLabel.setAttribute('for', 'camera-height-offset');
+        heightOffsetContainer.appendChild(heightOffsetLabel);
+        
+        const heightOffsetValue = document.createElement('span');
+        heightOffsetValue.id = 'camera-height-offset-value';
+        heightOffsetValue.textContent = this.cameraHeightConfig.heightOffset;
+        heightOffsetContainer.appendChild(heightOffsetValue);
+        
+        const heightOffsetSlider = document.createElement('input');
+        heightOffsetSlider.type = 'range';
+        heightOffsetSlider.id = 'camera-height-offset';
+        heightOffsetSlider.min = '-20';
+        heightOffsetSlider.max = '20';
+        heightOffsetSlider.step = '1';
+        heightOffsetSlider.value = this.cameraHeightConfig.heightOffset;
+        heightOffsetSlider.style.width = '100%';
+        heightOffsetSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            this.cameraHeightConfig.heightOffset = value;
+            heightOffsetValue.textContent = value;
+            
+            // Update the stored height for the current camera mode
+            this.cameraHeights[this.currentCameraMode] = value;
+            
+            // Save the setting to localStorage
+            import('../config/storage-keys.js').then(module => {
+                const STORAGE_KEYS = module.STORAGE_KEYS;
+                localStorage.setItem(STORAGE_KEYS.CAMERA_HEIGHT, value);
+            }).catch(error => {
+                console.error("Error saving camera height to localStorage:", error);
+            });
+            
+            // Update camera position
+            if (this.validateGameComponents()) {
+                this.updateCameraOrbit(this.cameraState.rotationX, this.cameraState.rotationY);
+            }
+        });
+        heightOffsetContainer.appendChild(heightOffsetSlider);
+        container.appendChild(heightOffsetContainer);
+        
+        // Create look offset control
+        const lookOffsetContainer = document.createElement('div');
+        lookOffsetContainer.style.marginBottom = '10px';
+        
+        const lookOffsetLabel = document.createElement('label');
+        lookOffsetLabel.textContent = 'Look Direction: ';
+        lookOffsetLabel.setAttribute('for', 'camera-look-offset');
+        lookOffsetContainer.appendChild(lookOffsetLabel);
+        
+        const lookOffsetValue = document.createElement('span');
+        lookOffsetValue.id = 'camera-look-offset-value';
+        lookOffsetValue.textContent = this.cameraHeightConfig.verticalLookOffset;
+        lookOffsetContainer.appendChild(lookOffsetValue);
+        
+        const lookOffsetSlider = document.createElement('input');
+        lookOffsetSlider.type = 'range';
+        lookOffsetSlider.id = 'camera-look-offset';
+        lookOffsetSlider.min = '-20';
+        lookOffsetSlider.max = '20';
+        lookOffsetSlider.step = '1';
+        lookOffsetSlider.value = this.cameraHeightConfig.verticalLookOffset;
+        lookOffsetSlider.style.width = '100%';
+        lookOffsetSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            this.cameraHeightConfig.verticalLookOffset = value;
+            lookOffsetValue.textContent = value;
+            
+            // Update the stored look offset for the current camera mode
+            this.cameraLookOffsets[this.currentCameraMode] = value;
+            
+            // Save the setting to localStorage
+            import('../config/storage-keys.js').then(module => {
+                const STORAGE_KEYS = module.STORAGE_KEYS;
+                localStorage.setItem(STORAGE_KEYS.CAMERA_LOOK_OFFSET, value);
+            }).catch(error => {
+                console.error("Error saving camera look offset to localStorage:", error);
+            });
+            
+            // Update camera position
+            if (this.validateGameComponents()) {
+                this.updateCameraOrbit(this.cameraState.rotationX, this.cameraState.rotationY);
+            }
+        });
+        lookOffsetContainer.appendChild(lookOffsetSlider);
+        container.appendChild(lookOffsetContainer);
+        
+        // Create toggle button
+        const toggleButton = document.createElement('button');
+        toggleButton.id = 'camera-height-toggle';
+        toggleButton.textContent = 'Show Camera Controls';
+        toggleButton.style.position = 'absolute';
+        toggleButton.style.bottom = '10px';
+        toggleButton.style.right = '10px';
+        toggleButton.style.zIndex = '1001';
+        toggleButton.style.padding = '5px 10px';
+        toggleButton.style.backgroundColor = '#4CAF50';
+        toggleButton.style.color = 'white';
+        toggleButton.style.border = 'none';
+        toggleButton.style.borderRadius = '4px';
+        toggleButton.style.cursor = 'pointer';
+        toggleButton.style.display = 'none';
+        
+        toggleButton.addEventListener('click', () => {
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                toggleButton.textContent = 'Hide Camera Controls';
+            } else {
+                container.style.display = 'none';
+                toggleButton.textContent = 'Show Camera Controls';
+            }
+        });
+        
+        // Add elements to the DOM
+        document.body.appendChild(container);
+        document.body.appendChild(toggleButton);
+        
+        // Store references
+        this.cameraHeightControls = {
+            container,
+            toggleButton,
+            heightOffsetSlider,
+            lookOffsetSlider
+        };
     }
     
     /**
@@ -98,6 +276,28 @@ export class CameraControlUI extends UIComponent {
                 
                 // Update the camera distances for the current mode
                 this.cameraDistances[this.currentCameraMode] = this.cameraDistance;
+            }
+            
+            // Load camera height setting
+            const storedHeight = localStorage.getItem(STORAGE_KEYS.CAMERA_HEIGHT);
+            if (storedHeight) {
+                const heightOffset = parseInt(storedHeight);
+                this.cameraHeightConfig.heightOffset = heightOffset;
+                console.debug("Loaded camera height from settings:", heightOffset);
+                
+                // Update the camera heights for the current mode
+                this.cameraHeights[this.currentCameraMode] = heightOffset;
+            }
+            
+            // Load camera look offset setting
+            const storedLookOffset = localStorage.getItem(STORAGE_KEYS.CAMERA_LOOK_OFFSET);
+            if (storedLookOffset) {
+                const lookOffset = parseInt(storedLookOffset);
+                this.cameraHeightConfig.verticalLookOffset = lookOffset;
+                console.debug("Loaded camera look offset from settings:", lookOffset);
+                
+                // Update the camera look offsets for the current mode
+                this.cameraLookOffsets[this.currentCameraMode] = lookOffset;
             }
             
             // Load camera mode setting
@@ -123,7 +323,7 @@ export class CameraControlUI extends UIComponent {
                     const playerPosition = this.game.player.getPosition();
                     if (playerPosition) {
                         // Calculate a default position behind the player
-                        const defaultRotationX = 0.3; // Slight angle from horizontal
+                        const defaultRotationX = -0.5; // Negative value for downward angle (looking down at player)
                         const defaultRotationY = Math.PI; // Behind the player
                         
                         // Store these as the initial rotation values
@@ -750,12 +950,13 @@ export class CameraControlUI extends UIComponent {
             cameraOffset.setFromSpherical(spherical);
             
             // Add the player position to get the final camera position
-            // Apply different height offsets based on camera mode
-            const heightOffset = this.currentCameraMode === this.cameraModes.OVER_SHOULDER ? 12 : 20;
+            // Apply height offsets to position camera appropriately using the configurable height offset
+            // Negative values move the camera down, positive values move it up
+            const heightOffset = this.cameraHeightConfig.heightOffset;
             
             const cameraPosition = new THREE.Vector3(
                 playerPosition.x + cameraOffset.x,
-                playerPosition.y + cameraOffset.y + heightOffset, // Add height offset based on mode
+                playerPosition.y + cameraOffset.y + heightOffset, // Adjusted height offset for better view
                 playerPosition.z + cameraOffset.z
             );
             
@@ -785,13 +986,10 @@ export class CameraControlUI extends UIComponent {
             // Calculate vertical offset based on camera mode and rotation
             let verticalOffset;
             
-            if (this.currentCameraMode === this.cameraModes.OVER_SHOULDER) {
-                // For over-shoulder view, use a smaller offset to keep focus on what's ahead
-                verticalOffset = 5 + (rotationX * 30);
-            } else {
-                // For third-person view, use a more dramatic offset
-                verticalOffset = 5 + (rotationX * 50);
-            }
+            // Use the configurable vertical look offset as the base value
+            // Then add rotation-based adjustment to allow looking up/down when rotating
+            const rotationFactor = this.currentCameraMode === this.cameraModes.OVER_SHOULDER ? 15 : 25;
+            verticalOffset = this.cameraHeightConfig.verticalLookOffset + (rotationX * rotationFactor);
             
             // Look at position that changes with vertical rotation
             const lookAtPosition = new THREE.Vector3(
@@ -984,28 +1182,23 @@ export class CameraControlUI extends UIComponent {
                 cameraOffset.setFromSpherical(spherical);
                 
                 // Add the player position to get the final camera position
-                // Apply different height offsets based on camera mode
-                const heightOffset = this.currentCameraMode === this.cameraModes.OVER_SHOULDER ? 12 : 20;
+                // Use the configured height offset from cameraHeightConfig
+                const heightOffset = this.cameraHeightConfig.heightOffset;
                 
                 const cameraPosition = new THREE.Vector3(
                     playerPosition.x + cameraOffset.x,
-                    playerPosition.y + cameraOffset.y + heightOffset, // Add height offset based on mode
+                    playerPosition.y + cameraOffset.y + heightOffset, // Use the user-configured height offset
                     playerPosition.z + cameraOffset.z
                 );
                 
                 // Update camera position
                 this.game.camera.position.copy(cameraPosition);
                 
-                // Calculate vertical offset based on camera mode and rotation
-                let verticalOffset;
-                
-                if (this.currentCameraMode === this.cameraModes.OVER_SHOULDER) {
-                    // For over-shoulder view, use a smaller offset to keep focus on what's ahead
-                    verticalOffset = 5 + (rotationX * 30);
-                } else {
-                    // For third-person view, use a more dramatic offset
-                    verticalOffset = 5 + (rotationX * 50);
-                }
+                // Calculate vertical offset based on user configuration and rotation
+                // Use the configurable vertical look offset as the base value
+                // Then add rotation-based adjustment to allow looking up/down when rotating
+                const rotationFactor = this.currentCameraMode === this.cameraModes.OVER_SHOULDER ? 15 : 25;
+                const verticalOffset = this.cameraHeightConfig.verticalLookOffset + (rotationX * rotationFactor);
                 
                 // Look at position that changes with vertical rotation
                 const lookAtPosition = new THREE.Vector3(
@@ -1055,6 +1248,24 @@ export class CameraControlUI extends UIComponent {
     }
     
     /**
+     * Set camera height configuration
+     * @param {number} heightOffset - Height offset from player position (negative values move camera down)
+     * @param {number} verticalLookOffset - Vertical offset for lookAt target (0 = eye level, positive = look up, negative = look down)
+     */
+    setCameraHeightConfig(heightOffset, verticalLookOffset) {
+        // Update the camera height configuration
+        this.cameraHeightConfig.heightOffset = heightOffset;
+        this.cameraHeightConfig.verticalLookOffset = verticalLookOffset;
+        
+        console.debug("Camera height configuration updated:", this.cameraHeightConfig);
+        
+        // Apply the new configuration immediately if possible
+        if (this.validateGameComponents()) {
+            this.updateCameraOrbit(this.cameraState.rotationX, this.cameraState.rotationY);
+        }
+    }
+    
+    /**
      * Reset camera to default position behind the player
      */
     resetCameraToDefault() {
@@ -1073,7 +1284,7 @@ export class CameraControlUI extends UIComponent {
             }
             
             // Set default rotation values
-            const defaultRotationX = 0.3; // Slight angle from horizontal
+            const defaultRotationX = -0.5; // Negative value for downward angle (looking down at player)
             const defaultRotationY = Math.PI; // Behind the player
             
             // Store these as the current rotation values
@@ -1161,6 +1372,26 @@ export class CameraControlUI extends UIComponent {
             
             // Update the camera distance based on the new mode
             this.cameraDistance = this.cameraDistances[this.currentCameraMode];
+            
+            // Update the camera height and look offset based on the new mode
+            this.cameraHeightConfig.heightOffset = this.cameraHeights[this.currentCameraMode];
+            this.cameraHeightConfig.verticalLookOffset = this.cameraLookOffsets[this.currentCameraMode];
+            
+            // Update the UI sliders to reflect the new values
+            if (this.cameraHeightControls) {
+                const heightSlider = this.cameraHeightControls.heightOffsetSlider;
+                const lookSlider = this.cameraHeightControls.lookOffsetSlider;
+                
+                if (heightSlider) {
+                    heightSlider.value = this.cameraHeightConfig.heightOffset;
+                    document.getElementById('camera-height-offset-value').textContent = this.cameraHeightConfig.heightOffset;
+                }
+                
+                if (lookSlider) {
+                    lookSlider.value = this.cameraHeightConfig.verticalLookOffset;
+                    document.getElementById('camera-look-offset-value').textContent = this.cameraHeightConfig.verticalLookOffset;
+                }
+            }
             
             // Validate game components before updating camera
             if (!this.validateGameComponents()) {

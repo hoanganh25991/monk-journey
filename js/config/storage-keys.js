@@ -41,6 +41,8 @@ export const STORAGE_KEYS = {
     CUSTOM_SKILLS: 'monk_journey_custom_skills',
     CAMERA_ZOOM: 'monk_journey_camera_zoom',
     CAMERA_MODE: 'monk_journey_camera_mode',
+    CAMERA_HEIGHT: 'monk_journey_camera_height',
+    CAMERA_LOOK_OFFSET: 'monk_journey_camera_look_offset',
     // MATERIAL_QUALITY key removed - using QUALITY_LEVEL instead
     
     // Save system keys

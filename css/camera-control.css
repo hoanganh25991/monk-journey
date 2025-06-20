@@ -7,7 +7,7 @@
 /* Camera Controls Container */
 #camera-controls {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 10px;
     align-items: center;
 }

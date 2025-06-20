@@ -247,16 +247,10 @@ export class ShieldOfZenEffect extends SkillEffect {
         
         // Update the Buddha figure (without rotating it)
         if (this.buddhaFigure) {
-            // Make the Buddha figure pulse with a gentle glow
-            // Base scale is now 9.0 (6x bigger) with a small pulsing effect that only goes upward
-            const pulseScale = 9.0 + 5 * (1 + Math.sin(this.elapsedTime * 2)) / 2;
-            this.buddhaFigure.children.forEach(child => {
-                if (child.scale) {
-                    child.scale.set(pulseScale / 3.0, pulseScale / 3.0, pulseScale / 3.0);
-                }
-            });
+            // Keep Buddha size consistent at scale 9.0 (no pulsing effect)
+            // Scale is already set in _createBuddhaFigure method
             
-            // Adjust opacity based on elapsed time for a pulsing effect
+            // Only adjust opacity based on elapsed time for a pulsing effect
             const opacity = 0.6 + 0.2 * Math.sin(this.elapsedTime * 1.5);
             this.buddhaFigure.children.forEach(child => {
                 if (child.material) {
