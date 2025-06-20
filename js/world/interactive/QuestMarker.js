@@ -114,7 +114,9 @@ export class QuestMarker {
         
         // Add quest type text based on quest name
         let questColor;
-        if (this.questName.includes('Main')) {
+        if (!this.questName) {
+            questColor = 0x00ff00; // Default green for undefined quest names
+        } else if (this.questName.includes('Main')) {
             questColor = 0xffcc00; // Gold for main quests
         } else if (this.questName.includes('Side')) {
             questColor = 0x00ccff; // Blue for side quests
