@@ -87,17 +87,9 @@
     animation: levelUpAnimation 2s ease-out forwards;
 }
 
-.level-up-text {
+.level-up-text, .level-up-level {
     color: #ffcc00;
     font-size: 4rem;
-    font-weight: bold;
-    text-shadow: 0 0 1rem #ff6600;
-    text-align: center;
-}
-
-.level-up-level {
-    color: #ffcc00;
-    font-size: 6rem;
     font-weight: bold;
     text-shadow: 0 0 1rem #ff6600;
     text-align: center;
