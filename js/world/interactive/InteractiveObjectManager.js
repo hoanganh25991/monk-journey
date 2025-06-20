@@ -180,7 +180,7 @@ export class InteractiveObjectManager {
      * @returns {THREE.Group} - The quest marker group
      */
     createQuestMarker(x, z, questName) {
-        const questMarker = new QuestMarker(questName);
+        const questMarker = new QuestMarker(questName, this.game);
         const markerGroup = questMarker.createMesh();
         
         // Position marker on terrain
