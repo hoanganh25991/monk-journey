@@ -774,6 +774,21 @@ export const EFFECT_SOUNDS = {
             arpeggio: [1, 1.3, 1.6, 2],
             filter: 'highpass'
         }
+    },
+    effect_slow: {
+        id: 'effect_slow',
+        file: 'effect_slow.mp3',
+        volume: 0.7,
+        simulated: {
+            frequency: 200,
+            duration: 0.4,
+            type: 'sine',
+            decay: true,
+            slide: -30,
+            vibrato: 5,
+            filter: 'lowpass',
+            reverb: true
+        }
     }
 };
 
