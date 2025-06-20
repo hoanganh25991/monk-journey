@@ -79,6 +79,18 @@ import { MountainCave } from './MountainCave.js';
 import { GiantMushroom } from './GiantMushroom.js';
 import { MagicCircle } from './MagicCircle.js';
 
+// Import newly created dedicated classes
+import { MagicalFlower } from './MagicalFlower.js';
+import { SmallCrystal } from './SmallCrystal.js';
+import { StoneCircle } from './StoneCircle.js';
+import { MountainPass } from './MountainPass.js';
+import { Shrine } from './Shrine.js';
+import { Stump } from './Stump.js';
+import { RockFormation } from './RockFormation.js';
+import { Mushroom } from './Mushroom.js';
+import { FallenLog } from './FallenLog.js';
+import { SmallPlant } from './SmallPlant.js';
+
 /**
  * Environment Factory - Creates environment objects based on type
  * Centralizes environment object creation and provides a registry for all types
@@ -334,229 +346,40 @@ export class EnvironmentFactory {
             return plantGroup;
         });
         
-        // Register simple objects that don't have dedicated classes yet
-        this.register(ENVIRONMENT_OBJECTS.SMALL_PLANT, (position, size) => {
-            // Create a simple small plant using a scaled-down bush
-            const bush = new Bush();
-            const plantGroup = bush.createMesh();
-            plantGroup.position.copy(position);
-            // Scale it down to make it a small plant
-            const plantSize = size * 0.3;
-            plantGroup.scale.set(plantSize, plantSize, plantSize);
-            this.scene.add(plantGroup);
+        // Register small plant with dedicated class
+        this.register(ENVIRONMENT_OBJECTS.SMALL_PLANT, (position, size, data = {}) => {
+            const smallPlant = new SmallPlant(this.scene, this.worldManager);
+            const plantGroup = smallPlant.createMesh(position, size, data);
             return plantGroup;
         });
         
-        this.register(ENVIRONMENT_OBJECTS.FALLEN_LOG, (position, size) => {
-            // Create a simple fallen log using a cylinder
-            const geometry = new THREE.CylinderGeometry(0.5 * size, 0.4 * size, 4 * size, 8);
-            const material = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-            const log = new THREE.Mesh(geometry, material);
-            
-            // Rotate to make it horizontal
-            log.rotation.z = Math.PI / 2;
-            log.rotation.y = Math.random() * Math.PI;
-            
-            // Position on terrain
-            log.position.copy(position);
-            // Adjust y-position to sit properly on the ground
-            // Instead of embedding, we'll just place it on the surface
-            log.position.y += 0.2; // Raise slightly above ground
-            
-            // Add some detail
-            const barkGeometry = new THREE.CylinderGeometry(0.55 * size, 0.45 * size, 4.1 * size, 8);
-            const barkMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0x5D4037,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.5
-            });
-            const bark = new THREE.Mesh(barkGeometry, barkMaterial);
-            bark.rotation.z = Math.PI / 2;
-            
-            // Create a group for the log
-            const logGroup = new THREE.Group();
-            logGroup.add(log);
-            logGroup.add(bark);
-            
-            // Add to scene
-            this.scene.add(logGroup);
-            
+        this.register(ENVIRONMENT_OBJECTS.FALLEN_LOG, (position, size, data = {}) => {
+            const fallenLog = new FallenLog(this.scene, this.worldManager);
+            const logGroup = fallenLog.createMesh(position, size, data);
             return logGroup;
         });
         
-        this.register(ENVIRONMENT_OBJECTS.MUSHROOM, (position, size) => {
-            // Create a simple mushroom
-            const stemGeometry = new THREE.CylinderGeometry(0.1 * size, 0.15 * size, 0.5 * size, 8);
-            const stemMaterial = new THREE.MeshLambertMaterial({ color: 0xECEFF1 });
-            const stem = new THREE.Mesh(stemGeometry, stemMaterial);
-            
-            // Create cap
-            const capGeometry = new THREE.SphereGeometry(0.3 * size, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
-            const capMaterial = new THREE.MeshLambertMaterial({ color: 0xE53935 });
-            const cap = new THREE.Mesh(capGeometry, capMaterial);
-            cap.position.y = 0.25 * size;
-            cap.scale.set(1.2, 1, 1.2);
-            
-            // Create a group for the mushroom
-            const mushroomGroup = new THREE.Group();
-            mushroomGroup.add(stem);
-            mushroomGroup.add(cap);
-            
-            // Position on terrain
-            mushroomGroup.position.copy(position);
-            // Ensure mushroom sits properly on the ground
-            mushroomGroup.position.y += 0.15 * size;
-            
-            // Add to scene
-            this.scene.add(mushroomGroup);
-            
+        this.register(ENVIRONMENT_OBJECTS.MUSHROOM, (position, size, data = {}) => {
+            const mushroom = new Mushroom(this.scene, this.worldManager);
+            const mushroomGroup = mushroom.createMesh(position, size, data);
             return mushroomGroup;
         });
         
-        this.register(ENVIRONMENT_OBJECTS.ROCK_FORMATION, (position, size) => {
-            // Create a rock formation with multiple rocks
-            const rockFormationGroup = new THREE.Group();
-            
-            // Add 3-5 rocks of varying sizes
-            const rockCount = 3 + Math.floor(Math.random() * 3);
-            
-            for (let i = 0; i < rockCount; i++) {
-                const rock = new Rock();
-                const rockMesh = rock.createMesh();
-                
-                // Random scale for each rock
-                const rockScale = (0.6 + Math.random() * 0.8) * size;
-                
-                // Position rocks in a cluster
-                const angle = Math.random() * Math.PI * 2;
-                const distance = (0.5 + Math.random() * 1.5) * size;
-                
-                rockMesh.position.x = position.x + Math.cos(angle) * distance;
-                rockMesh.position.y = position.y + 0.2 * rockScale; // Raise slightly to ensure visibility
-                rockMesh.position.z = position.z + Math.sin(angle) * distance;
-                rockMesh.scale.set(rockScale, rockScale, rockScale);
-                
-                // Random rotation
-                rockMesh.rotation.y = Math.random() * Math.PI * 2;
-                
-                rockFormationGroup.add(rockMesh);
-            }
-            
-            // Add to scene
-            this.scene.add(rockFormationGroup);
-            
+        this.register(ENVIRONMENT_OBJECTS.ROCK_FORMATION, (position, size, data = {}) => {
+            const rockFormation = new RockFormation(this.scene, this.worldManager);
+            const rockFormationGroup = rockFormation.createMesh(position, size, data);
             return rockFormationGroup;
         });
         
-        this.register(ENVIRONMENT_OBJECTS.SHRINE, (position, size) => {
-            // Create a simple shrine
-            const baseGeometry = new THREE.BoxGeometry(2 * size, 0.5 * size, 2 * size);
-            const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x9E9E9E });
-            const base = new THREE.Mesh(baseGeometry, baseMaterial);
-            
-            // Create pillars
-            const pillarGeometry = new THREE.CylinderGeometry(0.15 * size, 0.15 * size, 1.5 * size, 8);
-            const pillarMaterial = new THREE.MeshLambertMaterial({ color: 0x757575 });
-            
-            const pillar1 = new THREE.Mesh(pillarGeometry, pillarMaterial);
-            pillar1.position.set(0.7 * size, 0.75 * size, 0.7 * size);
-            
-            const pillar2 = new THREE.Mesh(pillarGeometry, pillarMaterial);
-            pillar2.position.set(-0.7 * size, 0.75 * size, 0.7 * size);
-            
-            const pillar3 = new THREE.Mesh(pillarGeometry, pillarMaterial);
-            pillar3.position.set(0.7 * size, 0.75 * size, -0.7 * size);
-            
-            const pillar4 = new THREE.Mesh(pillarGeometry, pillarMaterial);
-            pillar4.position.set(-0.7 * size, 0.75 * size, -0.7 * size);
-            
-            // Create roof
-            const roofGeometry = new THREE.BoxGeometry(2.4 * size, 0.3 * size, 2.4 * size);
-            const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x616161 });
-            const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-            roof.position.y = 1.5 * size;
-            
-            // Create a small altar in the center
-            const altarGeometry = new THREE.BoxGeometry(0.8 * size, 0.8 * size, 0.8 * size);
-            const altarMaterial = new THREE.MeshLambertMaterial({ color: 0xBDBDBD });
-            const altar = new THREE.Mesh(altarGeometry, altarMaterial);
-            altar.position.y = 0.4 * size;
-            
-            // Create a group for the shrine
-            const shrineGroup = new THREE.Group();
-            shrineGroup.add(base);
-            shrineGroup.add(pillar1);
-            shrineGroup.add(pillar2);
-            shrineGroup.add(pillar3);
-            shrineGroup.add(pillar4);
-            shrineGroup.add(roof);
-            shrineGroup.add(altar);
-            
-            // Position on terrain
-            shrineGroup.position.copy(position);
-            // Ensure shrine sits properly on the ground
-            shrineGroup.position.y += 0.25 * size;
-            
-            // Add to scene
-            this.scene.add(shrineGroup);
-            
+        this.register(ENVIRONMENT_OBJECTS.SHRINE, (position, size, data = {}) => {
+            const shrine = new Shrine(this.scene, this.worldManager);
+            const shrineGroup = shrine.createMesh(position, size, data);
             return shrineGroup;
         });
         
-        this.register(ENVIRONMENT_OBJECTS.STUMP, (position, size) => {
-            // Create a tree stump
-            const trunkGeometry = new THREE.CylinderGeometry(0.6 * size, 0.7 * size, 0.8 * size, 12);
-            const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8D6E63 });
-            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-            
-            // Create top of stump with rings
-            const topGeometry = new THREE.CylinderGeometry(0.6 * size, 0.6 * size, 0.1 * size, 12);
-            const topMaterial = new THREE.MeshLambertMaterial({ color: 0xA1887F });
-            const top = new THREE.Mesh(topGeometry, topMaterial);
-            top.position.y = 0.45 * size;
-            
-            // Create rings on top
-            const ringGeometry = new THREE.RingGeometry(0.2 * size, 0.25 * size, 32);
-            const ringMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0x795548, 
-                side: THREE.DoubleSide 
-            });
-            const ring1 = new THREE.Mesh(ringGeometry, ringMaterial);
-            ring1.rotation.x = -Math.PI / 2;
-            ring1.position.y = 0.51 * size;
-            
-            const ring2 = new THREE.Mesh(
-                new THREE.RingGeometry(0.35 * size, 0.4 * size, 32),
-                ringMaterial
-            );
-            ring2.rotation.x = -Math.PI / 2;
-            ring2.position.y = 0.51 * size;
-            
-            const ring3 = new THREE.Mesh(
-                new THREE.RingGeometry(0.5 * size, 0.55 * size, 32),
-                ringMaterial
-            );
-            ring3.rotation.x = -Math.PI / 2;
-            ring3.position.y = 0.51 * size;
-            
-            // Create a group for the stump
-            const stumpGroup = new THREE.Group();
-            stumpGroup.add(trunk);
-            stumpGroup.add(top);
-            stumpGroup.add(ring1);
-            stumpGroup.add(ring2);
-            stumpGroup.add(ring3);
-            
-            // Position on terrain
-            stumpGroup.position.copy(position);
-            // Adjust y-position to sit properly on the ground
-            // Instead of embedding, we'll place it on the surface
-            stumpGroup.position.y += 0.1 * size; // Raise slightly above ground
-            
-            // Add to scene
-            this.scene.add(stumpGroup);
-            
+        this.register(ENVIRONMENT_OBJECTS.STUMP, (position, size, data = {}) => {
+            const stump = new Stump(this.scene, this.worldManager);
+            const stumpGroup = stump.createMesh(position, size, data);
             return stumpGroup;
         });
         
