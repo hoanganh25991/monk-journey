@@ -1197,13 +1197,19 @@ export class WorldManager {
     preCreateEnvironmentObjects(chunkKey, buffer) {
         try {
             // Skip if buffer is empty or already processed
-            if (!buffer || !buffer.environment || buffer.environment.length === 0 || buffer.processed) {
+            if (!buffer || !buffer.environment || !Array.isArray(buffer.environment) || buffer.environment.length === 0 || buffer.processed) {
                 return;
             }
             
             // Validate chunk key format
             if (!chunkKey || typeof chunkKey !== 'string' || !chunkKey.includes(',')) {
                 console.warn(`Invalid chunk key format: ${chunkKey}`);
+                return;
+            }
+            
+            // Validate that environment manager exists
+            if (!this.environmentManager) {
+                console.warn(`Environment manager not available for chunk ${chunkKey}`);
                 return;
             }
             
@@ -1219,64 +1225,96 @@ export class WorldManager {
             let processedCount = 0;
             
             const processBatch = () => {
-                // Calculate end index for this batch
-                const endIdx = Math.min(processedCount + batchSize, totalObjects);
-                
-                // Process this batch
-                for (let i = processedCount; i < endIdx; i++) {
-                    const objData = buffer.environment[i];
-                    
-                    // Validate object data before processing
-                    if (!objData || !objData.position || typeof objData.position.x !== 'number' || typeof objData.position.z !== 'number') {
-                        console.warn(`Invalid environment object data at index ${i} for chunk ${chunkKey}`, objData);
-                        continue;
+                try {
+                    // Validate buffer still exists and hasn't been cleared
+                    if (!buffer || !buffer.environment || !Array.isArray(buffer.environment)) {
+                        console.warn(`Buffer no longer valid for chunk ${chunkKey}`);
+                        return;
                     }
                     
-                    // Create the actual object but don't add to scene yet
-                    if (this.environmentManager && objData.type) {
-                        const object = this.environmentManager.createEnvironmentObject(
-                            objData.type,
-                            objData.position.x,
-                            objData.position.z,
-                            objData.scale || 1.0,
-                            true // offscreenCreation = true
-                        );
+                    // Calculate end index for this batch
+                    const endIdx = Math.min(processedCount + batchSize, totalObjects);
+                    
+                    // Process this batch
+                    for (let i = processedCount; i < endIdx; i++) {
+                        // Check if index is valid
+                        if (i >= buffer.environment.length) {
+                            console.warn(`Index ${i} out of bounds for chunk ${chunkKey} (length: ${buffer.environment.length})`);
+                            continue;
+                        }
                         
-                        // Only process valid objects
-                        if (object) {
-                            // Store the created object with its data
-                            preCreatedObjects.push({
-                                data: objData,
-                                object: object
-                            });
+                        const objData = buffer.environment[i];
+                        
+                        // Validate object data before processing
+                        if (!objData || !objData.position || typeof objData.position.x !== 'number' || typeof objData.position.z !== 'number') {
+                            console.warn(`Invalid environment object data at index ${i} for chunk ${chunkKey}`, objData);
+                            continue;
+                        }
+                        
+                        // Create the actual object but don't add to scene yet
+                        if (this.environmentManager && objData.type) {
+                            let object = null;
                             
-                            // Set rotation if specified and object exists
-                            if (object && objData.rotation !== undefined) {
-                                object.rotation.y = objData.rotation;
+                            try {
+                                object = this.environmentManager.createEnvironmentObject(
+                                    objData.type,
+                                    objData.position.x,
+                                    objData.position.z,
+                                    objData.scale || 1.0,
+                                    true // offscreenCreation = true
+                                );
+                            } catch (createError) {
+                                console.warn(`Error creating environment object of type ${objData.type}:`, createError);
+                                continue;
                             }
                             
-                            // Hide the object until it's added to the scene (only if object exists)
+                            // Only process valid objects
                             if (object) {
-                                object.visible = false;
-                            }
-                            
-                            // Apply LOD if available to improve performance and object exists
-                            if (object && this.lodManager && this.lodManager.applyLODToObject) {
-                                this.lodManager.applyLODToObject(object, objData.type);
+                                // Store the created object with its data
+                                preCreatedObjects.push({
+                                    data: objData,
+                                    object: object
+                                });
+                                
+                                // Set rotation if specified and object exists
+                                if (object && objData.rotation !== undefined) {
+                                    // Double-check that object is still valid and has rotation property
+                                    if (object && object.rotation) {
+                                        object.rotation.y = objData.rotation;
+                                    }
+                                }
+                                
+                                // Hide the object until it's added to the scene (only if object exists)
+                                if (object && object.visible !== undefined) {
+                                    object.visible = false;
+                                }
+                                
+                                // Apply LOD if available to improve performance and object exists
+                                if (object && object.isObject3D && this.lodManager && this.lodManager.applyLODToObject) {
+                                    try {
+                                        this.lodManager.applyLODToObject(object, objData.type);
+                                    } catch (lodError) {
+                                        console.warn(`Error applying LOD to object of type ${objData.type}:`, lodError);
+                                    }
+                                }
                             }
                         }
                     }
-                }
-                
-                // Update processed count
-                processedCount = endIdx;
-                
-                // Store pre-created objects in the buffer after each batch
-                buffer.preCreatedObjects = preCreatedObjects;
-                
-                // If there are more objects to process, schedule the next batch
-                if (processedCount < totalObjects) {
-                    setTimeout(processBatch, 0);
+                    
+                    // Update processed count
+                    processedCount = endIdx;
+                    
+                    // Store pre-created objects in the buffer after each batch
+                    if (buffer) {
+                        buffer.preCreatedObjects = preCreatedObjects;
+                    }
+                    
+                    // If there are more objects to process, schedule the next batch
+                    if (processedCount < totalObjects) {
+                        setTimeout(processBatch, 0);
+                    }
+                } catch (batchError) {
+                    console.error(`Error in processBatch for chunk ${chunkKey}:`, batchError);
                 }
             };
             
