@@ -621,7 +621,7 @@
                     <button id="tab-skills-preview" class="tab-icon" title="Skills Preview">✨</button>
                     <button id="tab-enemy-preview" class="tab-icon" title="Enemy Preview">👹</button>
                     <button id="tab-item-preview" class="tab-icon" title="Item Preview">🎁</button>
-                    <button id="tab-performance" class="tab-icon active" title="Performance">⚡</button>
+                    <button id="tab-debug" class="tab-icon active" title="Debug">🐞</button>
                 </div>
             </div>
             
@@ -658,14 +658,14 @@
                             <div class="settings-description">Sync your game progress across devices</div>
                         </div>
                         
-                        <!-- Game Difficulty Setting -->
-                        <div id="difficulty-container" class="setting-item">
-                            <h3>Game Difficulty</h3>
+                        <!-- Material Quality Settings -->
+                        <div id="material-quality-container" class="setting-item">
+                            <h3>Graphics Quality</h3>
                             <div class="setting-row">
-                                <label for="difficulty-select" class="settings-label">Difficulty Level</label>
-                                <select id="difficulty-select" class="settings-select"></select>
+                                <label for="material-quality-select" class="settings-label">Material Quality</label>
+                                <select id="material-quality-select" class="settings-select"></select>
                             </div>
-                            <div class="settings-description">Choose the difficulty level for your game experience</div>
+                            <div class="settings-description">Adjust the quality of game materials (affects performance)</div>
                         </div>
                         
                         <!-- Custom Skills Setting -->
@@ -676,6 +676,23 @@
                                 <input type="checkbox" id="custom-skills-checkbox" class="settings-checkbox">
                             </div>
                             <div class="settings-description">Include custom skills in the Skill Selection menu</div>
+                        </div>
+
+                         <!-- FPS Setting -->
+                        <div id="fps-container" class="setting-item">
+                            <label for="fps-slider" class="settings-label">Target FPS: </label>
+                            <input type="range" id="fps-slider" class="settings-slider" min="30" max="120" step="5" value="60">
+                            <span id="fps-value" class="settings-value">60 FPS</span>
+                        </div>
+
+                        <!-- Game Difficulty Setting -->
+                        <div id="difficulty-container" class="setting-item">
+                            <h3>Game Difficulty</h3>
+                            <div class="setting-row">
+                                <label for="difficulty-select" class="settings-label">Difficulty Level</label>
+                                <select id="difficulty-select" class="settings-select"></select>
+                            </div>
+                            <div class="settings-description">Choose the difficulty level for your game experience</div>
                         </div>
                         
                         <!-- Camera Settings -->
@@ -689,16 +706,6 @@
                                 </div>
                             </div>
                             <div class="settings-description">Adjust camera distance (higher values = further away)</div>
-                        </div>
-                        
-                        <!-- Material Quality Settings -->
-                        <div id="material-quality-container" class="setting-item">
-                            <h3>Graphics Quality</h3>
-                            <div class="setting-row">
-                                <label for="material-quality-select" class="settings-label">Material Quality</label>
-                                <select id="material-quality-select" class="settings-select"></select>
-                            </div>
-                            <div class="settings-description">Adjust the quality of game materials (affects performance)</div>
                         </div>
                         
                         <!-- Game Control -->
@@ -1019,21 +1026,12 @@
                 </div>
 
                 <!-- Performance Settings Tab -->
-                <div id="performance-tab" class="tab-content">
-                    <h2 id="performance-title">Performance Settings</h2>
-                    <div id="performance-container" class="settings-section">
-                        <div id="quality-container" class="setting-item">
-                            <label for="quality-select" class="settings-label">Quality Preset: </label>
-                            <select id="quality-select" class="settings-select"></select>
-                        </div>
-                        <div id="fps-container" class="setting-item">
-                            <label for="fps-slider" class="settings-label">Target FPS: </label>
-                            <input type="range" id="fps-slider" class="settings-slider" min="30" max="120" step="5" value="60">
-                            <span id="fps-value" class="settings-value">60 FPS</span>
-                        </div>
-                        <div id="show-performance-info-container" class="setting-item">
-                            <label for="show-performance-info-checkbox" class="settings-label">Show Performance Info (FPS, GPU, Quality): </label>
-                            <input type="checkbox" id="show-performance-info-checkbox" class="settings-checkbox" checked>
+                <div id="debug-tab" class="tab-content">
+                    <h2 id="debug-title">Debug Settings</h2>
+                    <div id="debug-container" class="settings-section">
+                        <div id="show-debug-info-container" class="setting-item">
+                            <label for="show-debug-info-checkbox" class="settings-label">Show Performance Info (FPS, GPU, Quality): </label>
+                            <input type="checkbox" id="show-debug-info-checkbox" class="settings-checkbox" checked>
                         </div>
                         <div id="log-enabled-container" class="setting-item">
                             <label for="log-enabled-checkbox" class="settings-label">Enable Console Logs: </label>

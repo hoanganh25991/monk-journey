@@ -4,7 +4,7 @@
  */
 
 import { UIComponent } from '../UIComponent.js';
-import { PerformanceTab } from './settings-menu/PerformanceTab.js';
+import { DebugTab } from './settings-menu/DebugTab.js';
 import { GameplayTab } from './settings-menu/GameplayTab.js';
 import { CharacterModelTab } from './settings-menu/CharacterModelTab.js';
 import { SkillsPreviewTab } from './settings-menu/SkillsPreviewTab.js';
@@ -12,7 +12,6 @@ import { AudioTab } from './settings-menu/AudioTab.js';
 import { ControlsTab } from './settings-menu/ControlsTab.js';
 import { EnemyPreviewTab } from './settings-menu/EnemyPreviewTab.js';
 import { ItemPreviewTab } from './settings-menu/ItemPreviewTab.js';
-import { SaveOperationProgress } from '../save-manager/utils/SaveOperationProgress.js';
 
 export class SettingsMenu extends UIComponent {
     /**
@@ -94,7 +93,7 @@ export class SettingsMenu extends UIComponent {
      */
     initializeTabComponents() {
         // Create tab components
-        this.tabs.performance = new PerformanceTab(this.game, this);
+        this.tabs.debug = new DebugTab(this.game, this);
         this.tabs.game = new GameplayTab(this.game, this);
         this.tabs['model-preview'] = new CharacterModelTab(this.game, this);
         this.tabs['skills-preview'] = new SkillsPreviewTab(this.game, this);

@@ -42,9 +42,6 @@
 /* Import inventory styles */
 @import 'inventory.css';
 
-/* Import performance manager styles */
-@import 'performance-manager.css';
-
 /* Import notifications styles */
 @import 'notifications.css';
 

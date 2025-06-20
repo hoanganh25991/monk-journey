@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import ZONE_TYPES from '../../config/zone.js';
 
 /**
  * Generation Manager class that handles procedural content generation
@@ -385,10 +386,16 @@ export class GenerationManager {
         
         // Use a simple hash to determine zone type
         const hash = Math.abs(zoneX * 73 + zoneZ * 127) % 5;
-        const zoneTypes = ['Forest', 'Desert', 'Mountain', 'Swamp', 'Magical'];
+        const zoneTypes = [
+            ZONE_TYPES.FOREST,
+            ZONE_TYPES.DESERT,
+            ZONE_TYPES.MOUNTAIN,
+            ZONE_TYPES.SWAMP,
+            ZONE_TYPES.MAGICAL
+        ];
         
         // Ensure we have a valid zone type
-        const zoneType = zoneTypes[hash] || 'Forest';
+        const zoneType = zoneTypes[hash] || ZONE_TYPES.FOREST;
         
         return zoneType;
     }

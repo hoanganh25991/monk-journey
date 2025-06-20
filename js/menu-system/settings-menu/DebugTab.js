@@ -1,26 +1,24 @@
 /**
- * PerformanceTab.js
- * Manages the performance settings tab UI component
+ * DebugTab.js
+ * Manages the debug settings tab UI component
  */
 
 import { SettingsTab } from './SettingsTab.js';
 import { STORAGE_KEYS } from '../../config/storage-keys.js';
 import storageService from '../../save-manager/StorageService.js';
 
-export class PerformanceTab extends SettingsTab {
+export class DebugTab extends SettingsTab {
     /**
-     * Create a performance settings tab
+     * Create a debug settings tab
      * @param {import('../../game/Game.js').Game} game - The game instance
      * @param {SettingsMenu} settingsMenu - The parent settings menu
      */
     constructor(game, settingsMenu) {
-        super('performance', game, settingsMenu);
+        super('debug', game, settingsMenu);
         
-        // Performance settings elements
+        // Debug settings elements
         this.adaptiveCheckbox = document.getElementById('adaptive-checkbox');
-        this.fpsSlider = document.getElementById('fps-slider');
-        this.fpsValue = document.getElementById('fps-value');
-        this.showPerformanceInfoCheckbox = document.getElementById('show-performance-info-checkbox');
+        this.showPerformanceInfoCheckbox = document.getElementById('show-debug-info-checkbox');
         this.debugModeCheckbox = document.getElementById('debug-mode-checkbox');
         this.logEnabledCheckbox = document.getElementById('log-enabled-checkbox');
         
@@ -41,10 +39,10 @@ export class PerformanceTab extends SettingsTab {
                 console.error('Error initializing storage service:', error);
             });
         } catch (error) {
-            console.error('Error initializing performance tab:', error);
+            console.error('Error initializing debug tab:', error);
             // Show error in UI if available
             if (this.game && this.game.ui && this.game.ui.notifications) {
-                this.game.ui.notifications.show('Error loading performance settings', 'error');
+                this.game.ui.notifications.show('Error loading debug settings', 'error');
             }
         }
     }
@@ -59,10 +57,6 @@ export class PerformanceTab extends SettingsTab {
         // Update UI based on the key that changed
         if (key === STORAGE_KEYS.ADAPTIVE_QUALITY && this.adaptiveCheckbox) {
             this.adaptiveCheckbox.checked = newValue === true || newValue === 'true';
-        } else if (key === STORAGE_KEYS.TARGET_FPS && this.fpsSlider && this.fpsValue) {
-            const parsedFPS = parseInt(newValue) || 60;
-            this.fpsSlider.value = parsedFPS;
-            this.fpsValue.textContent = parsedFPS;
         } else if (key === STORAGE_KEYS.SHOW_PERFORMANCE_INFO && this.showPerformanceInfoCheckbox) {
             this.showPerformanceInfoCheckbox.checked = newValue === true || newValue === 'true';
         } else if (key === STORAGE_KEYS.DEBUG_MODE && this.debugModeCheckbox) {
@@ -73,7 +67,7 @@ export class PerformanceTab extends SettingsTab {
     }
     
     /**
-     * Initialize the performance settings
+     * Initialize the debug settings
      * @returns {boolean} - True if initialization was successful
      */
     initSettings() {
@@ -93,37 +87,6 @@ export class PerformanceTab extends SettingsTab {
                 if (this.game && this.game.renderer) {
                     this.game.useAdaptiveQuality = this.adaptiveCheckbox.checked;
                 }
-            });
-        }
-        
-        if (this.fpsSlider && this.fpsValue) {
-            // Set current target FPS synchronously
-            const targetFPS = this.loadSettingSync(STORAGE_KEYS.TARGET_FPS, 60);
-            const parsedFPS = parseInt(targetFPS) || 60;
-            this.fpsSlider.value = parsedFPS;
-            this.fpsValue.textContent = parsedFPS;
-            
-            // Add input event listener with debounce
-            let fpsDebounceTimeout = null;
-            this.fpsSlider.addEventListener('input', () => {
-                const value = parseInt(this.fpsSlider.value);
-                this.fpsValue.textContent = value;
-                
-                // Clear previous timeout
-                if (fpsDebounceTimeout) {
-                    clearTimeout(fpsDebounceTimeout);
-                }
-                
-                // Set new timeout for saving
-                fpsDebounceTimeout = setTimeout(() => {
-                    // Save immediately to localStorage
-                    this.saveSetting(STORAGE_KEYS.TARGET_FPS, value.toString());
-                    
-                    // Apply target FPS immediately if game is available
-                    if (this.game) {
-                        this.game.targetFPS = value;
-                    }
-                }, 300); // Reduced debounce time
             });
         }
         
@@ -198,7 +161,7 @@ export class PerformanceTab extends SettingsTab {
     }
     
     /**
-     * Save the performance settings
+     * Save the debug settings
      * @returns {Promise<boolean>}
      */
     async saveSettings() {
@@ -210,10 +173,6 @@ export class PerformanceTab extends SettingsTab {
         
         if (this.adaptiveCheckbox) {
             savePromises.push(this.saveSetting(STORAGE_KEYS.ADAPTIVE_QUALITY, this.adaptiveCheckbox.checked.toString()));
-        }
-        
-        if (this.fpsSlider) {
-            savePromises.push(this.saveSetting(STORAGE_KEYS.TARGET_FPS, this.fpsSlider.value));
         }
         
         if (this.showPerformanceInfoCheckbox) {
@@ -234,7 +193,7 @@ export class PerformanceTab extends SettingsTab {
     }
     
     /**
-     * Reset the performance settings to defaults
+     * Reset the debug settings to defaults
      * @returns {Promise<boolean>}
      */
     async resetToDefaults() {
@@ -242,11 +201,6 @@ export class PerformanceTab extends SettingsTab {
             async () => {
                 if (this.adaptiveCheckbox) {
                     this.adaptiveCheckbox.checked = true;
-                }
-                
-                if (this.fpsSlider && this.fpsValue) {
-                    this.fpsSlider.value = 60;
-                    this.fpsValue.textContent = 60;
                 }
                 
                 if (this.showPerformanceInfoCheckbox) {
@@ -267,7 +221,7 @@ export class PerformanceTab extends SettingsTab {
                 return true;
             },
             'save',
-            'Resetting performance settings...'
+            'Resetting debug settings...'
         );
     }
 }

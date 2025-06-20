@@ -35,6 +35,10 @@ export class GameplayTab extends SettingsTab {
         this.cameraZoomSlider = document.getElementById('camera-zoom-slider');
         this.cameraZoomValue = document.getElementById('camera-zoom-value');
         
+        // FPS settings (moved from PerformanceTab)
+        this.fpsSlider = document.getElementById('fps-slider');
+        this.fpsValue = document.getElementById('fps-value');
+        
         // Material quality settings
         this.materialQualitySelect = document.getElementById('material-quality-select');
         
@@ -87,6 +91,10 @@ export class GameplayTab extends SettingsTab {
             if (this.cameraZoomValue) {
                 this.cameraZoomValue.textContent = zoomValue;
             }
+        } else if (key === STORAGE_KEYS.TARGET_FPS && this.fpsSlider && this.fpsValue) {
+            const parsedFPS = parseInt(newValue) || 60;
+            this.fpsSlider.value = parsedFPS;
+            this.fpsValue.textContent = parsedFPS;
         } else if (key === STORAGE_KEYS.QUALITY_LEVEL && this.materialQualitySelect) {
             this.materialQualitySelect.value = newValue || 'high';
         }
@@ -265,6 +273,38 @@ export class GameplayTab extends SettingsTab {
                     // Store the zoom value
                     this.saveSetting(STORAGE_KEYS.CAMERA_ZOOM, zoomValue.toString());
                 }, 300); // Debounce for 300ms
+            });
+        }
+        
+        // Initialize FPS slider if it exists (moved from PerformanceTab)
+        if (this.fpsSlider && this.fpsValue) {
+            // Set current target FPS synchronously
+            const targetFPS = this.loadSettingSync(STORAGE_KEYS.TARGET_FPS, 60);
+            const parsedFPS = parseInt(targetFPS) || 60;
+            this.fpsSlider.value = parsedFPS;
+            this.fpsValue.textContent = parsedFPS;
+            
+            // Add input event listener with debounce
+            let fpsDebounceTimeout = null;
+            this.fpsSlider.addEventListener('input', () => {
+                const value = parseInt(this.fpsSlider.value);
+                this.fpsValue.textContent = value;
+                
+                // Clear previous timeout
+                if (fpsDebounceTimeout) {
+                    clearTimeout(fpsDebounceTimeout);
+                }
+                
+                // Set new timeout for saving
+                fpsDebounceTimeout = setTimeout(() => {
+                    // Save immediately to localStorage
+                    this.saveSetting(STORAGE_KEYS.TARGET_FPS, value.toString());
+                    
+                    // Apply target FPS immediately if game is available
+                    if (this.game) {
+                        this.game.targetFPS = value;
+                    }
+                }, 300); // Reduced debounce time
             });
         }
         
@@ -487,6 +527,10 @@ export class GameplayTab extends SettingsTab {
             savePromises.push(this.saveSetting(STORAGE_KEYS.CAMERA_ZOOM, parseInt(this.cameraZoomSlider.value).toString()));
         }
         
+        if (this.fpsSlider) {
+            savePromises.push(this.saveSetting(STORAGE_KEYS.TARGET_FPS, parseInt(this.fpsSlider.value).toString()));
+        }
+        
         if (this.materialQualitySelect) {
             const materialQuality = this.materialQualitySelect.value || 'high';
             savePromises.push(this.saveSetting(STORAGE_KEYS.MATERIAL_QUALITY, materialQuality));
@@ -521,6 +565,11 @@ export class GameplayTab extends SettingsTab {
             if (this.cameraZoomValue) {
                 this.cameraZoomValue.textContent = 20;
             }
+        }
+        
+        if (this.fpsSlider && this.fpsValue) {
+            this.fpsSlider.value = 60; // Default FPS
+            this.fpsValue.textContent = 60;
         }
         
         if (this.materialQualitySelect) {

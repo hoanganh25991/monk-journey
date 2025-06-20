@@ -4,12 +4,12 @@
  */
 
 const CACHE_NAME = 'monk-journey-cache';
-const CACHE_VERSION = '43';
+const CACHE_VERSION = '44';
 const CACHE_KEY = CACHE_NAME + '-v' + CACHE_VERSION;
 
 
 // Total cache size in bytes and MB
-const TOTAL_CACHE_SIZE_BYTES = 8269036;
+const TOTAL_CACHE_SIZE_BYTES = 8268798;
 const TOTAL_CACHE_SIZE_MB = 7.89;
 
 // Assets to cache
@@ -45,7 +45,6 @@ const ASSETS_TO_CACHE = [
   'css/multiplayer.css',
   'css/notifications.css',
   'css/orientation-message.css',
-  'css/performance-manager.css',
   'css/reset.css',
   'css/settings/base.css',
   'css/settings/buttons.css',
@@ -262,10 +261,10 @@ const ASSETS_TO_CACHE = [
   'js/menu-system/settings-menu/AudioTab.js',
   'js/menu-system/settings-menu/CharacterModelTab.js',
   'js/menu-system/settings-menu/ControlsTab.js',
+  'js/menu-system/settings-menu/DebugTab.js',
   'js/menu-system/settings-menu/EnemyPreviewTab.js',
   'js/menu-system/settings-menu/GameplayTab.js',
   'js/menu-system/settings-menu/ItemPreviewTab.js',
-  'js/menu-system/settings-menu/PerformanceTab.js',
   'js/menu-system/settings-menu/ReleaseTab.js',
   'js/menu-system/settings-menu/SettingsTab.js',
   'js/menu-system/settings-menu/SkillPreview.js',
@@ -505,7 +504,7 @@ const FILE_SIZES =   {
     "css/main.css": 1255,
     "css/notifications.css": 2324,
     "css/orientation-message.css": 438,
-    "css/performance-manager.css": 1496,
+    "css/debug-manager.css": 1496,
     "css/reset.css": 1275,
     "css/settings-menu.css": 20658,
     "css/skill-preview.css": 1780,

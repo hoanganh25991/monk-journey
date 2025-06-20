@@ -10,6 +10,7 @@ import { TeleportManager } from './teleport/TeleportManager.js';
 import { LODManager } from './LODManager.js';
 import { ENVIRONMENT_OBJECTS, THEME_SPECIFIC_OBJECTS, CROSS_THEME_FEATURES } from '../config/environment.js';
 import { STRUCTURE_OBJECTS } from '../config/structure.js';
+import ZONE_TYPES from '../config/zone.js';
 
 // Import new modular managers
 import { PerformanceManager } from './managers/PerformanceManager.js';
@@ -80,7 +81,7 @@ export class WorldManager {
         
         // Zone definitions and densities
         this.zoneDensities = {
-            'Forest': { 
+            [ZONE_TYPES.FOREST]: { 
                 environment: 1.5, // Reduced from 2.5
                 structures: 0.25, // Reduced from 0.4
                 environmentTypes: [
@@ -100,7 +101,7 @@ export class WorldManager {
                 ],
                 structureTypes: ['ruins', 'village', 'house', 'tower', 'temple', 'altar']
             },
-            'Desert': { 
+            [ZONE_TYPES.DESERT]: { 
                 environment: 1.0, // Reduced from 1.8
                 structures: 0.2, // Reduced from 0.35
                 environmentTypes: [
@@ -116,7 +117,7 @@ export class WorldManager {
                 ],
                 structureTypes: ['ruins', 'temple', 'altar', 'house', 'tower']
             },
-            'Mountain': { 
+            [ZONE_TYPES.MOUNTAIN]: { 
                 environment: 1.2, // Reduced from 2.0
                 structures: 0.18, // Reduced from 0.3
                 environmentTypes: [
@@ -132,7 +133,7 @@ export class WorldManager {
                 ],
                 structureTypes: ['ruins', 'fortress', 'tower', 'mountain', 'house', 'altar']
             },
-            'Swamp': { 
+            [ZONE_TYPES.SWAMP]: { 
                 environment: 1.8, // Reduced from 3.0
                 structures: 0.25, // Reduced from 0.4
                 environmentTypes: [
@@ -149,7 +150,7 @@ export class WorldManager {
                 ],
                 structureTypes: ['ruins', 'dark_sanctum', 'altar', 'house', 'tower']
             },
-            'Magical': { 
+            [ZONE_TYPES.MAGICAL]: { 
                 environment: 1.5, // Reduced from 2.5
                 structures: 0.25, // Reduced from 0.45
                 environmentTypes: [
@@ -757,10 +758,10 @@ export class WorldManager {
         let landmarkType = 'ruins'; // Default
         
         switch (zoneType) {
-            case 'Forest':
+            case ZONE_TYPES.FOREST:
                 landmarkType = Math.random() < 0.5 ? 'ancient_tree' : 'village';
                 break;
-            case 'Desert':
+            case ZONE_TYPES.DESERT:
                 landmarkType = Math.random() < 0.5 ? 'temple' : 'oasis';
                 break;
             case 'Mountain':
