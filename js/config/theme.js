@@ -96,7 +96,7 @@ export const COLORS = {
             fog: '#909090',      // Lighter gray fog for ruins
         },
         // Dark Sanctum environment
-        darkSanctum: {
+        dark_sanctum: {
             structure: '#0C0C0C', // Obsidian Black
             fire: '#FF4500',     // Flame Orange
             ground: '#5C4033',   // Charred Brown

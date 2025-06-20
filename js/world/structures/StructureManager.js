@@ -58,13 +58,13 @@ export class StructureManager {
                     type: STRUCTURE_OBJECTS.DARK_SANCTUM,
                     object: darkSanctum,
                     position: new THREE.Vector3(0, 0, -40),
-                    id: 'initial_darkSanctum'
+                    id: 'initial_dark_sanctum'
                 });
             }
             
             // Mark these initial structures as placed
             this.specialStructures['initial_ruins'] = { x: 0, z: 0, type: STRUCTURE_OBJECTS.RUINS };
-            this.specialStructures['initial_darkSanctum'] = { x: 0, z: -40, type: STRUCTURE_OBJECTS.DARK_SANCTUM };
+            this.specialStructures['initial_dark_sanctum'] = { x: 0, z: -40, type: STRUCTURE_OBJECTS.DARK_SANCTUM };
             
             console.debug("Initial structures created");
         } else {
@@ -658,10 +658,10 @@ export class StructureManager {
             
             // Create the actual 3D objects for important structures
             structures.forEach(structure => {
-                // Only create important structures like darkSanctum
+                // Only create important structures like dark_sanctum
                 if (structure.type === STRUCTURE_OBJECTS.DARK_SANCTUM) {
                     this.structureFactory.createStructure(structure.type, { x: structure.x, z: structure.z });
-                    this.specialStructures[`darkSanctum_${chunkKey}_${structures.indexOf(structure)}`] = { 
+                    this.specialStructures[`dark_sanctum_${chunkKey}_${structures.indexOf(structure)}`] = { 
                         x: structure.x, z: structure.z, type: structure.type 
                     };
                 }

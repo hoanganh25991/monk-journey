@@ -212,7 +212,7 @@ export class PlayerMovement {
     setPosition(x, y, z) {
         // Validate input coordinates
         if (isNaN(x) || isNaN(y) || isNaN(z)) {
-            console.warn("Attempted to set invalid player position:", x, y, z);
+            console.debug("Attempted to set invalid player position:", x, y, z);
             // Use last valid position or default to origin
             return;
         }

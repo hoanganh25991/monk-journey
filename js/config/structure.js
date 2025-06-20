@@ -15,7 +15,7 @@ export const STRUCTURE_OBJECTS = {
     HOUSE: 'house',
     TOWER: 'tower',
     RUINS: 'ruins',
-    DARK_SANCTUM: 'darkSanctum',
+    DARK_SANCTUM: 'dark_sanctum', // Changed from 'darkSanctum' to 'dark_sanctum' for consistency
     MOUNTAIN: 'mountain',
     BRIDGE: 'bridge',
     VILLAGE: 'village',
