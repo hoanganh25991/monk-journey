@@ -235,7 +235,7 @@ export class CameraControlUI extends UIComponent {
         toggleButton.style.border = 'none';
         toggleButton.style.borderRadius = '4px';
         toggleButton.style.cursor = 'pointer';
-        toggleButton.style.display = 'none';
+        toggleButton.style.display = 'none'; // TODO: enable when need adjust
         
         toggleButton.addEventListener('click', () => {
             if (container.style.display === 'none') {
