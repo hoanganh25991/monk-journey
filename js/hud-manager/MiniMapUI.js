@@ -1,5 +1,6 @@
 import { UIComponent } from '../UIComponent.js';
 import * as THREE from 'three';
+import { STRUCTURE_OBJECTS, STRUCTURE_PROPERTIES } from '../config/structure.js';
 
 /**
  * Mini Map UI component
@@ -25,7 +26,7 @@ export class MiniMapUI extends UIComponent {
         this.ctx = null;
         
         // Adjust map size based on device
-        this.mapSize = this.mobile ? 160 : 200; // Smaller size on mobile
+        this.mapSize = this.mobile ? 120 : 200; // Smaller size on mobile
         this.canvasSize = this.mapSize; // Canvas size matches map size
         this.scale = 1; // Scale factor for world coverage
         this.lastRenderTime = 0;
@@ -378,7 +379,10 @@ export class MiniMapUI extends UIComponent {
         this.drawGrid(centerX, centerY, radius);
         
         // Draw large structures (towers, villages)
-        this.drawLargeStructures(playerX, playerY, centerX, centerY);
+        this.drawStructures(playerX, playerY, centerX, centerY);
+
+        // Draw teleport portals
+        this.drawTeleportPortals(playerX, playerY, centerX, centerY);
         
         // Draw enemies
         this.drawEnemies(playerX, playerY, centerX, centerY);
@@ -508,132 +512,166 @@ export class MiniMapUI extends UIComponent {
      * @param {number} centerX - Center X of the mini map
      * @param {number} centerY - Center Y of the mini map
      */
-    drawLargeStructures(playerX, playerY, centerX, centerY) {
-        const world = this.game.world;
+    drawStructures(playerX, playerY, centerX, centerY) {
+        // Get structures from the structure manager
+        const structures = this.game.world.structureManager.structures;
+        if (!structures || structures.length === 0) return;
         
-        // Draw teleport portals first (underneath other structures)
-        this.drawTeleportPortals(playerX, playerY, centerX, centerY);
+        // Create dynamic color mapping based on structure types
+        // Define base colors for different structure categories
+        const baseColors = {
+            building: 'rgba(139, 69, 19, 0.7)',    // Brown for buildings
+            landmark: 'rgba(100, 100, 100, 0.8)',  // Gray for landmarks
+            religious: 'rgba(218, 165, 32, 0.7)',  // Gold for religious structures
+            military: 'rgba(72, 60, 50, 0.8)',     // Dark brown for military
+            ancient: 'rgba(120, 120, 120, 0.7)',   // Light gray for ruins
+            magical: 'rgba(75, 0, 130, 0.8)',      // Purple for magical structures
+            natural: 'rgba(90, 77, 65, 0.7)'       // Earth tone for natural structures
+        };
         
-        // Draw buildings if available
-        if (world.getBuildings) {
-            const buildings = world.getBuildings();
-            if (buildings && buildings.length > 0) {
-                this.ctx.fillStyle = 'rgba(139, 69, 19, 0.7)'; // Brown color for buildings
-                
-                buildings.forEach(building => {
-                    // Only draw large structures
-                    if (!building.isLarge) return;
-                    
-                    // Calculate position relative to player
-                    const relX = (building.position.x - playerX) * this.scale;
-                    const relY = (building.position.z - playerY) * this.scale;
-                    
-                    // Apply map offset
-                    const screenX = centerX + relX + this.mapOffsetX;
-                    const screenY = centerY + relY + this.mapOffsetY;
-                    
-                    // Calculate distance from center (for circular bounds check)
-                    const distFromCenter = Math.sqrt(
-                        Math.pow(screenX - centerX, 2) + 
-                        Math.pow(screenY - centerY, 2)
-                    );
-                    
-                    // Only draw if within circular mini map bounds
-                    if (distFromCenter <= (this.mapSize / 2 - 2)) {
-                        // Draw building marker (square for buildings)
-                        const size = building.size || 5;
-                        this.ctx.fillRect(screenX - size/2, screenY - size/2, size, size);
-                        
-                        // Add outline
-                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                        this.ctx.lineWidth = 1;
-                        this.ctx.strokeRect(screenX - size/2, screenY - size/2, size, size);
-                    }
-                });
+        // Map structure types to color categories
+        const structureCategories = {
+            [STRUCTURE_OBJECTS.HOUSE]: 'building',
+            [STRUCTURE_OBJECTS.VILLAGE]: 'landmark',
+            [STRUCTURE_OBJECTS.TOWER]: 'military',
+            [STRUCTURE_OBJECTS.TEMPLE]: 'religious',
+            [STRUCTURE_OBJECTS.FORTRESS]: 'military',
+            [STRUCTURE_OBJECTS.RUINS]: 'ancient',
+            [STRUCTURE_OBJECTS.DARK_SANCTUM]: 'magical',
+            [STRUCTURE_OBJECTS.MOUNTAIN]: 'natural',
+            [STRUCTURE_OBJECTS.TAVERN]: 'building',
+            [STRUCTURE_OBJECTS.SHOP]: 'building',
+            [STRUCTURE_OBJECTS.ALTAR]: 'religious',
+            [STRUCTURE_OBJECTS.BRIDGE]: 'landmark'
+        };
+        
+        // Generate color map dynamically from structure objects
+        const structureColorMap = Object.keys(STRUCTURE_OBJECTS).reduce((map, key) => {
+            const structureType = STRUCTURE_OBJECTS[key].toLowerCase();
+            const category = structureCategories[STRUCTURE_OBJECTS[key]] || 'building';
+            map[structureType] = baseColors[category];
+            return map;
+        }, {});
+        
+        // Define shape categories
+        const shapeCategories = {
+            building: 'square',     // Buildings are squares
+            landmark: 'circle',     // Landmarks are circles
+            tall: 'triangle',       // Tall structures are triangles
+            religious: 'square',    // Religious buildings are squares
+            ancient: 'square'       // Ancient structures are squares
+        };
+        
+        // Map structure types to shape categories
+        const structureShapeCategories = {
+            [STRUCTURE_OBJECTS.HOUSE]: 'building',
+            [STRUCTURE_OBJECTS.VILLAGE]: 'landmark',
+            [STRUCTURE_OBJECTS.TOWER]: 'tall',
+            [STRUCTURE_OBJECTS.TEMPLE]: 'religious',
+            [STRUCTURE_OBJECTS.FORTRESS]: 'building',
+            [STRUCTURE_OBJECTS.RUINS]: 'ancient',
+            [STRUCTURE_OBJECTS.DARK_SANCTUM]: 'tall',
+            [STRUCTURE_OBJECTS.MOUNTAIN]: 'tall',
+            [STRUCTURE_OBJECTS.TAVERN]: 'building',
+            [STRUCTURE_OBJECTS.SHOP]: 'building',
+            [STRUCTURE_OBJECTS.ALTAR]: 'religious',
+            [STRUCTURE_OBJECTS.BRIDGE]: 'landmark'
+        };
+        
+        // Generate shape map dynamically
+        const structureShapeMap = Object.keys(STRUCTURE_OBJECTS).reduce((map, key) => {
+            const structureType = STRUCTURE_OBJECTS[key].toLowerCase();
+            const category = structureShapeCategories[STRUCTURE_OBJECTS[key]] || 'building';
+            map[structureType] = shapeCategories[category];
+            return map;
+        }, {});
+        
+        // Generate size map dynamically based on structure properties
+        const structureSizeMap = Object.keys(STRUCTURE_OBJECTS).reduce((map, key) => {
+            const structureType = STRUCTURE_OBJECTS[key].toLowerCase();
+            const properties = STRUCTURE_PROPERTIES[STRUCTURE_OBJECTS[key]];
+            
+            // Calculate size based on width and height properties
+            // This ensures that larger structures in the game world appear larger on the map
+            if (properties) {
+                // Base size on the average of width and height, scaled down for the map
+                const baseSize = (properties.width + properties.height) / 2;
+                // Scale to reasonable map icon sizes (between 4 and 8)
+                map[structureType] = Math.max(4, Math.min(8, Math.floor(baseSize / 3)));
+            } else {
+                // Default size if properties not found
+                map[structureType] = 5;
             }
-        }
+            
+            return map;
+        }, {});
         
-        // Draw towers if available
-        if (world.getTowers) {
-            const towers = world.getTowers();
-            if (towers && towers.length > 0) {
-                this.ctx.fillStyle = 'rgba(100, 100, 100, 0.8)'; // Gray color for towers
-                
-                towers.forEach(tower => {
-                    // Calculate position relative to player
-                    const relX = (tower.position.x - playerX) * this.scale;
-                    const relY = (tower.position.z - playerY) * this.scale;
-                    
-                    // Apply map offset
-                    const screenX = centerX + relX + this.mapOffsetX;
-                    const screenY = centerY + relY + this.mapOffsetY;
-                    
-                    // Calculate distance from center (for circular bounds check)
-                    const distFromCenter = Math.sqrt(
-                        Math.pow(screenX - centerX, 2) + 
-                        Math.pow(screenY - centerY, 2)
-                    );
-                    
-                    // Only draw if within circular mini map bounds
-                    if (distFromCenter <= (this.mapSize / 2 - 2)) {
-                        // Draw tower marker (triangle for towers)
-                        const size = 6;
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(screenX, screenY - size);
-                        this.ctx.lineTo(screenX + size, screenY + size/2);
-                        this.ctx.lineTo(screenX - size, screenY + size/2);
-                        this.ctx.closePath();
-                        this.ctx.fill();
-                        
-                        // Add outline
-                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                        this.ctx.lineWidth = 1;
-                        this.ctx.stroke();
-                    }
-                });
+        // Helper function to generate a consistent color from a string
+        const generateColorFromString = (str) => {
+            // Simple hash function to generate a number from a string
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
             }
-        }
+            
+            // Convert to RGB with good opacity for the map
+            const r = Math.abs((hash & 0xFF0000) >> 16);
+            const g = Math.abs((hash & 0x00FF00) >> 8);
+            const b = Math.abs(hash & 0x0000FF);
+            
+            return `rgba(${r}, ${g}, ${b}, 0.75)`;
+        };
         
-        // Draw villages if available
-        if (world.getVillages) {
-            const villages = world.getVillages();
-            if (villages && villages.length > 0) {
-                this.ctx.fillStyle = 'rgba(160, 82, 45, 0.7)'; // Sienna color for villages
-                
-                villages.forEach(village => {
-                    // Calculate position relative to player
-                    const relX = (village.position.x - playerX) * this.scale;
-                    const relY = (village.position.z - playerY) * this.scale;
-                    
-                    // Apply map offset
-                    const screenX = centerX + relX + this.mapOffsetX;
-                    const screenY = centerY + relY + this.mapOffsetY;
-                    
-                    // Calculate distance from center (for circular bounds check)
-                    const distFromCenter = Math.sqrt(
-                        Math.pow(screenX - centerX, 2) + 
-                        Math.pow(screenY - centerY, 2)
-                    );
-                    
-                    // Only draw if within circular mini map bounds
-                    if (distFromCenter <= (this.mapSize / 2 - 2)) {
-                        // Draw village marker (circle with dot for villages)
-                        const size = 7;
-                        
-                        // Outer circle
-                        this.ctx.beginPath();
-                        this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
-                        this.ctx.fill();
-                        
-                        // Inner dot (white)
-                        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                        this.ctx.beginPath();
-                        this.ctx.arc(screenX, screenY, size/3, 0, Math.PI * 2);
-                        this.ctx.fill();
-                    }
-                });
+        // Helper function to draw a structure at a given position
+        const drawStructure = (position, type, size = 5, shape = 'square') => {
+            // Calculate position relative to player
+            const relX = (position.x - playerX) * this.scale;
+            const relY = (position.z - playerY) * this.scale;
+            
+            // Apply map offset
+            const screenX = centerX + relX + this.mapOffsetX;
+            const screenY = centerY + relY + this.mapOffsetY;
+            
+            // Get color based on type (use predefined if available, otherwise generate)
+            const color = structureColorMap[type] || generateColorFromString(type);
+            
+            // Set fill style
+            this.ctx.fillStyle = color;
+            
+            // Draw the shape based on type
+            if (shape === 'square') {
+                // Square for buildings
+                this.ctx.fillRect(screenX - size/2, screenY - size/2, size, size);
+            } else if (shape === 'triangle') {
+                // Triangle for towers
+                this.ctx.beginPath();
+                this.ctx.moveTo(screenX, screenY - size);
+                this.ctx.lineTo(screenX + size, screenY + size/2);
+                this.ctx.lineTo(screenX - size, screenY + size/2);
+                this.ctx.closePath();
+                this.ctx.fill();
+            } else if (shape === 'circle') {
+                // Circle for villages
+                this.ctx.beginPath();
+                this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
+                this.ctx.fill();
             }
-        }
+        };
+        
+        // Draw all structures from the structure manager
+        structures.forEach(structure => {
+            if (structure && structure.position) {
+                // Get the structure type (normalize to lowercase for consistency)
+                const type = (structure.type || '').toLowerCase();
+                
+                // Get shape and size based on type
+                const shape = structureShapeMap[type] || 'square';
+                const size = structureSizeMap[type] || 5;
+                
+                // Draw the structure
+                drawStructure(structure.position, type, size, shape);
+            }
+        });
     }
     
     /**
@@ -727,18 +765,19 @@ export class MiniMapUI extends UIComponent {
      * @param {number} centerY - Center Y of the mini map
      */
     drawEnemies(playerX, playerY, centerX, centerY) {
-        // Get all entities
-        const entities = this.game.world.getEntities ? this.game.world.getEntities() : [];
+        // Check if enemyManager exists
+        if (!this.game.enemyManager) return;
         
-        // Filter out enemies
-        const enemies = entities.filter(entity => entity.isEnemy);
+        // Get enemies from the Map
+        const enemiesMap = this.game.enemyManager.enemies;
         
-        if (enemies.length > 0) {
+        if (enemiesMap.size > 0) {
             this.ctx.fillStyle = 'rgba(255, 0, 0, 0.8)'; // Red color for enemies
             
-            enemies.forEach(enemy => {
+            // Iterate through the Map entries
+            for (const [id, enemy] of enemiesMap.entries()) {
                 // Skip entities without position
-                if (!enemy.getPosition) return;
+                if (!enemy.getPosition) continue;
                 
                 // Calculate position relative to player
                 const relX = (enemy.getPosition().x - playerX) * this.scale;
@@ -768,7 +807,7 @@ export class MiniMapUI extends UIComponent {
                     this.ctx.arc(screenX, screenY, 3, 0, Math.PI * 2);
                     this.ctx.stroke();
                 }
-            });
+            }
         }
     }
     
@@ -794,9 +833,9 @@ export class MiniMapUI extends UIComponent {
         }
         
         // Draw each remote player
-        remotePlayers.forEach((remotePlayer, peerId) => {
+        for (const [peerId, remotePlayer] of remotePlayers.entries()) {
             // Skip if player doesn't have a position
-            if (!remotePlayer.group) return;
+            if (!remotePlayer.group) continue;
             
             // Get position from the group
             const position = remotePlayer.group.position;
@@ -847,7 +886,7 @@ export class MiniMapUI extends UIComponent {
                     this.ctx.stroke();
                 }
             }
-        });
+        }
     }
     
     /**
