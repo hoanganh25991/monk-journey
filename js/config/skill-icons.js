@@ -99,6 +99,11 @@ export const SKILL_ICONS = {
         cssClass: "icon-zephyrs-grace",
         color: "#ccffff"
     },
+    "Bul Breath Of Heaven": {
+        emoji: "💨",
+        cssClass: "icon-bul-breath-of-heaven",
+        color: "#33ff00"
+    },
 
     // Cyclone Strike variants
     "Frigid Cyclone": {
@@ -157,6 +162,11 @@ export const SKILL_ICONS = {
         emoji: "❄️",
         cssClass: "icon-icy-palm",
         color: "#aaddff"
+    },
+    "Bul Palm": {
+        emoji: "👊",
+        cssClass: "icon-bul-palm",
+        color: "#1e90ff"
     },
 
     // Flying Dragon variants
@@ -665,7 +675,7 @@ export const SKILL_ICONS = {
         color: "#000000"
     },
     "Bul Palm": {
-        emoji: "🌿",
+        emoji: "👊",
         cssClass: "icon-bul-palm",
         color: "#1e90ff"
     },
@@ -678,11 +688,6 @@ export const SKILL_ICONS = {
         emoji: "☔",
         cssClass: "icon-palm-rain",
         color: "#3399ff"
-    },
-    "Bul Breath Of Heaven": {
-        emoji: "🌿",
-        cssClass: "icon-bul-breath-of-heaven",
-        color: "#33ff00"
     },
     // Generic buff icons
     "buff-damage": {

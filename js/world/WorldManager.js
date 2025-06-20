@@ -11,6 +11,7 @@ import { LODManager } from './LODManager.js';
 import { ENVIRONMENT_OBJECTS, THEME_SPECIFIC_OBJECTS, CROSS_THEME_FEATURES } from '../config/environment.js';
 import { STRUCTURE_OBJECTS } from '../config/structure.js';
 import ZONE_TYPES from '../config/zone.js';
+import { DENSITY_LEVELS, ZONE_ENVIRONMENT_DENSITY, ZONE_STRUCTURE_DENSITY } from '../config/density.js';
 
 // Import new modular managers
 import { PerformanceManager } from './managers/PerformanceManager.js';
@@ -68,22 +69,17 @@ export class WorldManager {
         // Dynamic world generation settings
         this.dynamicWorldEnabled = true;
         
-        // Environment density levels - reduced for better performance
-        this.densityLevels = {
-            high: 2.0,    // Reduced from 3.0
-            medium: 1.2,  // Reduced from 2.0
-            low: 0.6,     // Reduced from 1.0
-            minimal: 0.3  // Reduced from 0.5
-        };
+        // Environment density levels - using constants from config
+        this.densityLevels = DENSITY_LEVELS;
         
-        this.environmentDensity = this.densityLevels.medium; // Default to medium density
+        this.environmentDensity = this.densityLevels.MEDIUM; // Default to medium density
         this.worldScale = 1.0; // Scale factor to make objects appear farther apart
         
         // Zone definitions and densities
         this.zoneDensities = {
             [ZONE_TYPES.FOREST]: { 
-                environment: 1.5, // Reduced from 2.5
-                structures: 0.25, // Reduced from 0.4
+                environment: ZONE_ENVIRONMENT_DENSITY.FOREST,
+                structures: ZONE_STRUCTURE_DENSITY.FOREST,
                 environmentTypes: [
                     ENVIRONMENT_OBJECTS.TREE,
                     ENVIRONMENT_OBJECTS.BUSH,
@@ -99,11 +95,18 @@ export class WorldManager {
                     ENVIRONMENT_OBJECTS.FOREST_DEBRIS,
                     ENVIRONMENT_OBJECTS.SMALL_MUSHROOM
                 ],
-                structureTypes: ['ruins', 'village', 'house', 'tower', 'temple', 'altar']
+                structureTypes: [
+                    STRUCTURE_OBJECTS.RUINS,
+                    STRUCTURE_OBJECTS.VILLAGE,
+                    STRUCTURE_OBJECTS.HOUSE,
+                    STRUCTURE_OBJECTS.TOWER,
+                    STRUCTURE_OBJECTS.TEMPLE,
+                    STRUCTURE_OBJECTS.ALTAR
+                ]
             },
             [ZONE_TYPES.DESERT]: { 
-                environment: 1.0, // Reduced from 1.8
-                structures: 0.2, // Reduced from 0.35
+                environment: ZONE_ENVIRONMENT_DENSITY.DESERT,
+                structures: ZONE_STRUCTURE_DENSITY.DESERT,
                 environmentTypes: [
                     ENVIRONMENT_OBJECTS.DESERT_PLANT,
                     ENVIRONMENT_OBJECTS.OASIS,
@@ -115,11 +118,17 @@ export class WorldManager {
                     ENVIRONMENT_OBJECTS.LAVA_ROCK,
                     ENVIRONMENT_OBJECTS.OBSIDIAN
                 ],
-                structureTypes: ['ruins', 'temple', 'altar', 'house', 'tower']
+                structureTypes: [
+                    STRUCTURE_OBJECTS.RUINS,
+                    STRUCTURE_OBJECTS.TEMPLE,
+                    STRUCTURE_OBJECTS.ALTAR,
+                    STRUCTURE_OBJECTS.HOUSE,
+                    STRUCTURE_OBJECTS.TOWER
+                ]
             },
             [ZONE_TYPES.MOUNTAIN]: { 
-                environment: 1.2, // Reduced from 2.0
-                structures: 0.18, // Reduced from 0.3
+                environment: ZONE_ENVIRONMENT_DENSITY.MOUNTAIN,
+                structures: ZONE_STRUCTURE_DENSITY.MOUNTAIN,
                 environmentTypes: [
                     ENVIRONMENT_OBJECTS.PINE_TREE,
                     ENVIRONMENT_OBJECTS.MOUNTAIN_ROCK,
@@ -131,11 +140,18 @@ export class WorldManager {
                     ENVIRONMENT_OBJECTS.ROCK_FORMATION,
                     ENVIRONMENT_OBJECTS.TREE
                 ],
-                structureTypes: ['ruins', 'fortress', 'tower', 'mountain', 'house', 'altar']
+                structureTypes: [
+                    STRUCTURE_OBJECTS.RUINS,
+                    STRUCTURE_OBJECTS.FORTRESS,
+                    STRUCTURE_OBJECTS.TOWER,
+                    STRUCTURE_OBJECTS.MOUNTAIN,
+                    STRUCTURE_OBJECTS.HOUSE,
+                    STRUCTURE_OBJECTS.ALTAR
+                ]
             },
             [ZONE_TYPES.SWAMP]: { 
-                environment: 1.8, // Reduced from 3.0
-                structures: 0.25, // Reduced from 0.4
+                environment: ZONE_ENVIRONMENT_DENSITY.SWAMP,
+                structures: ZONE_STRUCTURE_DENSITY.SWAMP,
                 environmentTypes: [
                     ENVIRONMENT_OBJECTS.SWAMP_TREE,
                     ENVIRONMENT_OBJECTS.LILY_PAD,
@@ -148,11 +164,17 @@ export class WorldManager {
                     ENVIRONMENT_OBJECTS.FALLEN_LOG,
                     ENVIRONMENT_OBJECTS.MUSHROOM
                 ],
-                structureTypes: ['ruins', 'dark_sanctum', 'altar', 'house', 'tower']
+                structureTypes: [
+                    STRUCTURE_OBJECTS.RUINS,
+                    STRUCTURE_OBJECTS.DARK_SANCTUM,
+                    STRUCTURE_OBJECTS.ALTAR,
+                    STRUCTURE_OBJECTS.HOUSE,
+                    STRUCTURE_OBJECTS.TOWER
+                ]
             },
             [ZONE_TYPES.MAGICAL]: { 
-                environment: 1.5, // Reduced from 2.5
-                structures: 0.25, // Reduced from 0.45
+                environment: ZONE_ENVIRONMENT_DENSITY.MAGICAL,
+                structures: ZONE_STRUCTURE_DENSITY.MAGICAL,
                 environmentTypes: [
                     ENVIRONMENT_OBJECTS.GLOWING_FLOWERS,
                     ENVIRONMENT_OBJECTS.CRYSTAL_FORMATION,
@@ -165,7 +187,13 @@ export class WorldManager {
                     ENVIRONMENT_OBJECTS.RUNE_STONE,
                     ENVIRONMENT_OBJECTS.MAGIC_CIRCLE
                 ],
-                structureTypes: ['ruins', 'temple', 'altar', 'tower', 'dark_sanctum']
+                structureTypes: [
+                    STRUCTURE_OBJECTS.RUINS,
+                    STRUCTURE_OBJECTS.TEMPLE,
+                    STRUCTURE_OBJECTS.ALTAR,
+                    STRUCTURE_OBJECTS.TOWER,
+                    STRUCTURE_OBJECTS.DARK_SANCTUM
+                ]
             }
         };
         

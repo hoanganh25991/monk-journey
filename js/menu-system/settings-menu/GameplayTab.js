@@ -212,8 +212,8 @@ export class GameplayTab extends SettingsTab {
         }
         
         if (this.customSkillsCheckbox) {
-            // Set current custom skills state synchronously (default is false)
-            const customSkillsEnabled = this.loadSettingSync(STORAGE_KEYS.CUSTOM_SKILLS, false);
+            // Set current custom skills state synchronously (default is true)
+            const customSkillsEnabled = this.loadSettingSync(STORAGE_KEYS.CUSTOM_SKILLS, true);
             this.customSkillsCheckbox.checked = customSkillsEnabled === true || customSkillsEnabled === 'true';
             
             // Add change event listener

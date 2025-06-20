@@ -76,8 +76,9 @@ export class SkillTreeUI extends UIComponent {
    * Refresh the skill tree when custom skills setting changes
    */
   async refreshSkillTree() {
-    // Update the flag
-    this.customSkillsEnabled = await storageService.loadData(STORAGE_KEYS.CUSTOM_SKILLS) === true;
+    // Update the flag (default to true)
+    const customSkillsValue = await storageService.loadData(STORAGE_KEYS.CUSTOM_SKILLS);
+    this.customSkillsEnabled = customSkillsValue === null ? true : customSkillsValue === true;
     console.debug(`Custom skills ${this.customSkillsEnabled ? 'enabled' : 'disabled'} in SkillTreeUI`);
     
     // Re-render the skill tree
@@ -92,8 +93,9 @@ export class SkillTreeUI extends UIComponent {
     // Initialize storage service
     await storageService.init();
     
-    // Load custom skills flag
-    this.customSkillsEnabled = await storageService.loadData(STORAGE_KEYS.CUSTOM_SKILLS) === true;
+    // Load custom skills flag (default to true)
+    const customSkillsValue = await storageService.loadData(STORAGE_KEYS.CUSTOM_SKILLS);
+    this.customSkillsEnabled = customSkillsValue === null ? true : customSkillsValue === true;
     
     // Check if the container exists in the DOM
     if (!this.container) {

@@ -57,8 +57,9 @@ export class PlayerSkills {
         // Game reference
         this.game = game;
         
-        // Custom skills flag
-        this.customSkillsEnabled = localStorage.getItem(STORAGE_KEYS.CUSTOM_SKILLS) === 'true';
+        // Custom skills flag (default to true)
+        const customSkillsValue = localStorage.getItem(STORAGE_KEYS.CUSTOM_SKILLS);
+        this.customSkillsEnabled = customSkillsValue === null ? true : customSkillsValue === 'true';
     }
     
     // setGame method removed - game is now passed in constructor
@@ -69,8 +70,9 @@ export class PlayerSkills {
      * @returns {void}
      */
     updateCustomSkillsVisibility() {
-        // Update the flag
-        this.customSkillsEnabled = localStorage.getItem(STORAGE_KEYS.CUSTOM_SKILLS) === 'true';
+        // Update the flag (default to true)
+        const customSkillsValue = localStorage.getItem(STORAGE_KEYS.CUSTOM_SKILLS);
+        this.customSkillsEnabled = customSkillsValue === null ? true : customSkillsValue === 'true';
         console.debug(`Custom skills ${this.customSkillsEnabled ? 'enabled' : 'disabled'}`);
         
         // Reload skills to apply the filter
