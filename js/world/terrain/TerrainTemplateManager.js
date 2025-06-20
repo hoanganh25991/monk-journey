@@ -55,17 +55,6 @@ export class TerrainTemplateManager {
             color: 0xffffff // White base color, will be overridden by vertex colors
         };
         
-        // Apply debug settings if enabled
-        if (TERRAIN_CONFIG.debug.enabled) {
-            if (TERRAIN_CONFIG.debug.transparent) {
-                materialOptions.transparent = true;
-                materialOptions.opacity = TERRAIN_CONFIG.debug.opacity;
-            }
-            if (TERRAIN_CONFIG.debug.wireframe) {
-                materialOptions.wireframe = true;
-            }
-        }
-        
         const material = new THREE.MeshStandardMaterial(materialOptions);
         
         // Store simplified template

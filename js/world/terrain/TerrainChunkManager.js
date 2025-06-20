@@ -89,10 +89,7 @@ export class TerrainChunkManager {
             );
         }
         
-        // Add terrain to scene (unless rendering is disabled)
-        if (!this.terrainConfig.debug.disableRendering) {
-            this.scene.add(terrain);
-        }
+        this.scene.add(terrain);
         
         return terrain;
     }
@@ -333,7 +330,7 @@ export class TerrainChunkManager {
                 // Skip if this chunk is already active
                 if (this.terrainChunks[chunkKey]) {
                     // Make sure it's in the scene (unless rendering is disabled)
-                    if (!this.terrainChunks[chunkKey].parent && !this.terrainConfig.debug.disableRendering) {
+                    if (!this.terrainChunks[chunkKey].parent) {
                         this.scene.add(this.terrainChunks[chunkKey]);
                     }
                     continue;
@@ -350,7 +347,7 @@ export class TerrainChunkManager {
                     this.terrainChunks[chunkKey] = this.terrainBuffer[chunkKey];
                     
                     // Add to scene if not already added (unless rendering is disabled)
-                    if (!this.terrainChunks[chunkKey].parent && !this.terrainConfig.debug.disableRendering) {
+                    if (!this.terrainChunks[chunkKey].parent) {
                         this.scene.add(this.terrainChunks[chunkKey]);
                     }
                     
