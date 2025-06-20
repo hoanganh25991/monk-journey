@@ -231,21 +231,8 @@ export class TerrainManager {
         );
     }
     
-    /**
-     * Save terrain state
-     * @returns {object} - The saved terrain state
-     */
-    save() {
-        return this.chunkManager.save();
-    }
-    
-    /**
-     * Load terrain state
-     * @param {object} terrainState - The terrain state to load
-     */
-    load(terrainState) {
-        this.chunkManager.load(terrainState);
-    }
+    // Save and load methods have been removed as they are no longer needed
+    // World is generated in-memory and not saved/loaded
 
     // Legacy methods for backward compatibility
     

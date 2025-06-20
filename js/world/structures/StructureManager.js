@@ -180,36 +180,8 @@ export class StructureManager {
         console.debug("All structures cleared");
     }
     
-    /**
-     * Save structure state
-     * @returns {object} - The saved structure state
-     */
-    save() {
-        return {
-            structures: this.structures.map(info => ({
-                type: info.type,
-                position: {
-                    x: info.position.x,
-                    y: info.position.y,
-                    z: info.position.z
-                },
-                id: info.id,
-                groupId: info.groupId,
-                isSpecial: !!this.specialStructures[info.id]
-            }))
-        };
-    }
-    
-    /**
-     * Load structure state
-     * @param {object} structureState - The structure state to load
-     */
-    load(structureState) {
-        if (!structureState || !structureState.structures) return;
-        
-        // Load structures from saved state
-        this.loadFromMapData(structureState.structures);
-    }
+    // Save and load methods have been removed as they are no longer needed
+    // World is generated in-memory and not saved/loaded
     
     /**
      * Create a village group with organized layout

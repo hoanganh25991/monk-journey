@@ -15,8 +15,7 @@ export class TerrainChunkManager {
         this.terrainChunks = {}; // Store terrain chunks by chunk key
         this.visibleTerrainChunks = {}; // Store currently visible terrain chunks
         
-        // For save/load functionality
-        this.savedTerrainChunks = null;
+        // Save/load functionality has been removed
     }
 
     /**
@@ -130,14 +129,8 @@ export class TerrainChunkManager {
             return this.terrainChunks[chunkKey];
         }
         
-        // Check if this chunk was saved previously
-        const shouldCreateChunk = !this.savedTerrainChunks || 
-                                 this.savedTerrainChunks[chunkKey] || 
-                                 Object.keys(this.savedTerrainChunks).length === 0;
-        
-        if (!shouldCreateChunk) {
-            return null; // Skip creating this chunk as it wasn't in the saved state
-        }
+        // Always create chunks since we don't use saved data anymore
+        const shouldCreateChunk = true;
         
         console.debug(`Creating new terrain chunk ${chunkKey}`);
         // If not loaded from storage, create a new chunk
@@ -218,15 +211,8 @@ export class TerrainChunkManager {
             return;
         }
         
-        // Check if this chunk was saved previously
-        const shouldCreateChunk = !this.savedTerrainChunks || 
-                                 this.savedTerrainChunks[chunkKey] || 
-                                 Object.keys(this.savedTerrainChunks).length === 0;
-        
-        if (!shouldCreateChunk) {
-            console.debug(`Chunk ${chunkKey} not in saved state, skipping buffer creation`);
-            return; // Skip creating this chunk as it wasn't in the saved state
-        }
+        // Always create chunks since we don't use saved data anymore
+        const shouldCreateChunk = true;
         
         // Determine zone type for this terrain chunk
         let zoneType = 'Terrant'; // Default to Terrant for new terrain
@@ -424,44 +410,8 @@ export class TerrainChunkManager {
         this.visibleTerrainChunks = newVisibleTerrainChunks;
     }
 
-    /**
-     * Save terrain state
-     * @returns {object} - The saved terrain state
-     */
-    save() {
-        const terrainState = {
-            chunks: {}
-        };
-        
-        // Save visible chunks
-        for (const chunkKey in this.terrainChunks) {
-            terrainState.chunks[chunkKey] = {
-                exists: true
-            };
-        }
-        
-        // Save buffered chunks
-        for (const chunkKey in this.terrainBuffer) {
-            if (!terrainState.chunks[chunkKey]) {
-                terrainState.chunks[chunkKey] = {
-                    exists: true,
-                    buffered: true
-                };
-            }
-        }
-        
-        return terrainState;
-    }
-
-    /**
-     * Load terrain state
-     * @param {object} terrainState - The terrain state to load
-     */
-    load(terrainState) {
-        if (!terrainState || !terrainState.chunks) return;
-        
-        this.savedTerrainChunks = terrainState.chunks;
-    }
+    // Save and load methods have been removed as they are no longer needed
+    // World is generated in-memory and not saved/loaded
 
     /**
      * Clear all terrain chunks
@@ -470,7 +420,6 @@ export class TerrainChunkManager {
         this.terrainChunks = {};
         this.visibleTerrainChunks = {};
         this.terrainBuffer = {};
-        this.savedTerrainChunks = null;
     }
 
     /**

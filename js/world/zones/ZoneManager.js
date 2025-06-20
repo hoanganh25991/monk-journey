@@ -406,40 +406,6 @@ export class ZoneManager {
         this.zones = [];
     }
     
-    /**
-     * Save zone state
-     * @returns {object} - The saved zone state
-     */
-    save() {
-        return {
-            zones: this.zones.map(zone => ({
-                name: zone.name,
-                center: {
-                    x: zone.center.x,
-                    y: zone.center.y,
-                    z: zone.center.z
-                },
-                radius: zone.radius,
-                color: zone.color
-            }))
-        };
-    }
-    
-    /**
-     * Load zone state
-     * @param {object} zoneState - The zone state to load
-     */
-    load(zoneState) {
-        if (!zoneState || !zoneState.zones) return;
-        
-        this.zones = zoneState.zones.map(zone => ({
-            name: zone.name,
-            center: new THREE.Vector3(zone.center.x, zone.center.y, zone.center.z),
-            radius: zone.radius,
-            color: zone.color
-        }));
-        
-        // Visualize the loaded zones
-        this.visualizeZones();
-    }
+    // Save and load methods have been removed as they are no longer needed
+    // World is generated in-memory and not saved/loaded
 }

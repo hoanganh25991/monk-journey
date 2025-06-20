@@ -396,37 +396,8 @@ export class EnvironmentManager {
         console.debug("All environment objects cleared");
     }
     
-    /**
-     * Save environment state
-     * @returns {object} - The saved environment state
-     */
-    save() {
-        return {
-            objects: this.environmentObjects.map(info => ({
-                type: info.type,
-                position: {
-                    x: info.position.x,
-                    y: info.position.y,
-                    z: info.position.z
-                },
-                scale: info.scale,
-                id: info.id,
-                groupId: info.groupId,
-                rotation: info.object ? info.object.rotation.y : 0
-            }))
-        };
-    }
-    
-    /**
-     * Load environment state
-     * @param {object} environmentState - The environment state to load
-     */
-    load(environmentState) {
-        if (!environmentState || !environmentState.objects) return;
-        
-        // Load environment objects from saved state
-        this.loadFromMapData(environmentState.objects);
-    }
+    // Save and load methods have been removed as they are no longer needed
+    // World is generated in-memory and not saved/loaded
     
     /**
      * Remove environment objects for a specific chunk

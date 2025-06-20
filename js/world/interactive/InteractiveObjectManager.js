@@ -299,60 +299,6 @@ export class InteractiveObjectManager {
         this.interactiveObjects = [];
     }
     
-    /**
-     * Save interactive object state
-     * @returns {object} - The saved interactive object state
-     */
-    save() {
-        return {
-            objects: this.interactiveObjects.map(obj => ({
-                type: obj.type,
-                name: obj.name,
-                position: {
-                    x: obj.position.x,
-                    y: obj.position.y,
-                    z: obj.position.z
-                },
-                interactionRadius: obj.interactionRadius,
-                isOpen: obj.isOpen,
-                bossType: obj.bossType
-            }))
-        };
-    }
-    
-    /**
-     * Load interactive object state
-     * @param {object} interactiveState - The interactive object state to load
-     */
-    load(interactiveState) {
-        if (!interactiveState || !interactiveState.objects) return;
-        
-        // Clear existing objects
-        this.clear();
-        
-        // Create objects from saved data
-        interactiveState.objects.forEach(objData => {
-            switch (objData.type) {
-                case 'chest':
-                    const chest = this.createTreasureChest(objData.position.x, objData.position.z);
-                    if (objData.isOpen) {
-                        // Find the interactive object and mark it as open
-                        const interactiveObj = this.interactiveObjects.find(obj => obj.mesh === chest);
-                        if (interactiveObj) {
-                            interactiveObj.isOpen = true;
-                            // Open the chest visually
-                            const treasureChest = new TreasureChest();
-                            treasureChest.open(chest);
-                        }
-                    }
-                    break;
-                case 'quest':
-                    this.createQuestMarker(objData.position.x, objData.position.z, objData.name);
-                    break;
-                case 'boss_spawn':
-                    this.createBossSpawnPoint(objData.position.x, objData.position.z, objData.bossType);
-                    break;
-            }
-        });
-    }
+    // Save and load methods have been removed as they are no longer needed
+    // World is generated in-memory and not saved/loaded
 }

@@ -47,9 +47,6 @@ export class WorldManager {
         this.lastPlayerPosition = new THREE.Vector3(0, 0, 0);
         this.screenSpawnDistance = 20; // Distance to move before spawning new enemies
         
-        // For save/load functionality
-        this.savedData = null;
-        
         // For minimap features
         this.terrainFeatures = [];
         this.trees = [];
@@ -978,111 +975,8 @@ export class WorldManager {
         };
     }
     
-    /**
-     * Save the current world state
-     * @returns {object} - The saved world state
-     */
-    saveWorldState() {
-        const worldState = {
-            terrain: this.terrainManager.save(),
-            structures: this.structureManager.save(),
-            environment: this.environmentManager.save(),
-            interactive: this.interactiveManager.save(),
-            zones: this.zoneManager.save(),
-            teleport: this.teleportManager.save ? this.teleportManager.save() : null,
-            // Add procedural generation data
-            procedural: {
-                // We don't save generatedChunks anymore to force regeneration on load
-                // This ensures content is generated around the player's position when loading
-                currentZoneType: this.generationManager.currentZoneType
-            },
-            settings: {
-                dynamicWorldEnabled: this.dynamicWorldEnabled,
-                environmentDensity: this.performanceManager.getDensityLevel(),
-                densityLevel: this.performanceManager.lastPerformanceLevel || 'medium',
-                zoneSize: this.generationManager.zoneSize
-            }
-        };
-        
-        return worldState;
-    }
-    
-    /**
-     * Load a saved world state
-     * @param {object} worldState - The world state to load
-     */
-    loadWorldState(worldState) {
-        if (!worldState) return;
-        
-        this.savedData = worldState;
-        
-        // Clear existing world
-        this.clearWorldObjects();
-        
-        // Load settings if available
-        if (worldState.settings) {
-            this.dynamicWorldEnabled = worldState.settings.dynamicWorldEnabled !== undefined ? 
-                worldState.settings.dynamicWorldEnabled : this.dynamicWorldEnabled;
-                
-            // Handle environment density using our new level system
-            if (worldState.settings.environmentDensity !== undefined) {
-                // Find the closest density level
-                const savedDensity = worldState.settings.environmentDensity;
-                let closestLevel = 'medium';
-                let minDiff = Math.abs(this.densityLevels.medium - savedDensity);
-                
-                for (const [level, value] of Object.entries(this.densityLevels)) {
-                    const diff = Math.abs(value - savedDensity);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        closestLevel = level;
-                    }
-                }
-                
-                // Set the density level
-                this.setDensityLevel(closestLevel);
-                console.debug(`Loaded environment density mapped to level: ${closestLevel}`);
-            }
-                
-            if (worldState.settings.zoneSize !== undefined) {
-                this.generationManager.zoneSize = worldState.settings.zoneSize;
-            }
-        }
-        
-        // When loading from a saved position, we need to reset the generatedChunks
-        // to ensure content is generated around the player's new position
-        this.generationManager.generatedChunks.clear();
-        
-        // Load procedural generation data if available
-        if (worldState.procedural) {
-            // We intentionally don't restore generatedChunks from saved state
-            // to force regeneration of content around the player's new position
-            this.generationManager.currentZoneType = worldState.procedural.currentZoneType || 'Forest';
-        }
-        
-        // Load saved state into each manager
-        this.terrainManager.load(worldState.terrain);
-        this.structureManager.load(worldState.structures);
-        this.environmentManager.load(worldState.environment);
-        this.interactiveManager.load(worldState.interactive);
-        this.zoneManager.load(worldState.zones);
-        
-        // Load teleport data if available
-        if (worldState.teleport && this.teleportManager.load) {
-            this.teleportManager.load(worldState.teleport);
-        }
-        
-        // Set initialTerrainCreated to true to ensure structures are generated
-        this.generationManager.initialTerrainCreated = true;
-        
-        // Force world update on next frame to generate content around player's position
-        if (this.game && this.game.player && this.game.player.position) {
-            console.debug("Forcing world update for saved position:", this.game.player.position);
-            setTimeout(() => {
-                this.updateWorldForPlayer(this.game.player.position);
-            }, 100);
-        }
-    }
+    // Save and load methods have been removed as they are no longer needed
+    // World is generated in-memory and not saved/loaded
     
     // Minimap-related methods
     

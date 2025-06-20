@@ -485,38 +485,15 @@ export class SaveManager extends ISaveSystem {
         // No chunk loading anymore
         console.debug('Chunk loading has been removed from the game');
         
-        // Process legacy world data
-        this.loadProgress.update('Processing world data...', 85);
+        // World data loading has been removed
+        this.loadProgress.update('World data loading removed...', 85);
         await this.delay(10);
         
-        // Environment objects are no longer saved or loaded
-        // This code has been removed as it's no longer needed
+        // World is now generated in-memory and not saved/loaded
+        console.debug('World save/load functionality has been removed from the game');
         
-        if (worldData.terrainChunks) {
-            if (world.terrainManager) {
-                world.terrainManager.savedChunks = worldData.terrainChunks;
-            } else {
-                world.savedTerrainChunks = worldData.terrainChunks;
-            }
-        }
-        
-        // Restore visible chunks
-        this.loadProgress.update('Restoring visible chunks...', 95);
+        this.loadProgress.update('Generating new world...', 95);
         await this.delay(10);
-        
-        if (worldData.visibleChunks && Array.isArray(worldData.visibleChunks)) {
-            if (world.terrainManager) {
-                world.terrainManager.visibleChunks = {};
-                worldData.visibleChunks.forEach(chunkKey => {
-                    world.terrainManager.visibleChunks[chunkKey] = [];
-                });
-            } else {
-                world.visibleChunks = {};
-                worldData.visibleChunks.forEach(chunkKey => {
-                    world.visibleChunks[chunkKey] = [];
-                });
-            }
-        }
         
         // Restore visible terrain chunks
         if (worldData.visibleTerrainChunks && Array.isArray(worldData.visibleTerrainChunks)) {
