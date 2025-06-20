@@ -5,7 +5,7 @@
  */
 
 import { PLAYER_PROGRESSION } from '../../config/game-balance.js';
-const {DEFAULT_PLAYER_STATS, LEVEL_UP_EXPERIENCE_MULTIPLIER, LEVEL_UP_STAT_INCREASES, RESOURCE_REGENERATION} = PLAYER_PROGRESSION
+const {DEFAULT_PLAYER_STATS, LEVEL_UP_EXPERIENCE_MULTIPLIER, LEVEL_UP_STAT_INCREASES, RESOURCE_REGENERATION, STAT_SCALING, EXPERIENCE_SCALING} = PLAYER_PROGRESSION
 
 /**
  * @typedef {Object} TemporaryBoost
@@ -178,18 +178,89 @@ export class PlayerStats {
             
             // Calculate experience for next level based on the new level
             this.experienceToNextLevel = DEFAULT_PLAYER_STATS.experienceToNextLevel;
-            for (let i = 1; i < newLevel; i++) {
-                this.experienceToNextLevel = Math.floor(this.experienceToNextLevel * LEVEL_UP_EXPERIENCE_MULTIPLIER);
+            
+            // Use progressive experience scaling if available
+            if (EXPERIENCE_SCALING) {
+                const baseMultiplier = this.validateNumber(EXPERIENCE_SCALING.baseMultiplier, 1.5);
+                const progressiveIncrease = this.validateNumber(EXPERIENCE_SCALING.progressiveIncrease, 0.05);
+                const maxMultiplier = this.validateNumber(EXPERIENCE_SCALING.maxMultiplier, 3.0);
+                
+                // Calculate experience required for each level up to the new level
+                for (let i = 1; i < newLevel; i++) {
+                    // Calculate dynamic multiplier that increases with level
+                    let dynamicMultiplier = baseMultiplier + (i * progressiveIncrease);
+                    
+                    // Cap the multiplier to prevent excessive grinding
+                    dynamicMultiplier = Math.min(dynamicMultiplier, maxMultiplier);
+                    
+                    // Apply the multiplier
+                    this.experienceToNextLevel = Math.floor(this.experienceToNextLevel * dynamicMultiplier);
+                }
+            } else {
+                // Fallback to legacy multiplier
+                for (let i = 1; i < newLevel; i++) {
+                    this.experienceToNextLevel = Math.floor(this.experienceToNextLevel * LEVEL_UP_EXPERIENCE_MULTIPLIER);
+                }
             }
             
             // Adjust stats based on level difference
             const levelDiff = newLevel - oldLevel;
-            this.maxHealth = DEFAULT_PLAYER_STATS.maxHealth + (LEVEL_UP_STAT_INCREASES.maxHealth * (newLevel - 1));
-            this.maxMana = DEFAULT_PLAYER_STATS.maxMana + (LEVEL_UP_STAT_INCREASES.maxMana * (newLevel - 1));
-            this.strength = DEFAULT_PLAYER_STATS.strength + (LEVEL_UP_STAT_INCREASES.strength * (newLevel - 1));
-            this.dexterity = DEFAULT_PLAYER_STATS.dexterity + (LEVEL_UP_STAT_INCREASES.dexterity * (newLevel - 1));
-            this.intelligence = DEFAULT_PLAYER_STATS.intelligence + (LEVEL_UP_STAT_INCREASES.intelligence * (newLevel - 1));
-            this.attackPower = DEFAULT_PLAYER_STATS.attackPower + (LEVEL_UP_STAT_INCREASES.attackPower * (newLevel - 1));
+            
+            // Use exponential scaling for all stats if enabled, otherwise use linear scaling
+            if (STAT_SCALING && STAT_SCALING.useExponentialScaling) {
+                // Helper function to calculate exponential stat value
+                const calculateExponentialStat = (statConfig, defaultBase, defaultGrowth) => {
+                    if (!statConfig) return 0;
+                    const baseValue = this.validateNumber(statConfig.baseValue, defaultBase);
+                    const growthFactor = this.validateNumber(statConfig.growthFactor, defaultGrowth);
+                    return Math.floor(baseValue * Math.pow(growthFactor, newLevel - 1));
+                };
+                
+                // Calculate all stats using exponential formula
+                this.maxHealth = calculateExponentialStat(
+                    STAT_SCALING.health, 
+                    DEFAULT_PLAYER_STATS.maxHealth, 
+                    1.15
+                );
+                
+                this.maxMana = calculateExponentialStat(
+                    STAT_SCALING.mana, 
+                    DEFAULT_PLAYER_STATS.maxMana, 
+                    1.2
+                );
+                
+                this.strength = calculateExponentialStat(
+                    STAT_SCALING.strength, 
+                    DEFAULT_PLAYER_STATS.strength, 
+                    1.1
+                );
+                
+                this.dexterity = calculateExponentialStat(
+                    STAT_SCALING.dexterity, 
+                    DEFAULT_PLAYER_STATS.dexterity, 
+                    1.1
+                );
+                
+                this.intelligence = calculateExponentialStat(
+                    STAT_SCALING.intelligence, 
+                    DEFAULT_PLAYER_STATS.intelligence, 
+                    1.1
+                );
+                
+                this.attackPower = calculateExponentialStat(
+                    STAT_SCALING.attackPower, 
+                    DEFAULT_PLAYER_STATS.attackPower, 
+                    1.12
+                );
+            } else {
+                // Use traditional linear scaling
+                this.maxHealth = DEFAULT_PLAYER_STATS.maxHealth + (LEVEL_UP_STAT_INCREASES.maxHealth * (newLevel - 1));
+                this.maxMana = DEFAULT_PLAYER_STATS.maxMana + (LEVEL_UP_STAT_INCREASES.maxMana * (newLevel - 1));
+                this.strength = DEFAULT_PLAYER_STATS.strength + (LEVEL_UP_STAT_INCREASES.strength * (newLevel - 1));
+                this.dexterity = DEFAULT_PLAYER_STATS.dexterity + (LEVEL_UP_STAT_INCREASES.dexterity * (newLevel - 1));
+                this.intelligence = DEFAULT_PLAYER_STATS.intelligence + (LEVEL_UP_STAT_INCREASES.intelligence * (newLevel - 1));
+                this.attackPower = DEFAULT_PLAYER_STATS.attackPower + (LEVEL_UP_STAT_INCREASES.attackPower * (newLevel - 1));
+            }
             
             // Restore health and mana to full
             this.health = this.maxHealth;
@@ -345,9 +416,32 @@ export class PlayerStats {
         // Subtract experience for this level
         this.experience = Math.max(0, this.experience - this.experienceToNextLevel);
         
-        // Calculate experience for next level
-        const multiplier = this.validateNumber(LEVEL_UP_EXPERIENCE_MULTIPLIER, 1.1);
-        this.experienceToNextLevel = Math.floor(this.experienceToNextLevel * multiplier);
+        // Calculate experience for next level using progressive scaling
+        if (EXPERIENCE_SCALING) {
+            // Get base multiplier with validation
+            const baseMultiplier = this.validateNumber(EXPERIENCE_SCALING.baseMultiplier, 1.5);
+            
+            // Calculate progressive increase based on level
+            const progressiveIncrease = this.validateNumber(EXPERIENCE_SCALING.progressiveIncrease, 0.05);
+            const maxMultiplier = this.validateNumber(EXPERIENCE_SCALING.maxMultiplier, 3.0);
+            
+            // Calculate dynamic multiplier that increases with level
+            // Formula: baseMultiplier + (level * progressiveIncrease)
+            let dynamicMultiplier = baseMultiplier + (this.level * progressiveIncrease);
+            
+            // Cap the multiplier to prevent excessive grinding
+            dynamicMultiplier = Math.min(dynamicMultiplier, maxMultiplier);
+            
+            // Apply the multiplier
+            this.experienceToNextLevel = Math.floor(this.experienceToNextLevel * dynamicMultiplier);
+            
+            // Log the experience scaling for debugging
+            console.debug(`Level ${this.level}: Experience multiplier is ${dynamicMultiplier.toFixed(2)}, next level requires ${this.experienceToNextLevel} XP`);
+        } else {
+            // Fallback to legacy multiplier
+            const multiplier = this.validateNumber(LEVEL_UP_EXPERIENCE_MULTIPLIER, 1.1);
+            this.experienceToNextLevel = Math.floor(this.experienceToNextLevel * multiplier);
+        }
         
         // Validate current stats before increasing
         this.maxHealth = this.validateNumber(this.maxHealth, DEFAULT_PLAYER_STATS.maxHealth);
@@ -357,13 +451,78 @@ export class PlayerStats {
         this.intelligence = this.validateNumber(this.intelligence, DEFAULT_PLAYER_STATS.intelligence);
         this.attackPower = this.validateNumber(this.attackPower, DEFAULT_PLAYER_STATS.attackPower);
         
-        // Increase stats based on config (with validation)
-        this.maxHealth += this.validateNumber(LEVEL_UP_STAT_INCREASES.maxHealth, 0);
-        this.maxMana += this.validateNumber(LEVEL_UP_STAT_INCREASES.maxMana, 0);
-        this.strength += this.validateNumber(LEVEL_UP_STAT_INCREASES.strength, 0);
-        this.dexterity += this.validateNumber(LEVEL_UP_STAT_INCREASES.dexterity, 0);
-        this.intelligence += this.validateNumber(LEVEL_UP_STAT_INCREASES.intelligence, 0);
-        this.attackPower += this.validateNumber(LEVEL_UP_STAT_INCREASES.attackPower, 0);
+        // Use exponential scaling for all stats if enabled, otherwise use linear scaling
+        if (STAT_SCALING && STAT_SCALING.useExponentialScaling) {
+            // Helper function to calculate exponential stat value
+            const calculateExponentialStat = (statConfig, defaultBase, defaultGrowth) => {
+                if (!statConfig) return 0;
+                const baseValue = this.validateNumber(statConfig.baseValue, defaultBase);
+                const growthFactor = this.validateNumber(statConfig.growthFactor, defaultGrowth);
+                return Math.floor(baseValue * Math.pow(growthFactor, this.level - 1));
+            };
+            
+            // Calculate and update max health
+            const oldMaxHealth = this.maxHealth;
+            this.maxHealth = calculateExponentialStat(
+                STAT_SCALING.health, 
+                DEFAULT_PLAYER_STATS.maxHealth, 
+                1.15
+            );
+            console.debug(`Level ${this.level}: Max health increased from ${oldMaxHealth} to ${this.maxHealth} (+${this.maxHealth - oldMaxHealth})`);
+            
+            // Calculate and update max mana
+            const oldMaxMana = this.maxMana;
+            this.maxMana = calculateExponentialStat(
+                STAT_SCALING.mana, 
+                DEFAULT_PLAYER_STATS.maxMana, 
+                1.2
+            );
+            console.debug(`Level ${this.level}: Max mana increased from ${oldMaxMana} to ${this.maxMana} (+${this.maxMana - oldMaxMana})`);
+            
+            // Calculate and update strength
+            const oldStrength = this.strength;
+            this.strength = calculateExponentialStat(
+                STAT_SCALING.strength, 
+                DEFAULT_PLAYER_STATS.strength, 
+                1.1
+            );
+            console.debug(`Level ${this.level}: Strength increased from ${oldStrength} to ${this.strength} (+${this.strength - oldStrength})`);
+            
+            // Calculate and update dexterity
+            const oldDexterity = this.dexterity;
+            this.dexterity = calculateExponentialStat(
+                STAT_SCALING.dexterity, 
+                DEFAULT_PLAYER_STATS.dexterity, 
+                1.1
+            );
+            console.debug(`Level ${this.level}: Dexterity increased from ${oldDexterity} to ${this.dexterity} (+${this.dexterity - oldDexterity})`);
+            
+            // Calculate and update intelligence
+            const oldIntelligence = this.intelligence;
+            this.intelligence = calculateExponentialStat(
+                STAT_SCALING.intelligence, 
+                DEFAULT_PLAYER_STATS.intelligence, 
+                1.1
+            );
+            console.debug(`Level ${this.level}: Intelligence increased from ${oldIntelligence} to ${this.intelligence} (+${this.intelligence - oldIntelligence})`);
+            
+            // Calculate and update attack power
+            const oldAttackPower = this.attackPower;
+            this.attackPower = calculateExponentialStat(
+                STAT_SCALING.attackPower, 
+                DEFAULT_PLAYER_STATS.attackPower, 
+                1.12
+            );
+            console.debug(`Level ${this.level}: Attack power increased from ${oldAttackPower} to ${this.attackPower} (+${this.attackPower - oldAttackPower})`);
+        } else {
+            // Use traditional linear scaling
+            this.maxHealth += this.validateNumber(LEVEL_UP_STAT_INCREASES.maxHealth, 0);
+            this.maxMana += this.validateNumber(LEVEL_UP_STAT_INCREASES.maxMana, 0);
+            this.strength += this.validateNumber(LEVEL_UP_STAT_INCREASES.strength, 0);
+            this.dexterity += this.validateNumber(LEVEL_UP_STAT_INCREASES.dexterity, 0);
+            this.intelligence += this.validateNumber(LEVEL_UP_STAT_INCREASES.intelligence, 0);
+            this.attackPower += this.validateNumber(LEVEL_UP_STAT_INCREASES.attackPower, 0);
+        }
         
         // Restore health and mana
         this.health = this.maxHealth;
@@ -542,9 +701,18 @@ export class PlayerStats {
             this.maxMana = DEFAULT_PLAYER_STATS.maxMana;
         }
         
-        // Regenerate mana using game balance settings
+        // Regenerate mana using game balance settings with level scaling
         if (this.mana < this.maxMana) {
-            const manaRegen = delta * this.validateNumber(RESOURCE_REGENERATION.mana, 0);
+            // Base mana regeneration rate
+            const baseManaRegen = this.validateNumber(RESOURCE_REGENERATION.mana, 0);
+            
+            // Scale mana regeneration with level (slower than max mana scaling)
+            // Add 10% of base value per level above level 1
+            const levelScaling = 0.1; // 10% increase per level
+            const scaledManaRegen = baseManaRegen * (1 + (levelScaling * (this.level - 1)));
+            
+            // Apply regeneration based on time delta
+            const manaRegen = delta * scaledManaRegen;
             this.mana += manaRegen;
             
             // Ensure mana doesn't exceed maxMana

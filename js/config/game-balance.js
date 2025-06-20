@@ -14,8 +14,8 @@ export const PLAYER_PROGRESSION = {
         // Health and mana
         health: 500,
         maxHealth: 500,
-        mana: 200,
-        maxMana: 200,
+        mana: 600,         // Increased from 200 to 600 (3x)
+        maxMana: 600,      // Increased from 200 to 600 (3x)
         
         // Base attributes
         strength: 10,
@@ -27,24 +27,86 @@ export const PLAYER_PROGRESSION = {
         attackPower: 10
     },
 
-    // Experience scaling factor for leveling up
+    // Experience scaling configuration
+    EXPERIENCE_SCALING: {
+        // Base multiplier for experience required to level up
+        baseMultiplier: 1.5,
+        
+        // Additional scaling factor that increases with level
+        // This makes higher levels progressively harder to reach
+        progressiveIncrease: 0.05,
+        
+        // Maximum multiplier cap to prevent excessive grinding
+        maxMultiplier: 3.0
+    },
+    
+    // Legacy experience multiplier (for backward compatibility)
     LEVEL_UP_EXPERIENCE_MULTIPLIER : 1.5,
 
     // Resource regeneration rates (per second)
     RESOURCE_REGENERATION: {
         health: 2,
-        mana: 5
+        // Base mana regeneration value (scales with player level in PlayerStats.js)
+        // Each level adds 10% to this base value (implemented in PlayerStats.regenerateResources)
+        mana: 5    // Base value at level 1
     },
 
-    // Stat increases per level
+    // Stat increases per level (used for linear scaling)
     LEVEL_UP_STAT_INCREASES: {
         maxHealth: 10,
-        maxMana: 15,  // Increased from 5 to 15 (3x)
+        maxMana: 15,
         strength: 1,
         dexterity: 1,
         intelligence: 1,
-        attackPower: 2
+        attackPower: 2,
+        movementSpeed: 0.5
     },
+    
+    // Exponential stat scaling configuration
+    STAT_SCALING: {
+        // Whether to use exponential scaling (true) or linear scaling (false)
+        useExponentialScaling: true,
+        
+        // Health scaling
+        health: {
+            baseValue: 500,
+            growthFactor: 1.15
+        },
+        
+        // Mana scaling
+        mana: {
+            baseValue: 600,
+            growthFactor: 1.2
+        },
+        
+        // Attribute scaling
+        strength: {
+            baseValue: 10,
+            growthFactor: 1.1
+        },
+        
+        dexterity: {
+            baseValue: 10,
+            growthFactor: 1.1
+        },
+        
+        intelligence: {
+            baseValue: 10,
+            growthFactor: 1.1
+        },
+        
+        // Combat scaling
+        attackPower: {
+            baseValue: 10,
+            growthFactor: 1.12
+        },
+        
+        // Movement scaling
+        movementSpeed: {
+            baseValue: 15,
+            growthFactor: 1.08
+        }
+    }
 };
 
 // Enemy configuration
