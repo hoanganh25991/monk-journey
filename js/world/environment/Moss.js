@@ -35,6 +35,9 @@ export class Moss extends EnvironmentObject {
         
         // Create the moss
         this.object = this.create();
+        
+        // Add the object to the scene
+        this.addToScene(this.object);
     }
     
     /**

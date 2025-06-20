@@ -27,6 +27,9 @@ export class RarePlant extends EnvironmentObject {
         
         // Create the plant
         this.object = this.create();
+        
+        // Add the object to the scene
+        this.addToScene(this.object);
     }
     
     /**

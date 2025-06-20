@@ -27,6 +27,9 @@ export class DesertShrine extends EnvironmentObject {
         
         // Create the shrine
         this.object = this.create();
+        
+        // Add the object to the scene
+        this.addToScene(this.object);
     }
     
     /**
