@@ -28,6 +28,9 @@ export class AncientArtifact extends EnvironmentObject {
         
         // Create the artifact
         this.object = this.create();
+        
+        // Add the object to the scene
+        this.addToScene(this.object);
     }
     
     /**
