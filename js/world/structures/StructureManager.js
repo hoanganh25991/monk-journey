@@ -566,21 +566,12 @@ export class StructureManager {
             
             // Map the zone type string to our structure object constants
             let structureType;
-            switch (type) {
-                case 'house': structureType = STRUCTURE_OBJECTS.HOUSE; break;
-                case 'tower': structureType = STRUCTURE_OBJECTS.TOWER; break;
-                case 'ruins': structureType = STRUCTURE_OBJECTS.RUINS; break;
-                case 'dark_sanctum': structureType = STRUCTURE_OBJECTS.DARK_SANCTUM; break;
-                case 'mountain': structureType = STRUCTURE_OBJECTS.MOUNTAIN; break;
-                case 'village': structureType = STRUCTURE_OBJECTS.VILLAGE; break;
-                case 'temple': structureType = STRUCTURE_OBJECTS.TEMPLE; break;
-                case 'altar': structureType = STRUCTURE_OBJECTS.ALTAR; break;
-                case 'fortress': structureType = STRUCTURE_OBJECTS.FORTRESS; break;
-                case 'tavern': structureType = STRUCTURE_OBJECTS.TAVERN; break;
-                case 'shop': structureType = STRUCTURE_OBJECTS.SHOP; break;
-                default:
-                    console.warn(`Unknown structure type: ${type}`);
-                    break;
+            // Convert the type to uppercase for the object key
+            const objectKey = type.toUpperCase();
+            structureType = STRUCTURE_OBJECTS[objectKey];
+            
+            if (!structureType) {
+                console.warn(`Unknown structure type: ${type}`);
             }
             
             if (structureType) {
@@ -696,7 +687,7 @@ export class StructureManager {
             structures.forEach(structure => {
                 // Only create important structures like darkSanctum
                 if (structure.type === 'darkSanctum') {
-                    this.createDarkSanctum(structure.x, structure.z);
+                    this.structureFactory.createStructure(STRUCTURE_OBJECTS.DARK_SANCTUM, { x: structure.x, z: structure.z });
                     this.specialStructures[`darkSanctum_${chunkKey}_${structures.indexOf(structure)}`] = { 
                         x: structure.x, z: structure.z, type: 'darkSanctum' 
                     };
@@ -764,68 +755,8 @@ export class StructureManager {
         });
     }
     
-    /**
-     * Create a tower at the specified position
-     * @param {number} x - X coordinate
-     * @param {number} z - Z coordinate
-     * @returns {THREE.Group} - The tower group
-     */
-    createTower(x, z) {
-        return this.structureFactory.createStructure(STRUCTURE_OBJECTS.TOWER, { x, z });
-    }
-    
-    /**
-     * Create ruins at the specified position
-     * @param {number} x - X coordinate
-     * @param {number} z - Z coordinate
-     * @returns {THREE.Group} - The ruins group
-     */
-    createRuins(x, z) {
-        return this.structureFactory.createStructure(STRUCTURE_OBJECTS.RUINS, { x, z });
-    }
-    
-    /**
-     * Create a dark sanctum at the specified position
-     * @param {number} x - X coordinate
-     * @param {number} z - Z coordinate
-     * @returns {THREE.Group} - The dark sanctum group
-     */
-    createDarkSanctum(x, z) {
-        return this.structureFactory.createStructure(STRUCTURE_OBJECTS.DARK_SANCTUM, { x, z });
-    }
-    
-    /**
-     * Create a mountain at the specified position
-     * @param {number} x - X coordinate
-     * @param {number} z - Z coordinate
-     * @param {number} scaleFactor - Optional scale factor for natural variation
-     * @returns {THREE.Group} - The mountain group
-     */
-    createMountain(x, z, scaleFactor = 1.0) {
-        return this.structureFactory.createStructure(STRUCTURE_OBJECTS.MOUNTAIN, { 
-            x, z, scale: scaleFactor 
-        });
-    }
-    
-    /**
-     * Create a village at the specified position
-     * @param {number} x - X coordinate
-     * @param {number} z - Z coordinate
-     * @returns {THREE.Group} - The village group
-     */
-    createVillage(x, z) {
-        return this.structureFactory.createStructure(STRUCTURE_OBJECTS.VILLAGE, { x, z });
-    }
-    
-    /**
-     * Create a bridge at the specified position
-     * @param {number} x - X coordinate
-     * @param {number} z - Z coordinate
-     * @returns {THREE.Group} - The bridge group
-     */
-    createBridge(x, z) {
-        return this.structureFactory.createStructure(STRUCTURE_OBJECTS.BRIDGE, { x, z });
-    }
+    // Note: Specific structure creation methods have been removed
+    // Use structureFactory.createStructure() directly instead
     
     /**
      * Remove structures in a specific chunk

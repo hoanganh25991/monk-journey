@@ -9,6 +9,7 @@ import { FogManager } from './environment/FogManager.js';
 import { TeleportManager } from './teleport/TeleportManager.js';
 import { LODManager } from './LODManager.js';
 import { ENVIRONMENT_OBJECTS, THEME_SPECIFIC_OBJECTS, CROSS_THEME_FEATURES } from '../config/environment.js';
+import { STRUCTURE_OBJECTS } from '../config/structure.js';
 
 // Import new modular managers
 import { PerformanceManager } from './managers/PerformanceManager.js';
@@ -528,9 +529,9 @@ export class WorldManager {
                         // Create structure based on type
                         switch (structData.type) {
                             case 'village':
-                                structure = this.structureManager.createVillage(
-                                    structData.position.x, 
-                                    structData.position.z
+                                structure = this.structureManager.structureFactory.createStructure(
+                                    STRUCTURE_OBJECTS.VILLAGE, 
+                                    { x: structData.position.x, z: structData.position.z }
                                 );
                                 break;
                             case 'temple':
@@ -554,22 +555,22 @@ export class WorldManager {
                                 );
                                 break;
                             case 'mountain':
-                                structure = this.structureManager.createMountain(
-                                    structData.position.x, 
-                                    structData.position.z
+                                structure = this.structureManager.structureFactory.createStructure(
+                                    STRUCTURE_OBJECTS.MOUNTAIN, 
+                                    { x: structData.position.x, z: structData.position.z }
                                 );
                                 break;
                             case 'dark_sanctum':
-                                structure = this.structureManager.createDarkSanctum(
-                                    structData.position.x, 
-                                    structData.position.z
+                                structure = this.structureManager.structureFactory.createStructure(
+                                    STRUCTURE_OBJECTS.DARK_SANCTUM, 
+                                    { x: structData.position.x, z: structData.position.z }
                                 );
                                 break;
                             case 'ruins':
                             default:
-                                structure = this.structureManager.createRuins(
-                                    structData.position.x, 
-                                    structData.position.z
+                                structure = this.structureManager.structureFactory.createStructure(
+                                    STRUCTURE_OBJECTS.RUINS, 
+                                    { x: structData.position.x, z: structData.position.z }
                                 );
                                 break;
                         }
@@ -837,7 +838,10 @@ export class WorldManager {
             // Create a structure
             switch (landmarkType) {
                 case 'village':
-                    landmark = this.structureManager.createVillage(landmarkX, landmarkZ);
+                    landmark = this.structureManager.structureFactory.createStructure(
+                        STRUCTURE_OBJECTS.VILLAGE, 
+                        { x: landmarkX, z: landmarkZ }
+                    );
                     break;
                 case 'temple':
                     const tWidth = 8 + Math.random() * 4;
@@ -852,14 +856,23 @@ export class WorldManager {
                     landmark = this.structureManager.createBuilding(landmarkX, landmarkZ, fWidth, fDepth, fHeight, 'fortress');
                     break;
                 case 'mountain':
-                    landmark = this.structureManager.createMountain(landmarkX, landmarkZ);
+                    landmark = this.structureManager.structureFactory.createStructure(
+                        STRUCTURE_OBJECTS.MOUNTAIN, 
+                        { x: landmarkX, z: landmarkZ }
+                    );
                     break;
                 case 'dark_sanctum':
-                    landmark = this.structureManager.createDarkSanctum(landmarkX, landmarkZ);
+                    landmark = this.structureManager.structureFactory.createStructure(
+                        STRUCTURE_OBJECTS.DARK_SANCTUM, 
+                        { x: landmarkX, z: landmarkZ }
+                    );
                     break;
                 case 'ruins':
                 default:
-                    landmark = this.structureManager.createRuins(landmarkX, landmarkZ);
+                    landmark = this.structureManager.structureFactory.createStructure(
+                        STRUCTURE_OBJECTS.RUINS, 
+                        { x: landmarkX, z: landmarkZ }
+                    );
                     break;
             }
             
