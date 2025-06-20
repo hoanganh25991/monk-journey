@@ -40,6 +40,7 @@ export const STORAGE_KEYS = {
     SELECTED_ITEM_RARITY: 'monk_journey_selected_item_rarity',
     CUSTOM_SKILLS: 'monk_journey_custom_skills',
     CAMERA_ZOOM: 'monk_journey_camera_zoom',
+    CAMERA_MODE: 'monk_journey_camera_mode',
     // MATERIAL_QUALITY key removed - using QUALITY_LEVEL instead
     
     // Save system keys

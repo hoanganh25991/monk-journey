@@ -30,8 +30,23 @@ export class CameraControlUI extends UIComponent {
             originalRotationY: 0,
         };
         
+        // Camera mode state
+        this.cameraModes = {
+            THIRD_PERSON: 'third-person',    // Default third-person view
+            OVER_SHOULDER: 'over-shoulder'   // First-person-like view showing back of head
+        };
+        
+        // Current camera mode
+        this.currentCameraMode = this.cameraModes.THIRD_PERSON;
+        
+        // Camera distances for different modes
+        this.cameraDistances = {
+            [this.cameraModes.THIRD_PERSON]: 20,     // Default distance for third-person
+            [this.cameraModes.OVER_SHOULDER]: 3.5    // Closer distance for over-shoulder view
+        };
+        
         // Default camera distance (can be modified via settings)
-        this.cameraDistance = 20;
+        this.cameraDistance = this.cameraDistances[this.currentCameraMode];
         
         // Store the initial camera position and rotation
         this.initialCameraPosition = null;
@@ -41,7 +56,7 @@ export class CameraControlUI extends UIComponent {
         this.baseElement = null;
         this.handleElement = null;
         
-        console.debug("CameraControlUI initialized with increased sensitivity");
+        console.debug("CameraControlUI initialized with camera mode support");
     }
     
     /**
@@ -81,26 +96,42 @@ export class CameraControlUI extends UIComponent {
                 this.cameraDistance = parseInt(storedZoom);
                 console.debug("Loaded camera distance from settings:", this.cameraDistance);
                 
-                // Apply the camera distance immediately if the game and player are available
-                if (this.validateGameComponents()) {
-                    // If we have rotation values, update the camera orbit
-                    if (this.cameraState.rotationX !== undefined && this.cameraState.rotationY !== undefined) {
-                        this.updateCameraOrbit(this.cameraState.rotationX, this.cameraState.rotationY);
-                    } else {
-                        // Otherwise, just set the initial position with the new distance
-                        const playerPosition = this.game.player.getPosition();
-                        if (playerPosition) {
-                            // Calculate a default position behind the player
-                            const defaultRotationX = 0.3; // Slight angle from horizontal
-                            const defaultRotationY = Math.PI; // Behind the player
-                            
-                            // Store these as the initial rotation values
-                            this.cameraState.rotationX = defaultRotationX;
-                            this.cameraState.rotationY = defaultRotationY;
-                            
-                            // Update the camera position
-                            this.updateCameraOrbit(defaultRotationX, defaultRotationY);
-                        }
+                // Update the camera distances for the current mode
+                this.cameraDistances[this.currentCameraMode] = this.cameraDistance;
+            }
+            
+            // Load camera mode setting
+            const storedMode = localStorage.getItem(STORAGE_KEYS.CAMERA_MODE);
+            if (storedMode && Object.values(this.cameraModes).includes(storedMode)) {
+                this.currentCameraMode = storedMode;
+                console.debug("Loaded camera mode from settings:", this.currentCameraMode);
+                
+                // Update the camera distance based on the mode
+                this.cameraDistance = this.cameraDistances[this.currentCameraMode];
+                
+                // Update the camera mode button UI
+                this.updateCameraModeButtonUI();
+            }
+            
+            // Apply the camera settings immediately if the game and player are available
+            if (this.validateGameComponents()) {
+                // If we have rotation values, update the camera orbit
+                if (this.cameraState.rotationX !== undefined && this.cameraState.rotationY !== undefined) {
+                    this.updateCameraOrbit(this.cameraState.rotationX, this.cameraState.rotationY);
+                } else {
+                    // Otherwise, just set the initial position with the new distance
+                    const playerPosition = this.game.player.getPosition();
+                    if (playerPosition) {
+                        // Calculate a default position behind the player
+                        const defaultRotationX = 0.3; // Slight angle from horizontal
+                        const defaultRotationY = Math.PI; // Behind the player
+                        
+                        // Store these as the initial rotation values
+                        this.cameraState.rotationX = defaultRotationX;
+                        this.cameraState.rotationY = defaultRotationY;
+                        
+                        // Update the camera position
+                        this.updateCameraOrbit(defaultRotationX, defaultRotationY);
                     }
                 }
             }
@@ -143,7 +174,7 @@ export class CameraControlUI extends UIComponent {
     }
     
     /**
-     * Get reference to the camera control button (defined in HTML)
+     * Get reference to the camera control buttons (defined in HTML)
      */
     createCameraControlButton() {
         // Get reference to the predefined camera control button
@@ -151,6 +182,14 @@ export class CameraControlUI extends UIComponent {
         
         if (!this.cameraButton) {
             console.error('Camera control button element not found in HTML');
+            return;
+        }
+        
+        // Get reference to the camera mode button
+        this.cameraModeButton = document.getElementById('camera-mode-button');
+        
+        if (!this.cameraModeButton) {
+            console.error('Camera mode button element not found in HTML');
             return;
         }
         
@@ -163,16 +202,50 @@ export class CameraControlUI extends UIComponent {
         if (this.indicatorContainer) {
             this.indicatorContainer.style.display = 'none';
         }
+        
+        // Update the camera mode button UI based on current mode
+        this.updateCameraModeButtonUI();
+    }
+    
+    /**
+     * Update the camera mode button UI based on current mode
+     */
+    updateCameraModeButtonUI() {
+        if (!this.cameraModeButton) return;
+        
+        // Update button appearance based on current mode
+        if (this.currentCameraMode === this.cameraModes.OVER_SHOULDER) {
+            this.cameraModeButton.classList.add('active');
+            this.cameraModeButton.title = 'Currently: Over-shoulder view | Click to switch to third-person view';
+            
+            // Update icon to indicate current mode
+            const iconElement = this.cameraModeButton.querySelector('.camera-mode-icon');
+            if (iconElement) {
+                iconElement.textContent = '👁️';
+            }
+        } else {
+            this.cameraModeButton.classList.remove('active');
+            this.cameraModeButton.title = 'Currently: Third-person view | Click to switch to over-shoulder view';
+            
+            // Update icon to indicate current mode
+            const iconElement = this.cameraModeButton.querySelector('.camera-mode-icon');
+            if (iconElement) {
+                iconElement.textContent = '🔍';
+            }
+        }
     }
     
     /**
      * Set up camera control button event listeners
      */
     setupCameraControlButtonEvents() {
-        if (!this.cameraButton) {
-            console.error('Camera control button not found');
+        if (!this.cameraButton || !this.cameraModeButton) {
+            console.error('Camera control buttons not found');
             return;
         }
+        
+        // Set up camera mode button event listeners
+        this.setupCameraModeButtonEvents();
         
         // Touch start event on button
         this.cameraButton.addEventListener('touchstart', (event) => {
@@ -632,161 +705,227 @@ export class CameraControlUI extends UIComponent {
      * @param {number} rotationY - Y rotation (horizontal)
      */
     updateCameraOrbit(rotationX, rotationY) {
-        console.debug("updateCameraOrbit", {rotationX, rotationY});
-        
-        // Comprehensive validation of game components
-        if (!this.validateGameComponents()) {
-            console.debug("Game components validation failed, skipping camera orbit update");
-            return;
-        }
-        
-        // Additional validation for WebGL context
-        if (this.game.webglContextLost) {
-            console.debug("WebGL context is lost, skipping camera orbit update");
-            return;
-        }
-        
-        // Get player position
-        const playerPosition = this.game.player.getPosition();
-        console.debug("Player position:", playerPosition);
-        
-        // Use the camera distance from settings or default
-        const distance = this.cameraDistance;
-        
-        // Create a new THREE.Spherical to handle the orbital position calculation
-        // This is a more reliable way to position a camera in an orbit
-        const spherical = new THREE.Spherical(
-            distance,                    // radius
-            Math.PI/2 - rotationX,       // phi (vertical angle from top)
-            rotationY                    // theta (horizontal angle)
-        );
-        
-        // Convert spherical coordinates to cartesian
-        const cameraOffset = new THREE.Vector3();
-        cameraOffset.setFromSpherical(spherical);
-        
-        // Add the player position to get the final camera position
-        const cameraPosition = new THREE.Vector3(
-            playerPosition.x + cameraOffset.x,
-            playerPosition.y + cameraOffset.y + 20, // Add height offset
-            playerPosition.z + cameraOffset.z
-        );
-        
-        console.debug("New camera position calculated:", cameraPosition);
-        console.debug("Vertical angle in degrees:", THREE.MathUtils.radToDeg(rotationX));
-        
-        // Store original camera position for comparison
-        const originalPosition = this.game.camera.position.clone();
-        
-        // Update camera position
-        this.game.camera.position.copy(cameraPosition);
-        
-        console.debug("Camera position updated from:", originalPosition, "to:", this.game.camera.position);
-        
-        // Calculate look direction based on rotation
-        // When looking up (positive rotationX), we want to look higher than the player's head
-        // When looking down (negative rotationX), we want to look lower
-        
-        // Use a more dramatic vertical offset for extreme angles
-        // This will make the sky more visible when looking up
-        const verticalOffset = 5 + (rotationX * 50); // Increased multiplier for more dramatic effect
-        
-        // Look at position that changes with vertical rotation
-        const lookAtPosition = new THREE.Vector3(
-            playerPosition.x,
-            playerPosition.y + verticalOffset, // Adjust vertical look target based on rotation
-            playerPosition.z
-        );
-        this.game.camera.lookAt(lookAtPosition);
-        
-        console.debug("Camera lookAt set to:", lookAtPosition, "with vertical offset:", verticalOffset);
-        
-        // Update orbit controls target if available
-        if (this.game.controls) {
-            const originalTarget = this.game.controls.target.clone();
+        try {
+            console.debug("updateCameraOrbit", {rotationX, rotationY});
             
-            this.game.controls.target.copy(lookAtPosition);
+            // Comprehensive validation of game components
+            if (!this.validateGameComponents()) {
+                console.debug("Game components validation failed, skipping camera orbit update");
+                return;
+            }
             
-            console.debug("OrbitControls target updated from:", originalTarget, "to:", this.game.controls.target);
+            // Additional validation for WebGL context
+            if (this.game.webglContextLost) {
+                console.debug("WebGL context is lost, skipping camera orbit update");
+                return;
+            }
             
-            // Check if controls are enabled
-            console.debug("OrbitControls enabled:", this.game.controls.enabled);
+            // Get player position
+            const playerPosition = this.game.player.getPosition();
+            if (!playerPosition) {
+                console.error("Player position is null or undefined");
+                return;
+            }
+            console.debug("Player position:", playerPosition);
             
-            // Make sure controls are enabled and updated
-            this.game.controls.enabled = true;
-            this.game.controls.update();
+            // Use the camera distance from settings or default
+            const distance = this.cameraDistance;
             
-            console.debug("OrbitControls updated");
-        } else {
-            console.debug("OrbitControls not available");
-        }
-        
-        // Update player's view direction if needed
-        if (this.game.player && typeof this.game.player.setLookDirection === 'function') {
-            // Create a look direction vector directly from the rotation angles
-            // This is more reliable than calculating from positions
-            const lookDirection = new THREE.Vector3();
+            // Validate rotation values to prevent NaN or Infinity
+            if (isNaN(rotationX) || !isFinite(rotationX) || isNaN(rotationY) || !isFinite(rotationY)) {
+                console.error("Invalid rotation values:", {rotationX, rotationY});
+                return;
+            }
             
-            // Use spherical coordinates to create a direction vector
-            // This ensures the vertical component is correct
-            const sphericalLook = new THREE.Spherical(
-                1,                      // unit radius
-                Math.PI/2 - rotationX,  // phi (vertical angle from top)
-                rotationY               // theta (horizontal angle)
+            // Create a new THREE.Spherical to handle the orbital position calculation
+            // This is a more reliable way to position a camera in an orbit
+            const spherical = new THREE.Spherical(
+                distance,                    // radius
+                Math.PI/2 - rotationX,       // phi (vertical angle from top)
+                rotationY                    // theta (horizontal angle)
             );
             
-            lookDirection.setFromSpherical(sphericalLook);
+            // Convert spherical coordinates to cartesian
+            const cameraOffset = new THREE.Vector3();
+            cameraOffset.setFromSpherical(spherical);
             
-            // Log the raw rotation values for debugging
-            console.debug("Creating look direction from rotations:", {
-                rotationX: rotationX,
-                rotationY: rotationY,
-                verticalDegrees: THREE.MathUtils.radToDeg(rotationX),
-                horizontalDegrees: THREE.MathUtils.radToDeg(rotationY)
-            });
+            // Add the player position to get the final camera position
+            // Apply different height offsets based on camera mode
+            const heightOffset = this.currentCameraMode === this.cameraModes.OVER_SHOULDER ? 12 : 20;
             
-            // Update the player's look direction
-            this.game.player.setLookDirection(lookDirection);
-            // console.debug("Player look direction updated to:", lookDirection);
-        } else {
-            console.debug("Player look direction update not available");
-        }
-        
-        // Force a render to update the scene
-        if (this.validateGameComponents() && this.game.renderer) {
-            // Disable orbit controls temporarily to prevent them from overriding our camera position
-            const orbitControlsEnabled = this.game.controls ? this.game.controls.enabled : false;
-            if (this.game.controls) {
-                this.game.controls.enabled = false;
+            const cameraPosition = new THREE.Vector3(
+                playerPosition.x + cameraOffset.x,
+                playerPosition.y + cameraOffset.y + heightOffset, // Add height offset based on mode
+                playerPosition.z + cameraOffset.z
+            );
+            
+            // Validate camera position to prevent NaN or Infinity
+            if (isNaN(cameraPosition.x) || !isFinite(cameraPosition.x) ||
+                isNaN(cameraPosition.y) || !isFinite(cameraPosition.y) ||
+                isNaN(cameraPosition.z) || !isFinite(cameraPosition.z)) {
+                console.error("Invalid camera position calculated:", cameraPosition);
+                return;
             }
             
-            // Force the camera to update its matrix
-            this.game.camera.updateMatrixWorld(true);
+            console.debug("New camera position calculated:", cameraPosition);
+            console.debug("Vertical angle in degrees:", THREE.MathUtils.radToDeg(rotationX));
             
-            // Force a render with our camera settings using safe render
-            if (this.game.safeRender) {
-                this.game.safeRender(this.game.scene, this.game.camera);
+            // Store original camera position for comparison
+            const originalPosition = this.game.camera.position.clone();
+            
+            // Update camera position
+            this.game.camera.position.copy(cameraPosition);
+            
+            console.debug("Camera position updated from:", originalPosition, "to:", this.game.camera.position);
+            
+            // Calculate look direction based on rotation
+            // When looking up (positive rotationX), we want to look higher than the player's head
+            // When looking down (negative rotationX), we want to look lower
+            
+            // Calculate vertical offset based on camera mode and rotation
+            let verticalOffset;
+            
+            if (this.currentCameraMode === this.cameraModes.OVER_SHOULDER) {
+                // For over-shoulder view, use a smaller offset to keep focus on what's ahead
+                verticalOffset = 5 + (rotationX * 30);
             } else {
-                // Fallback to direct render with error handling
-                try {
-                    this.game.renderer.render(this.game.scene, this.game.camera);
-                } catch (error) {
-                    console.warn('Render error in camera control:', error.message);
-                }
+                // For third-person view, use a more dramatic offset
+                verticalOffset = 5 + (rotationX * 50);
             }
             
-            // Restore orbit controls state
+            // Look at position that changes with vertical rotation
+            const lookAtPosition = new THREE.Vector3(
+                playerPosition.x,
+                playerPosition.y + verticalOffset, // Adjust vertical look target based on rotation and mode
+                playerPosition.z
+            );
+            
+            // Validate lookAt position
+            if (isNaN(lookAtPosition.x) || !isFinite(lookAtPosition.x) ||
+                isNaN(lookAtPosition.y) || !isFinite(lookAtPosition.y) ||
+                isNaN(lookAtPosition.z) || !isFinite(lookAtPosition.z)) {
+                console.error("Invalid lookAt position calculated:", lookAtPosition);
+                return;
+            }
+            
+            this.game.camera.lookAt(lookAtPosition);
+            
+            console.debug("Camera lookAt set to:", lookAtPosition, "with vertical offset:", verticalOffset);
+            
+            // Update orbit controls target if available
             if (this.game.controls) {
-                this.game.controls.enabled = orbitControlsEnabled;
+                try {
+                    const originalTarget = this.game.controls.target.clone();
+                    
+                    this.game.controls.target.copy(lookAtPosition);
+                    
+                    console.debug("OrbitControls target updated from:", originalTarget, "to:", this.game.controls.target);
+                    
+                    // Check if controls are enabled
+                    console.debug("OrbitControls enabled:", this.game.controls.enabled);
+                    
+                    // Make sure controls are enabled and updated
+                    this.game.controls.enabled = true;
+                    this.game.controls.update();
+                    
+                    console.debug("OrbitControls updated");
+                } catch (error) {
+                    console.error("Error updating orbit controls:", error);
+                }
+            } else {
+                console.debug("OrbitControls not available");
             }
             
-            console.debug("Forced scene render with camera matrix update");
-        } else {
-            console.debug("Game renderer not available");
+            // Update player's view direction if needed
+            if (this.game.player && typeof this.game.player.setLookDirection === 'function') {
+                try {
+                    // Create a look direction vector directly from the rotation angles
+                    // This is more reliable than calculating from positions
+                    const lookDirection = new THREE.Vector3();
+                    
+                    // Use spherical coordinates to create a direction vector
+                    // This ensures the vertical component is correct
+                    const sphericalLook = new THREE.Spherical(
+                        1,                      // unit radius
+                        Math.PI/2 - rotationX,  // phi (vertical angle from top)
+                        rotationY               // theta (horizontal angle)
+                    );
+                    
+                    lookDirection.setFromSpherical(sphericalLook);
+                    
+                    // Validate look direction
+                    if (isNaN(lookDirection.x) || !isFinite(lookDirection.x) ||
+                        isNaN(lookDirection.y) || !isFinite(lookDirection.y) ||
+                        isNaN(lookDirection.z) || !isFinite(lookDirection.z)) {
+                        console.error("Invalid look direction calculated:", lookDirection);
+                        return;
+                    }
+                    
+                    // Log the raw rotation values for debugging
+                    console.debug("Creating look direction from rotations:", {
+                        rotationX: rotationX,
+                        rotationY: rotationY,
+                        verticalDegrees: THREE.MathUtils.radToDeg(rotationX),
+                        horizontalDegrees: THREE.MathUtils.radToDeg(rotationY)
+                    });
+                    
+                    // Update the player's look direction
+                    this.game.player.setLookDirection(lookDirection);
+                } catch (error) {
+                    console.error("Error updating player look direction:", error);
+                }
+            } else {
+                console.debug("Player look direction update not available");
+            }
+            
+            // Force a render to update the scene
+            if (this.validateGameComponents() && this.game.renderer) {
+                try {
+                    // Disable orbit controls temporarily to prevent them from overriding our camera position
+                    const orbitControlsEnabled = this.game.controls ? this.game.controls.enabled : false;
+                    if (this.game.controls) {
+                        this.game.controls.enabled = false;
+                    }
+                    
+                    // Force the camera to update its matrix
+                    this.game.camera.updateMatrixWorld(true);
+                    
+                    // Force a render with our camera settings using safe render
+                    if (this.game.safeRender) {
+                        this.game.safeRender(this.game.scene, this.game.camera);
+                    } else {
+                        // Fallback to direct render with error handling
+                        try {
+                            this.game.renderer.render(this.game.scene, this.game.camera);
+                        } catch (error) {
+                            console.warn('Render error in camera control:', error.message);
+                        }
+                    }
+                    
+                    // Restore orbit controls state
+                    if (this.game.controls) {
+                        this.game.controls.enabled = orbitControlsEnabled;
+                    }
+                    
+                    console.debug("Forced scene render with camera matrix update");
+                } catch (error) {
+                    console.error("Error during forced render:", error);
+                }
+            } else {
+                console.debug("Game renderer not available");
+            }
+            
+            // Set a flag to ensure the camera position is maintained in the next frame
+            this.cameraUpdatePending = true;
+        } catch (error) {
+            console.error("Critical error in updateCameraOrbit:", error);
+            // Try to recover by resetting to default view
+            try {
+                this.resetCameraToDefault();
+            } catch (recoveryError) {
+                console.error("Failed to recover from camera error:", recoveryError);
+            }
         }
-        
-        // Set a flag to ensure the camera position is maintained in the next frame
-        this.cameraUpdatePending = true;
     }
     
     /**
@@ -845,17 +984,28 @@ export class CameraControlUI extends UIComponent {
                 cameraOffset.setFromSpherical(spherical);
                 
                 // Add the player position to get the final camera position
+                // Apply different height offsets based on camera mode
+                const heightOffset = this.currentCameraMode === this.cameraModes.OVER_SHOULDER ? 12 : 20;
+                
                 const cameraPosition = new THREE.Vector3(
                     playerPosition.x + cameraOffset.x,
-                    playerPosition.y + cameraOffset.y + 20, // Add height offset
+                    playerPosition.y + cameraOffset.y + heightOffset, // Add height offset based on mode
                     playerPosition.z + cameraOffset.z
                 );
                 
                 // Update camera position
                 this.game.camera.position.copy(cameraPosition);
                 
-                // Calculate look direction based on rotation
-                const verticalOffset = 5 + (rotationX * 50); // Same as in updateCameraOrbit
+                // Calculate vertical offset based on camera mode and rotation
+                let verticalOffset;
+                
+                if (this.currentCameraMode === this.cameraModes.OVER_SHOULDER) {
+                    // For over-shoulder view, use a smaller offset to keep focus on what's ahead
+                    verticalOffset = 5 + (rotationX * 30);
+                } else {
+                    // For third-person view, use a more dramatic offset
+                    verticalOffset = 5 + (rotationX * 50);
+                }
                 
                 // Look at position that changes with vertical rotation
                 const lookAtPosition = new THREE.Vector3(
@@ -908,9 +1058,20 @@ export class CameraControlUI extends UIComponent {
      * Reset camera to default position behind the player
      */
     resetCameraToDefault() {
-        console.debug("Resetting camera to default position");
-        
-        if (this.validateGameComponents()) {
+        try {
+            console.debug("Resetting camera to default position");
+            
+            if (!this.validateGameComponents()) {
+                console.error("Cannot reset camera - game components not valid");
+                return;
+            }
+            
+            // Check for WebGL context loss
+            if (this.game.webglContextLost) {
+                console.error("Cannot reset camera - WebGL context is lost");
+                return;
+            }
+            
             // Set default rotation values
             const defaultRotationX = 0.3; // Slight angle from horizontal
             const defaultRotationY = Math.PI; // Behind the player
@@ -919,10 +1080,130 @@ export class CameraControlUI extends UIComponent {
             this.cameraState.rotationX = defaultRotationX;
             this.cameraState.rotationY = defaultRotationY;
             
-            // Update the camera position
-            this.updateCameraOrbit(defaultRotationX, defaultRotationY);
+            // Set camera to default mode if we're having issues
+            this.currentCameraMode = this.cameraModes.THIRD_PERSON;
+            this.cameraDistance = this.cameraDistances[this.currentCameraMode];
             
-            console.debug("Camera reset to default position");
+            // Update the camera mode button UI
+            this.updateCameraModeButtonUI();
+            
+            // Update the camera position with a safe call
+            try {
+                this.updateCameraOrbit(defaultRotationX, defaultRotationY);
+                console.debug("Camera reset to default position");
+            } catch (error) {
+                console.error("Error during camera reset:", error);
+                
+                // Last resort - try to directly position the camera
+                if (this.game && this.game.camera && this.game.player) {
+                    try {
+                        const playerPosition = this.game.player.getPosition();
+                        if (playerPosition) {
+                            // Position camera directly behind player
+                            this.game.camera.position.set(
+                                playerPosition.x, 
+                                playerPosition.y + 20, 
+                                playerPosition.z + 20
+                            );
+                            this.game.camera.lookAt(playerPosition);
+                            console.debug("Camera emergency reset applied");
+                        }
+                    } catch (emergencyError) {
+                        console.error("Emergency camera positioning failed:", emergencyError);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Critical error in resetCameraToDefault:", error);
+        }
+    }
+    
+    /**
+     * Set up camera mode button event listeners
+     */
+    setupCameraModeButtonEvents() {
+        if (!this.cameraModeButton) {
+            console.error('Camera mode button not found');
+            return;
+        }
+        
+        // Touch event for camera mode button
+        this.cameraModeButton.addEventListener('touchstart', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.toggleCameraMode();
+        }, { passive: false });
+        
+        // Mouse event for camera mode button (for desktop testing)
+        this.cameraModeButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.toggleCameraMode();
+        });
+    }
+    
+    /**
+     * Toggle between camera modes
+     */
+    toggleCameraMode() {
+        try {
+            // Store previous mode in case we need to revert
+            const previousMode = this.currentCameraMode;
+            
+            // Toggle between camera modes
+            if (this.currentCameraMode === this.cameraModes.THIRD_PERSON) {
+                this.currentCameraMode = this.cameraModes.OVER_SHOULDER;
+            } else {
+                this.currentCameraMode = this.cameraModes.THIRD_PERSON;
+            }
+            
+            console.debug("Camera mode toggled to:", this.currentCameraMode);
+            
+            // Update the camera distance based on the new mode
+            this.cameraDistance = this.cameraDistances[this.currentCameraMode];
+            
+            // Validate game components before updating camera
+            if (!this.validateGameComponents()) {
+                console.error("Cannot update camera orbit - game components not valid");
+                // Revert to previous mode if components aren't valid
+                this.currentCameraMode = previousMode;
+                return;
+            }
+            
+            // Check for WebGL context loss
+            if (this.game.webglContextLost) {
+                console.error("Cannot update camera orbit - WebGL context is lost");
+                // Revert to previous mode
+                this.currentCameraMode = previousMode;
+                return;
+            }
+            
+            // Update the camera position with error handling
+            if (this.cameraState.rotationX !== undefined && this.cameraState.rotationY !== undefined) {
+                try {
+                    this.updateCameraOrbit(this.cameraState.rotationX, this.cameraState.rotationY);
+                } catch (error) {
+                    console.error("Error updating camera orbit:", error);
+                    // Revert to previous mode
+                    this.currentCameraMode = previousMode;
+                    return;
+                }
+            }
+            
+            // Update the camera mode button UI
+            this.updateCameraModeButtonUI();
+            
+            // Save the camera mode to localStorage
+            import('../config/storage-keys.js').then(module => {
+                const STORAGE_KEYS = module.STORAGE_KEYS;
+                localStorage.setItem(STORAGE_KEYS.CAMERA_MODE, this.currentCameraMode);
+            }).catch(error => {
+                console.error("Error saving camera mode to localStorage:", error);
+            });
+        } catch (error) {
+            console.error("Error in toggleCameraMode:", error);
+            // If any unexpected error occurs, try to recover
+            this.resetCameraToDefault();
         }
     }
     
@@ -935,6 +1216,14 @@ export class CameraControlUI extends UIComponent {
             // Remove camera button from DOM
             if (this.cameraButton.parentNode) {
                 this.cameraButton.parentNode.removeChild(this.cameraButton);
+            }
+        }
+        
+        // Remove camera mode button event listeners
+        if (this.cameraModeButton) {
+            // Remove camera mode button from DOM
+            if (this.cameraModeButton.parentNode) {
+                this.cameraModeButton.parentNode.removeChild(this.cameraModeButton);
             }
         }
         
