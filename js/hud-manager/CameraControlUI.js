@@ -430,7 +430,7 @@ export class CameraControlUI extends UIComponent {
             // Update icon to indicate current mode
             const iconElement = this.cameraModeButton.querySelector('.camera-mode-icon');
             if (iconElement) {
-                iconElement.textContent = '🔍';
+                iconElement.textContent = '👀';
             }
         }
     }
