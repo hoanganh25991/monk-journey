@@ -107,7 +107,7 @@ export class TerrainManager {
             0, // Center X
             0, // Center Z
             this.terrainSize, // Use terrainSize for the base terrain
-            this.terrainResolution - 1, // Use slightly lower resolution for base terrain
+            this.terrainResolution, // Use slightly lower resolution for base terrain
             true, // Is base terrain
             new THREE.Vector3(0, 0, 0) // Position at center
         );

@@ -4,7 +4,7 @@
 export const TERRAIN_CONFIG = {
     // Base terrain properties
     size: 0, // Base terrain size
-    resolution: 2, // Base terrain resolution
+    resolution: 1, // Base terrain resolution
     height: 4, // Maximum terrain height
     
     // Terrain chunk properties
