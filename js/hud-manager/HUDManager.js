@@ -15,6 +15,7 @@ import { HomeButton } from './HomeUI.js';
 import { FullscreenButton } from './SkillSelectionButton.js';
 import { SkillTreeButton } from './SkillTreeButton.js';
 import { TouchDebugUI } from './TouchDebugUI.js';
+import { MapSelectionUI } from './MapSelectionUI.js';
 
 import { InventoryButton } from './InventoryButton.js';
 
@@ -132,6 +133,10 @@ export class HUDManager {
         // Create touch debug UI (remove in production)
         this.components.touchDebugUI = new TouchDebugUI(this.game);
         this.components.touchDebugUI.init();
+        
+        // Create map selection UI
+        this.components.mapSelectionUI = new MapSelectionUI(this.game);
+        this.components.mapSelectionUI.init();
     }
     
     /**
@@ -161,6 +166,9 @@ export class HUDManager {
         this.components.homeButton.update(delta);
         this.components.skillTreeButton.update(delta);
         this.components.inventoryButton.update(delta);
+        
+        // Update map selection UI
+        this.components.mapSelectionUI.update(delta);
     }
     
     /**
