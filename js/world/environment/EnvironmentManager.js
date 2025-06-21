@@ -419,64 +419,38 @@ export class EnvironmentManager {
     
     /**
      * Remove environment objects for a specific chunk
+     * Enhanced with object pooling and shared resource management
      * @param {string} chunkKey - The chunk key
      * @param {boolean} disposeResources - Whether to dispose of geometries and materials
+     * @returns {number} - Number of objects removed
      */
     removeChunkObjects(chunkKey, disposeResources = false) {
-        // Remove environment objects from scene
-        if (this.environmentObjectsByChunk[chunkKey]) {
+        let removedCount = 0;
+        
+        // First check if we have objects in the chunk tracking
+        const objectsToRemove = [];
+        
+        // Collect objects from environment objects array
+        if (this.environmentObjects) {
+            for (let i = this.environmentObjects.length - 1; i >= 0; i--) {
+                const item = this.environmentObjects[i];
+                if (item.chunkKey === chunkKey) {
+                    objectsToRemove.push(item);
+                    this.environmentObjects.splice(i, 1);
+                    removedCount++;
+                }
+            }
+        }
+        
+        // Also check legacy tracking
+        if (this.environmentObjectsByChunk && this.environmentObjectsByChunk[chunkKey]) {
             this.environmentObjectsByChunk[chunkKey].forEach(item => {
                 if (item.object) {
-                    // Remove from scene if it's in the scene
-                    if (item.object.parent) {
-                        this.scene.remove(item.object);
-                    }
-                    
-                    // Remove from global tracking array
-                    const index = this.environmentObjects.findIndex(obj => obj.object === item.object);
-                    if (index !== -1) {
-                        this.environmentObjects.splice(index, 1);
-                    }
-                    
-                    // Remove from type-specific collections
-                    this.removeFromTypeCollections(item.object);
-                    
-                    // Dispose of geometries and materials if requested
-                    if (disposeResources) {
-                        if (item.object.geometry) {
-                            item.object.geometry.dispose();
-                        }
-                        
-                        if (item.object.material) {
-                            // Handle both single materials and material arrays
-                            if (Array.isArray(item.object.material)) {
-                                item.object.material.forEach(material => {
-                                    if (material.map) material.map.dispose();
-                                    material.dispose();
-                                });
-                            } else {
-                                if (item.object.material.map) item.object.material.map.dispose();
-                                item.object.material.dispose();
-                            }
-                        }
-                        
-                        // Handle child objects if any
-                        if (item.object.children && item.object.children.length > 0) {
-                            item.object.children.forEach(child => {
-                                if (child.geometry) child.geometry.dispose();
-                                if (child.material) {
-                                    if (Array.isArray(child.material)) {
-                                        child.material.forEach(material => {
-                                            if (material.map) material.map.dispose();
-                                            material.dispose();
-                                        });
-                                    } else {
-                                        if (child.material.map) child.material.map.dispose();
-                                        child.material.dispose();
-                                    }
-                                }
-                            });
-                        }
+                    // Check if this object is already in our removal list
+                    const alreadyIncluded = objectsToRemove.some(obj => obj.object === item.object);
+                    if (!alreadyIncluded) {
+                        objectsToRemove.push(item);
+                        removedCount++;
                     }
                 }
             });
@@ -484,12 +458,89 @@ export class EnvironmentManager {
             // If disposing resources, remove the chunk data completely
             if (disposeResources) {
                 delete this.environmentObjectsByChunk[chunkKey];
-                console.debug(`Disposed environment objects for chunk ${chunkKey}`);
             }
+        }
+        
+        // Process objects in batches to avoid frame drops
+        const processBatch = (startIdx, batchSize) => {
+            const endIdx = Math.min(startIdx + batchSize, objectsToRemove.length);
+            
+            for (let i = startIdx; i < endIdx; i++) {
+                const item = objectsToRemove[i];
+                
+                if (item.object) {
+                    // Remove from scene if it's in the scene
+                    if (item.object.parent) {
+                        this.scene.remove(item.object);
+                    }
+                    
+                    // Remove from type-specific collections
+                    this.removeFromTypeCollections(item.object);
+                    
+                    // Use memory manager for disposal or pooling if available
+                    if (this.worldManager && this.worldManager.memoryManager) {
+                        // Return to pool or dispose based on disposeResources flag
+                        this.worldManager.memoryManager.returnObjectToPool(item.object, item.type, disposeResources);
+                    } else {
+                        // Fallback to direct disposal if memory manager not available
+                        if (disposeResources) {
+                            // Dispose of geometries and materials
+                            if (item.object.geometry) {
+                                item.object.geometry.dispose();
+                            }
+                            
+                            if (item.object.material) {
+                                // Handle both single materials and material arrays
+                                if (Array.isArray(item.object.material)) {
+                                    item.object.material.forEach(material => {
+                                        if (material.map) material.map.dispose();
+                                        material.dispose();
+                                    });
+                                } else {
+                                    if (item.object.material.map) item.object.material.map.dispose();
+                                    item.object.material.dispose();
+                                }
+                            }
+                            
+                            // Handle child objects if any
+                            if (item.object.children && item.object.children.length > 0) {
+                                item.object.children.forEach(child => {
+                                    if (child.geometry) child.geometry.dispose();
+                                    if (child.material) {
+                                        if (Array.isArray(child.material)) {
+                                            child.material.forEach(material => {
+                                                if (material.map) material.map.dispose();
+                                                material.dispose();
+                                            });
+                                        } else {
+                                            if (child.material.map) child.material.map.dispose();
+                                            child.material.dispose();
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // If there are more objects to process, schedule the next batch
+            if (endIdx < objectsToRemove.length) {
+                setTimeout(() => {
+                    processBatch(endIdx, batchSize);
+                }, 0);
+            }
+        };
+        
+        // Start processing the first batch (20 objects at a time)
+        if (objectsToRemove.length > 0) {
+            processBatch(0, 20);
         }
         
         // Remove the chunk from the visible chunks
         delete this.visibleChunks[chunkKey];
+        
+        return removedCount;
     }
     
     /**
@@ -608,15 +659,45 @@ export class EnvironmentManager {
             return null;
         }
         
-        // Create the object using the factory
-        const object = this.environmentFactory.create(type, position, size, data);
+        // Calculate chunk key for tracking
+        const terrainChunkSize = this.worldManager.terrainManager.terrainChunkSize;
+        const chunkX = Math.floor(x / terrainChunkSize);
+        const chunkZ = Math.floor(z / terrainChunkSize);
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // Try to get object from pool first
+        let object = null;
+        
+        if (this.worldManager.memoryManager) {
+            // Create a callback for creating a new object if none in pool
+            const createCallback = () => {
+                return this.environmentFactory.create(type, position, size, data);
+            };
+            
+            // Get object from pool or create new
+            object = this.worldManager.memoryManager.getObjectFromPool(type, createCallback);
+            
+            // Track this object with the chunk for better memory management
+            if (object && this.worldManager.memoryManager.trackChunkObject) {
+                this.worldManager.memoryManager.trackChunkObject(chunkKey, object, type);
+            }
+        } else {
+            // Fallback to direct creation if memory manager not available
+            object = this.environmentFactory.create(type, position, size, data);
+        }
         
         if (object) {
-            // If this is an offscreen creation, don't add to tracking arrays or scene
+            // Set position
+            object.position.copy(position);
+            
+            // Set visibility based on offscreen creation
             if (offscreenCreation) {
-                // Just set the position and return the object
-                object.position.copy(position);
-                return object;
+                object.visible = false;
+            } else {
+                object.visible = true;
+                
+                // Add to scene if not offscreen creation
+                this.scene.add(object);
             }
             
             // Add to the appropriate tracking array if it exists
@@ -624,6 +705,15 @@ export class EnvironmentManager {
             if (this[trackingArrayName]) {
                 this[trackingArrayName].push(object);
             }
+            
+            // Add to environment objects tracking with chunk key
+            this.environmentObjects.push({
+                type: type,
+                object: object,
+                position: position,
+                scale: size,
+                chunkKey: chunkKey
+            });
             
             return object;
         }

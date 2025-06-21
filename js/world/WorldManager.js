@@ -202,7 +202,7 @@ export class WorldManager {
     /**
      * Update the world based on player position
      * This is the main method for world generation and updates
-     * Optimized to prevent frame drops by throttling and batching operations
+     * Enhanced with chunk tracking, object pooling, and shared resources
      * 
      * @param {THREE.Vector3} playerPosition - The player's current position
      * @param {number} drawDistanceMultiplier - Multiplier for draw distance (1.0 is default)
@@ -234,6 +234,12 @@ export class WorldManager {
             const terrainChunkSize = this.terrainManager.terrainChunkSize;
             const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
             const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
+            
+            // Track current chunk for memory management
+            const currentChunkKey = `${playerChunkX},${playerChunkZ}`;
+            
+            // Mark current chunk and surrounding chunks as active
+            this.markActiveChunks(playerChunkX, playerChunkZ, Math.ceil(effectiveDrawDistance / terrainChunkSize));
             
             // Use a priority-based update system
             // 1. Always update terrain first (most important for gameplay)
@@ -276,7 +282,67 @@ export class WorldManager {
             // 5. Update world systems (lighting, fog, etc.)
             // These are lightweight and can be updated every frame
             this.updateWorldSystems(playerPosition, effectiveDrawDistance);
+            
+            // 6. Periodically clean up distant objects
+            // This helps prevent memory leaks and maintain performance
+            if (!this._lastDistantCleanup || now - this._lastDistantCleanup > 5000) { // Every 5 seconds
+                this.cleanupDistantObjects(playerChunkX, playerChunkZ, effectiveDrawDistance);
+                this._lastDistantCleanup = now;
+            }
         }
+    }
+    
+    /**
+     * Mark chunks as active for memory management
+     * @param {number} centerChunkX - Center chunk X coordinate
+     * @param {number} centerChunkZ - Center chunk Z coordinate
+     * @param {number} radius - Radius of chunks to mark as active
+     * @private
+     */
+    markActiveChunks(centerChunkX, centerChunkZ, radius) {
+        if (!this.memoryManager) return;
+        
+        const now = Date.now();
+        
+        // Mark current chunk and surrounding chunks as active
+        for (let x = centerChunkX - radius; x <= centerChunkX + radius; x++) {
+            for (let z = centerChunkZ - radius; z <= centerChunkZ + radius; z++) {
+                const chunkKey = `${x},${z}`;
+                
+                // Update last used time for this chunk
+                if (this.memoryManager.chunkLastUsed) {
+                    this.memoryManager.chunkLastUsed.set(chunkKey, now);
+                }
+                
+                // Add to active chunks set
+                if (this.memoryManager.activeChunks) {
+                    this.memoryManager.activeChunks.add(chunkKey);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Clean up distant objects periodically
+     * @param {number} playerChunkX - Player's chunk X coordinate
+     * @param {number} playerChunkZ - Player's chunk Z coordinate
+     * @param {number} effectiveDrawDistance - Effective draw distance
+     * @private
+     */
+    cleanupDistantObjects(playerChunkX, playerChunkZ, effectiveDrawDistance) {
+        // Skip if memory manager isn't available
+        if (!this.memoryManager) return;
+        
+        // Calculate chunk view distance
+        const chunkViewDistance = Math.ceil(effectiveDrawDistance / this.terrainManager.terrainChunkSize);
+        
+        // Clean up distant objects
+        this.memoryManager.cleanupDistantObjects(playerChunkX, playerChunkZ, chunkViewDistance)
+            .then(count => {
+                if (count > 0) {
+                    console.debug(`🧹 Periodic cleanup removed ${count} distant objects`);
+                }
+            });
     }
     
     /**
@@ -584,6 +650,7 @@ export class WorldManager {
     
     /**
      * PERFORMANCE FIX: Track player movement and trigger cleanup when needed
+     * Enhanced with better movement detection and timed cleanup
      * @param {THREE.Vector3} currentPosition - Current player position
      * @private
      */
@@ -603,6 +670,16 @@ export class WorldManager {
                 console.debug(`🏃 Fast movement detected: ${movementSpeed.toFixed(1)} units/sec`);
                 this.hadFastMovement = true;
                 this.stationaryTime = 0;
+                
+                // Track the direction of movement for predictive loading
+                this.movementDirection = new THREE.Vector3()
+                    .subVectors(currentPosition, this.lastMovementPosition)
+                    .normalize();
+                
+                // If moving very fast, perform immediate cleanup behind the player
+                if (movementSpeed > this.fastMovementThreshold * 2) {
+                    this.performDirectionalCleanup(currentPosition, this.movementDirection);
+                }
             } else if (movementSpeed < 1) {
                 // Player is stationary or moving very slowly
                 this.stationaryTime += deltaTime;
@@ -613,6 +690,11 @@ export class WorldManager {
                     this.performStationaryCleanup(currentPosition);
                     this.hadFastMovement = false;
                     this.stationaryTime = 0;
+                }
+                
+                // Also clean up stale chunks periodically when stationary
+                if (this.stationaryTime > 5 && this.stationaryTime % 5 < deltaTime) {
+                    this.cleanupStaleChunks();
                 }
             } else {
                 // Normal movement - reset stationary time
@@ -626,7 +708,58 @@ export class WorldManager {
     }
     
     /**
+     * Clean up stale chunks that haven't been used for a while
+     * @private
+     */
+    cleanupStaleChunks() {
+        if (this.memoryManager && this.memoryManager.cleanupStaleChunks) {
+            const removedCount = this.memoryManager.cleanupStaleChunks(60000); // 60 seconds
+            if (removedCount > 0) {
+                console.debug(`🧹 Cleaned up ${removedCount} objects from stale chunks`);
+            }
+        }
+    }
+    
+    /**
+     * Perform directional cleanup behind the player when moving fast
+     * @param {THREE.Vector3} playerPosition - Current player position
+     * @param {THREE.Vector3} direction - Direction of movement
+     * @private
+     */
+    performDirectionalCleanup(playerPosition, direction) {
+        // Calculate the opposite direction (behind the player)
+        const oppositeDirection = direction.clone().negate();
+        
+        // Calculate a position far behind the player
+        const behindPosition = new THREE.Vector3()
+            .copy(playerPosition)
+            .addScaledVector(oppositeDirection, this.terrainManager.terrainChunkSize * 5);
+        
+        // Calculate chunk coordinates for the position behind
+        const terrainChunkSize = this.terrainManager.terrainChunkSize;
+        const behindChunkX = Math.floor(behindPosition.x / terrainChunkSize);
+        const behindChunkZ = Math.floor(behindPosition.z / terrainChunkSize);
+        
+        // Perform cleanup centered on this position
+        console.debug('🧹 Performing directional cleanup behind player...');
+        
+        // Use a smaller view distance for behind cleanup
+        if (this.memoryManager.forceAggressiveCleanup) {
+            const removedCount = this.memoryManager.forceAggressiveCleanup(behindChunkX, behindChunkZ, 2);
+            if (removedCount > 0) {
+                console.debug(`🧹 Directional cleanup removed ${removedCount} objects`);
+            }
+        }
+        
+        // Also cleanup terrain chunks
+        if (this.terrainManager.clearDistantChunks) {
+            this.terrainManager.clearDistantChunks(behindChunkX, behindChunkZ, 2);
+        }
+    }
+    
+    /**
      * PERFORMANCE FIX: Perform cleanup when player becomes stationary after fast movement
+     * Enhanced with more aggressive cleanup and shared resource management
      * @param {THREE.Vector3} playerPosition - Current player position
      * @private
      */
@@ -647,6 +780,16 @@ export class WorldManager {
         if (this.terrainManager.clearDistantChunks) {
             this.terrainManager.clearDistantChunks(playerChunkX, playerChunkZ, 4);
             console.debug('🧹 Stationary terrain cleanup completed');
+        }
+        
+        // Process any pending disposals
+        if (this.memoryManager.processAllPendingDisposals) {
+            this.memoryManager.processAllPendingDisposals();
+        }
+        
+        // Hint for garbage collection
+        if (this.performanceManager) {
+            this.performanceManager.hintGarbageCollection();
         }
     }
 
