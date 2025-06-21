@@ -49,7 +49,7 @@ export class BulShadowCloneEffect extends SkillEffect {
      */
     create(position, direction) {
         position = position.clone();
-        position.y -= 2.05;
+        position.y -= 2.04;
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         

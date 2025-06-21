@@ -77,7 +77,7 @@ export class BleedingEffect extends SkillEffect {
      * @returns {THREE.Group} - The created effect
      */
     create(position, direction) {
-        position.y -= 2.05;
+        position.y -= 2.04;
         // Create a group to hold all particles
         const effectGroup = new THREE.Group();
         
