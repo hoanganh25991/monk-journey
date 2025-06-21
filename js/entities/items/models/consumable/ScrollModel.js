@@ -8,6 +8,9 @@ import { ItemModel } from '../ItemModel.js';
 export class ScrollModel extends ItemModel {
     constructor(item, modelGroup) {
         super(item, modelGroup);
+        this.particles = []; // Store particle references for safer access
+        this.symbols = []; // Store symbol references for safer access
+        this.glow = null; // Store glow reference
         this.createModel();
     }
     
@@ -105,6 +108,7 @@ export class ScrollModel extends ItemModel {
             symbol.rotation.z = Math.random() * Math.PI * 2;
             
             this.modelGroup.add(symbol);
+            this.symbols.push(symbol); // Store reference for safer access
         }
     }
     
@@ -125,6 +129,7 @@ export class ScrollModel extends ItemModel {
         glow.scale.set(1.2, 0.8, 0.8); // Flatten the glow slightly
         
         this.modelGroup.add(glow);
+        this.glow = glow; // Store reference for safer access
         
         // Add particle-like effects
         const particleCount = 8;
@@ -155,6 +160,7 @@ export class ScrollModel extends ItemModel {
             };
             
             this.modelGroup.add(particle);
+            this.particles.push(particle); // Store reference for safer access
         }
     }
     
@@ -163,9 +169,9 @@ export class ScrollModel extends ItemModel {
         const time = Date.now() * 0.001; // Convert to seconds
         
         if (this.modelGroup) {
-            // Animate mystical symbols
-            for (let i = 0; i < 3; i++) {
-                const symbol = this.modelGroup.children[1 + i]; // Symbols start at index 1
+            // Animate mystical symbols using stored references
+            for (let i = 0; i < this.symbols.length; i++) {
+                const symbol = this.symbols[i];
                 if (symbol && symbol.material) {
                     // Pulsing glow effect
                     symbol.material.emissiveIntensity = 0.2 + Math.sin(time * 2 + i) * 0.15;
@@ -175,17 +181,16 @@ export class ScrollModel extends ItemModel {
                 }
             }
             
-            // Animate glow effect
-            const glow = this.modelGroup.children[4]; // Glow sphere
-            if (glow && glow.material) {
-                glow.material.opacity = 0.1 + Math.sin(time * 1.5) * 0.05;
-                glow.rotation.y += delta * 0.3;
+            // Animate glow effect using stored reference
+            if (this.glow && this.glow.material) {
+                this.glow.material.opacity = 0.1 + Math.sin(time * 1.5) * 0.05;
+                this.glow.rotation.y += delta * 0.3;
             }
             
-            // Animate particles
-            for (let i = 5; i < this.modelGroup.children.length; i++) {
-                const particle = this.modelGroup.children[i];
-                if (particle && particle.userData) {
+            // Animate particles using stored references
+            for (let i = 0; i < this.particles.length; i++) {
+                const particle = this.particles[i];
+                if (particle && particle.userData && particle.userData.originalPosition) {
                     const userData = particle.userData;
                     
                     // Orbit around the scroll
@@ -207,6 +212,32 @@ export class ScrollModel extends ItemModel {
             // Gentle floating motion for the entire scroll
             this.modelGroup.position.y = Math.sin(time * 0.8) * 0.02;
             this.modelGroup.rotation.y += delta * 0.2;
+        }
+    }
+    
+    /**
+     * Clean up resources when the model is no longer needed
+     */
+    dispose() {
+        // Clear references to prevent memory leaks
+        this.particles = [];
+        this.symbols = [];
+        this.glow = null;
+        
+        // Dispose of geometries and materials
+        if (this.modelGroup) {
+            this.modelGroup.traverse(child => {
+                if (child.geometry) {
+                    child.geometry.dispose();
+                }
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(material => material.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
+            });
         }
     }
 }
