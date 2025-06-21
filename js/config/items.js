@@ -722,6 +722,55 @@ export const ITEM_TEMPLATES = [
             }
         ],
     },
+    {
+        id: "superiorEternityLoop",
+        name: "Superior Eternity Loop",
+        type: "accessory",
+        subType: "ring",
+        description: "An enhanced version of the Eternity Loop with greater power across all dimensions.",
+        icon: "🔄",
+        rarity: "mythic",
+        baseStats: {
+            critChance: 18,
+            attackPower: 35,
+            critDamage: 70,
+            elementalDamage: 30,
+            attackSpeed: 12
+        },
+        secondaryStats: [
+            {
+                type: "timeScaling",
+                value: 0.15, // Damage increases by 0.15% per second of real-time gameplay, persisting between sessions
+                persistent: true
+            },
+            {
+                type: "damageAmplification",
+                value: 0.8, // 0.8% of all damage dealt is permanently added to the ring's power
+                maxValue: 150
+            }
+        ],
+    },
+    {
+        id: "fineIronBand",
+        name: "Fine Iron Band",
+        type: "accessory",
+        subType: "ring",
+        description: "A finely crafted iron ring with superior craftsmanship.",
+        icon: "💍",
+        rarity: "uncommon",
+        baseStats: {
+            critChance: 4,
+            attackPower: 6,
+            defense: 3
+        },
+        secondaryStats: [
+            {
+                type: "resourceRegen",
+                value: 2, // Increases resource regeneration by 2%
+                resource: "all"
+            }
+        ],
+    },
     
     // Talismans
     {

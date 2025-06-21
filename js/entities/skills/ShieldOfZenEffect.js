@@ -87,7 +87,31 @@ export class ShieldOfZenEffect extends SkillEffect {
         this.effect = effectGroup;
         this.isActive = true;
         
+        // Apply defense boost effect to the player
+        this._applyDefenseBoost();
+        
         return effectGroup;
+    }
+    
+    /**
+     * Apply defense boost effect to the player
+     * @private
+     */
+    _applyDefenseBoost() {
+        // Check if we have access to the game and player
+        if (!this.skill || !this.skill.game || !this.skill.game.player || !this.skill.game.player.statusEffects) {
+            console.warn('Cannot apply defense boost: missing required references');
+            return;
+        }
+        
+        // Apply the defense boost effect using the damageReduction value
+        this.skill.game.player.statusEffects.applyEffect(
+            'defenseBoost',
+            this.skill.duration, // Use the skill's duration
+            this.damageReduction * 100 // Convert from decimal to percentage
+        );
+        
+        console.debug(`Applied defense boost: ${this.damageReduction * 100}% for ${this.skill.duration} seconds`);
     }
 
     /**
