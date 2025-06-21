@@ -7,7 +7,7 @@ import { TallGrass } from './TallGrass.js';
 import { AncientTree } from './AncientTree.js';
 import { TreeCluster } from './TreeCluster.js';
 import { EnvironmentFactory } from './EnvironmentFactory.js';
-import { ENVIRONMENT_OBJECTS, ENVIRONMENT_CATEGORIES } from '../../config/environment.js';
+import { ENVIRONMENT_OBJECTS } from '../../config/environment.js';
 
 /**
  * Manages environment objects like trees, rocks, bushes, etc.
@@ -39,23 +39,6 @@ export class EnvironmentManager {
         
         // Combine both sets of types, removing duplicates
         this.environmentObjectTypes = [...new Set([...configTypes, ...factoryTypes])];
-        
-        // For minimap functionality
-        this.trees = [];
-        this.rocks = [];
-        this.bushes = [];
-        this.flowers = [];
-        this.tallGrass = [];
-        this.ancientTrees = [];
-        this.smallPlants = [];
-        this.fallenLogs = [];
-        this.mushrooms = [];
-        this.rockFormations = [];
-        this.shrines = [];
-        this.stumps = [];
-        this.waterfalls = [];
-        this.crystalFormations = [];
-        this.mosses = [];
     }
 
     /**
@@ -120,115 +103,13 @@ export class EnvironmentManager {
     
     /**
      * Add object to the appropriate type-specific collection
+     * This method is kept for backward compatibility but no longer stores objects in type-specific arrays
      * @param {string} type - Type of environment object
      * @param {THREE.Object3D} object - The object to add
      */
     addToTypeCollection(type, object) {
-        // First check for exact type matches
-        switch (type) {
-            case ENVIRONMENT_OBJECTS.TREE:
-                this.trees.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.ROCK:
-                this.rocks.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.BUSH:
-                this.bushes.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.FLOWER:
-                this.flowers.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.TALL_GRASS:
-                this.tallGrass.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.ANCIENT_TREE:
-                this.ancientTrees.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.SMALL_PLANT:
-                this.smallPlants.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.FALLEN_LOG:
-                this.fallenLogs.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.MUSHROOM:
-                this.mushrooms.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.ROCK_FORMATION:
-                this.rockFormations.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.SHRINE:
-            case ENVIRONMENT_OBJECTS.FOREST_SHRINE:
-            case ENVIRONMENT_OBJECTS.DESERT_SHRINE:
-                this.shrines.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.STUMP:
-                this.stumps.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.WATERFALL:
-                this.waterfalls.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.CRYSTAL_FORMATION:
-            case ENVIRONMENT_OBJECTS.SMALL_CRYSTAL:
-                this.crystalFormations.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.MOSS:
-                this.mosses.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.MAGICAL_FLOWER:
-                this.flowers.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.STONE_CIRCLE:
-                this.shrines.push(object);
-                break;
-            case ENVIRONMENT_OBJECTS.MOUNTAIN_PASS:
-                this.rockFormations.push(object);
-                break;
-            default:
-                // For types without a specific collection, categorize by type
-                this.categorizeByType(type, object);
-                break;
-        }
-    }
-    
-    /**
-     * Categorize an object by its type using the environment categories
-     * @param {string} type - Type of environment object
-     * @param {THREE.Object3D} object - The object to add
-     */
-    categorizeByType(type, object) {
-        // Check if the type belongs to any category
-        if (ENVIRONMENT_CATEGORIES.VEGETATION.includes(type)) {
-            // For vegetation types, add to appropriate collection based on subtype
-            if (type.includes('tree')) {
-                this.trees.push(object);
-            } else if (type.includes('bush')) {
-                this.bushes.push(object);
-            } else if (type.includes('flower')) {
-                this.flowers.push(object);
-            } else if (type.includes('grass')) {
-                this.tallGrass.push(object);
-            } else {
-                this.smallPlants.push(object);
-            }
-        } else if (ENVIRONMENT_CATEGORIES.ROCKS.includes(type)) {
-            if (type.includes('formation')) {
-                this.rockFormations.push(object);
-            } else {
-                this.rocks.push(object);
-            }
-        } else if (ENVIRONMENT_CATEGORIES.FUNGI.includes(type)) {
-            this.mushrooms.push(object);
-        } else if (ENVIRONMENT_CATEGORIES.WATER.includes(type)) {
-            if (type.includes('waterfall')) {
-                this.waterfalls.push(object);
-            }
-        } else if (ENVIRONMENT_CATEGORIES.STRUCTURES.includes(type)) {
-            this.shrines.push(object);
-        } else if (ENVIRONMENT_CATEGORIES.MAGICAL.includes(type)) {
-            if (type.includes('crystal')) {
-                this.crystalFormations.push(object);
-            }
-        }
+        // No-op - we no longer track objects by type in separate arrays
+        // All objects are stored in the main environmentObjects array with their type
     }
     
     /**
@@ -476,33 +357,11 @@ export class EnvironmentManager {
     
     /**
      * Remove an object from all type-specific collections
+     * This method is kept for backward compatibility but no longer does anything
      * @param {THREE.Object3D} object - The object to remove
      */
     removeFromTypeCollections(object) {
-        // Helper function to remove from array
-        const removeFromArray = (array) => {
-            const index = array.indexOf(object);
-            if (index !== -1) {
-                array.splice(index, 1);
-            }
-        };
-        
-        // Remove from all type-specific collections
-        removeFromArray(this.trees);
-        removeFromArray(this.rocks);
-        removeFromArray(this.bushes);
-        removeFromArray(this.flowers);
-        removeFromArray(this.tallGrass);
-        removeFromArray(this.ancientTrees);
-        removeFromArray(this.smallPlants);
-        removeFromArray(this.fallenLogs);
-        removeFromArray(this.mushrooms);
-        removeFromArray(this.rockFormations);
-        removeFromArray(this.shrines);
-        removeFromArray(this.stumps);
-        removeFromArray(this.waterfalls);
-        removeFromArray(this.crystalFormations);
-        removeFromArray(this.mosses);
+        // No-op - we no longer track objects by type in separate arrays
     }
     
     /**
@@ -601,11 +460,7 @@ export class EnvironmentManager {
                 return object;
             }
             
-            // Add to the appropriate tracking array if it exists
-            const trackingArrayName = this.getTrackingArrayName(type);
-            if (this[trackingArrayName]) {
-                this[trackingArrayName].push(object);
-            }
+            // We no longer track objects in type-specific arrays
             
             return object;
         }
@@ -613,22 +468,7 @@ export class EnvironmentManager {
         return null;
     }
     
-    /**
-     * Get the name of the tracking array for a given environment object type
-     * @param {string} type - The type of environment object
-     * @returns {string} - The name of the tracking array
-     */
-    getTrackingArrayName(type) {
-        // Convert type to camelCase for array name (e.g., 'crystal_formation' -> 'crystalFormations')
-        const parts = type.split('_');
-        const camelCase = parts.map((part, index) => {
-            if (index === 0) return part;
-            return part.charAt(0).toUpperCase() + part.slice(1);
-        }).join('');
-        
-        // Add 's' for plural
-        return camelCase + 's';
-    }
+    // The getTrackingArrayName method has been removed as we no longer track objects in type-specific arrays
 
     /**
      * Update environment objects based on player position
@@ -888,23 +728,6 @@ export class EnvironmentManager {
         this.environmentObjects = [];
         this.environmentObjectsByChunk = {};
         this.visibleChunks = {};
-        
-        // Reset tracking arrays
-        this.trees = [];
-        this.rocks = [];
-        this.bushes = [];
-        this.flowers = [];
-        this.tallGrass = [];
-        this.ancientTrees = [];
-        this.smallPlants = [];
-        this.fallenLogs = [];
-        this.mushrooms = [];
-        this.rockFormations = [];
-        this.shrines = [];
-        this.stumps = [];
-        this.waterfalls = [];
-        this.crystalFormations = [];
-        this.mosses = [];
         
         console.debug("All environment objects cleared");
     }
