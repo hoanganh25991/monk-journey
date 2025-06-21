@@ -83,7 +83,7 @@ export class CameraControlUI extends UIComponent {
      * Initialize the component
      * @returns {boolean} - True if initialization was successful
      */
-    init() {
+    async init() {
         // Create camera control button
         this.createCameraControlButton();
         
@@ -100,7 +100,7 @@ export class CameraControlUI extends UIComponent {
         }
         
         // Load camera distance from settings if available
-        this.loadCameraSettings();
+        await this.loadCameraSettings();
         
         return true;
     }
@@ -263,9 +263,10 @@ export class CameraControlUI extends UIComponent {
     /**
      * Load camera settings from localStorage
      */
-    loadCameraSettings() {
-        // Import storage keys
-        import('../config/storage-keys.js').then(module => {
+    async loadCameraSettings() {
+        try {
+            // Import storage keys
+            const module = await import('../config/storage-keys.js');
             const STORAGE_KEYS = module.STORAGE_KEYS;
             
             // Load camera zoom setting
@@ -309,7 +310,11 @@ export class CameraControlUI extends UIComponent {
                 // Update the camera distance based on the mode
                 this.cameraDistance = this.cameraDistances[this.currentCameraMode];
                 
-                // Update the camera mode button UI
+                // Update the camera height and look offset based on the mode
+                this.cameraHeightConfig.heightOffset = this.cameraHeights[this.currentCameraMode];
+                this.cameraHeightConfig.verticalLookOffset = this.cameraLookOffsets[this.currentCameraMode];
+                
+                // Update the camera mode button UI - button should exist by now
                 this.updateCameraModeButtonUI();
             }
             
@@ -335,9 +340,9 @@ export class CameraControlUI extends UIComponent {
                     }
                 }
             }
-        }).catch(error => {
-            console.error("Error loading storage keys:", error);
-        });
+        } catch (error) {
+            console.error("Error loading camera settings:", error);
+        }
     }
     
     /**
@@ -411,7 +416,12 @@ export class CameraControlUI extends UIComponent {
      * Update the camera mode button UI based on current mode
      */
     updateCameraModeButtonUI() {
-        if (!this.cameraModeButton) return;
+        if (!this.cameraModeButton) {
+            console.debug('Camera mode button not available for UI update');
+            return;
+        }
+        
+        console.debug('Updating camera mode button UI for mode:', this.currentCameraMode);
         
         // Update button appearance based on current mode
         if (this.currentCameraMode === this.cameraModes.OVER_SHOULDER) {
