@@ -49,6 +49,13 @@ export class WorldManager {
         this.lastPlayerPosition = new THREE.Vector3(0, 0, 0);
         this.screenSpawnDistance = 20; // Distance to move before spawning new enemies
         
+        // PERFORMANCE FIX: Movement tracking for smart cleanup
+        this.lastMovementTime = Date.now();
+        this.lastMovementPosition = new THREE.Vector3(0, 0, 0);
+        this.hadFastMovement = false;
+        this.stationaryTime = 0;
+        this.fastMovementThreshold = 50; // units per second
+        
         // For minimap features
         this.terrainFeatures = [];
         this.trees = [];
@@ -695,7 +702,75 @@ export class WorldManager {
     }
     
     /**
-     * Check memory usage and perform cleanup if necessary
+     * PERFORMANCE FIX: Track player movement and trigger cleanup when needed
+     * @param {THREE.Vector3} currentPosition - Current player position
+     * @private
+     */
+    trackPlayerMovement(currentPosition) {
+        const now = Date.now();
+        const deltaTime = (now - this.lastMovementTime) / 1000; // Convert to seconds
+        
+        if (deltaTime > 0) {
+            // Calculate movement distance and speed
+            const movementDistance = currentPosition.distanceTo(this.lastMovementPosition);
+            const movementSpeed = movementDistance / deltaTime;
+            
+            // Check for fast movement
+            const isFastMovement = movementSpeed > this.fastMovementThreshold;
+            
+            if (isFastMovement) {
+                console.debug(`🏃 Fast movement detected: ${movementSpeed.toFixed(1)} units/sec`);
+                this.hadFastMovement = true;
+                this.stationaryTime = 0;
+            } else if (movementSpeed < 1) {
+                // Player is stationary or moving very slowly
+                this.stationaryTime += deltaTime;
+                
+                // PERFORMANCE FIX: Cleanup when player stops after fast movement
+                if (this.hadFastMovement && this.stationaryTime > 2) {
+                    console.debug(`🛑 Player stationary after fast movement, triggering cleanup`);
+                    this.performStationaryCleanup(currentPosition);
+                    this.hadFastMovement = false;
+                    this.stationaryTime = 0;
+                }
+            } else {
+                // Normal movement - reset stationary time
+                this.stationaryTime = 0;
+            }
+            
+            // Update tracking variables
+            this.lastMovementTime = now;
+            this.lastMovementPosition.copy(currentPosition);
+        }
+    }
+    
+    /**
+     * PERFORMANCE FIX: Perform cleanup when player becomes stationary after fast movement
+     * @param {THREE.Vector3} playerPosition - Current player position
+     * @private
+     */
+    performStationaryCleanup(playerPosition) {
+        const terrainChunkSize = this.terrainManager.terrainChunkSize;
+        const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
+        const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
+        
+        console.debug('🧹 Performing stationary cleanup after fast movement...');
+        
+        // Force aggressive cleanup since player was moving fast and likely loaded many chunks
+        if (this.memoryManager.forceAggressiveCleanup) {
+            const removedCount = this.memoryManager.forceAggressiveCleanup(playerChunkX, playerChunkZ, 4);
+            console.debug(`🧹 Stationary cleanup removed ${removedCount} objects`);
+        }
+        
+        // Also cleanup terrain chunks
+        if (this.terrainManager.clearDistantChunks) {
+            this.terrainManager.clearDistantChunks(playerChunkX, playerChunkZ, 4);
+            console.debug('🧹 Stationary terrain cleanup completed');
+        }
+    }
+
+    /**
+     * PERFORMANCE FIX: Enhanced memory usage check with FPS-based cleanup
      * @private
      */
     checkMemoryUsage() {
@@ -705,28 +780,46 @@ export class WorldManager {
         // Calculate average FPS
         const avgFPS = this.performanceManager.calculateAverageFPS();
         
-        // If FPS is consistently low, trigger cleanup
-        if (avgFPS < 30) {
-            console.debug(`Low FPS detected (${avgFPS.toFixed(1)}), performing cleanup`);
+        // Calculate player's current chunk coordinates for cleanup
+        if (!this.game || !this.game.player || !this.game.player.position) return;
+        
+        const playerPosition = this.game.player.position;
+        const terrainChunkSize = this.terrainManager.terrainChunkSize;
+        const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
+        const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
+        
+        // PERFORMANCE FIX: Track movement for smart cleanup
+        this.trackPlayerMovement(playerPosition);
+        
+        // PERFORMANCE FIX: FPS-based emergency cleanup
+        if (avgFPS < 20) {
+            console.debug(`🚨 Severe FPS drop (${avgFPS.toFixed(1)}), using aggressive cleanup`);
             
-            // Calculate player's current chunk coordinates for cleanup
-            if (this.game && this.game.player && this.game.player.position) {
-                const playerPosition = this.game.player.position;
-                const terrainChunkSize = this.terrainManager.terrainChunkSize;
-                const playerChunkX = Math.floor(playerPosition.x / terrainChunkSize);
-                const playerChunkZ = Math.floor(playerPosition.z / terrainChunkSize);
-                
-                // Use the enhanced batched cleanup method to avoid lag spikes
-                this.memoryManager.cleanupDistantObjects(
-                    playerChunkX, 
-                    playerChunkZ, 
-                    this.terrainManager.terrainChunkViewDistance + 5 // Increased view distance
-                ).then(count => {
-                    if (count > 0) {
-                        console.debug(`Cleaned up ${count} distant objects without lag`);
-                    }
-                });
+            // Very aggressive cleanup with smallest view distance
+            if (this.memoryManager.forceAggressiveCleanup) {
+                const removedCount = this.memoryManager.forceAggressiveCleanup(playerChunkX, playerChunkZ, 2);
+                console.debug(`🧹 Emergency cleanup removed ${removedCount} objects`);
             }
+            
+            // Also force terrain cleanup
+            if (this.terrainManager.clearDistantChunks) {
+                this.terrainManager.clearDistantChunks(playerChunkX, playerChunkZ, 2);
+                console.debug('🧹 Emergency terrain cleanup completed');
+            }
+            
+        } else if (avgFPS < 30) {
+            console.debug(`⚠️ Low FPS detected (${avgFPS.toFixed(1)}), performing standard cleanup`);
+            
+            // Standard cleanup with normal view distance
+            this.memoryManager.cleanupDistantObjects(
+                playerChunkX, 
+                playerChunkZ, 
+                this.terrainManager.terrainChunkViewDistance + 2 // Less aggressive than emergency
+            ).then(count => {
+                if (count > 0) {
+                    console.debug(`🧹 Standard cleanup removed ${count} objects`);
+                }
+            });
         }
     }
     

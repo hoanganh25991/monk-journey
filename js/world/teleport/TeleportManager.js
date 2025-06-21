@@ -822,6 +822,37 @@ export class TeleportManager {
                 }, 8000);
             }
             
+            // PERFORMANCE FIX: Immediate chunk cleanup after teleportation
+            console.debug('🧹 Forcing chunk cleanup after teleportation...');
+            
+            // Calculate new player chunk coordinates
+            const terrainChunkSize = this.worldManager.terrainManager ? this.worldManager.terrainManager.terrainChunkSize : 64;
+            const newPlayerChunkX = Math.floor(portal.targetPosition.x / terrainChunkSize);
+            const newPlayerChunkZ = Math.floor(portal.targetPosition.z / terrainChunkSize);
+            
+            // Force aggressive terrain cleanup with reduced view distance
+            if (this.worldManager.terrainManager && this.worldManager.terrainManager.clearDistantChunks) {
+                const aggressiveCleanupDistance = Math.max(3, this.worldManager.terrainManager.terrainChunkViewDistance - 2);
+                this.worldManager.terrainManager.clearDistantChunks(newPlayerChunkX, newPlayerChunkZ, aggressiveCleanupDistance);
+                console.debug(`🧹 Cleared distant terrain chunks with distance ${aggressiveCleanupDistance}`);
+            }
+            
+            // Force aggressive object cleanup (environment & structures)
+            if (this.worldManager.memoryManager && this.worldManager.memoryManager.forceAggressiveCleanup) {
+                this.worldManager.memoryManager.forceAggressiveCleanup(newPlayerChunkX, newPlayerChunkZ, 3);
+                console.debug('🧹 Performed aggressive object cleanup');
+            } else if (this.worldManager.memoryManager && this.worldManager.memoryManager.cleanupDistantObjects) {
+                // Fallback to regular cleanup with smaller view distance
+                this.worldManager.memoryManager.cleanupDistantObjects(newPlayerChunkX, newPlayerChunkZ, 3);
+                console.debug('🧹 Performed fallback object cleanup');
+            }
+            
+            // Trigger garbage collection hint after teleportation
+            if (window.gc) {
+                window.gc();
+                console.debug('🧹 Triggered garbage collection');
+            }
+            
             // If this is a multiplier portal, create a return portal
             if (isMultiplierPortal && !isReturnPortal) {
                 this.createReturnPortal(

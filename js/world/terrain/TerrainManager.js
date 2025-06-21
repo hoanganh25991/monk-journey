@@ -75,6 +75,9 @@ export class TerrainManager {
         if (game) {
             this.queueManager.setGame(game);
         }
+        
+        // PERFORMANCE FIX: Initialize position tracking for movement-based cleanup
+        this.lastPlayerPos = null;
     }
     
     /**
@@ -171,9 +174,29 @@ export class TerrainManager {
             viewDistance
         );
         
+        // PERFORMANCE FIX: Movement-based cleanup instead of random 10% chance
+        // Calculate movement speed to determine cleanup frequency
+        let cleanupChance = 0.1; // Default 10% chance
+        
+        if (this.lastPlayerPos) {
+            const currentPos = new THREE.Vector3(centerX * this.terrainChunkSize, 0, centerZ * this.terrainChunkSize);
+            const movementDistance = currentPos.distanceTo(this.lastPlayerPos);
+            
+            if (movementDistance > 5) {
+                cleanupChance = 0.8; // 80% chance for fast movement
+                console.debug(`🏃 Fast movement detected (${movementDistance.toFixed(1)} units), using 80% cleanup chance`);
+            } else if (movementDistance > 2) {
+                cleanupChance = 0.3; // 30% chance for moderate movement
+                console.debug(`🚶 Moderate movement detected (${movementDistance.toFixed(1)} units), using 30% cleanup chance`);
+            }
+        }
+        
+        // Store current position for next comparison
+        this.lastPlayerPos = new THREE.Vector3(centerX * this.terrainChunkSize, 0, centerZ * this.terrainChunkSize);
+        
         // Periodically check buffer for chunks that are too far away
         // This helps prevent buffer from growing too large during long-distance travel
-        if (Math.random() < 0.1) { // 10% chance each update to check buffer
+        if (Math.random() < cleanupChance) {
             this.cleanupManager.cleanupBufferChunks(
                 centerX, 
                 centerZ, 

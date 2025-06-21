@@ -285,6 +285,108 @@ export class MemoryManager {
     }
     
     /**
+     * PERFORMANCE FIX: Force aggressive cleanup for urgent scenarios (teleportation, severe FPS drops)
+     * Bypasses normal batching for immediate cleanup
+     * @param {number} playerChunkX - Player's chunk X coordinate
+     * @param {number} playerChunkZ - Player's chunk Z coordinate
+     * @param {number} aggressiveViewDistance - Aggressive view distance (smaller = more aggressive)
+     * @returns {number} - Number of objects removed
+     */
+    forceAggressiveCleanup(playerChunkX, playerChunkZ, aggressiveViewDistance = 3) {
+        console.debug(`🧹 Starting aggressive cleanup with view distance ${aggressiveViewDistance}`);
+        
+        // Skip if managers aren't available
+        if (!this.environmentManager || !this.structureManager) {
+            return 0;
+        }
+        
+        let removedCount = 0;
+        
+        // Immediate cleanup without batching - process all at once for urgent scenarios
+        const structuresToRemove = [];
+        const environmentObjectsToRemove = [];
+        
+        // Check structures with more aggressive distance thresholds
+        if (this.structureManager && this.structureManager.structures) {
+            this.structureManager.structures.forEach((structureInfo, index) => {
+                if (structureInfo.chunkKey) {
+                    const [chunkX, chunkZ] = structureInfo.chunkKey.split(',').map(Number);
+                    
+                    // Calculate distance from player chunk
+                    const distX = Math.abs(chunkX - playerChunkX);
+                    const distZ = Math.abs(chunkZ - playerChunkZ);
+                    
+                    // More aggressive cleanup - smaller view distance
+                    if (distX > aggressiveViewDistance || distZ > aggressiveViewDistance) {
+                        structuresToRemove.push({ index, structureInfo });
+                    }
+                }
+            });
+        }
+        
+        // Check environment objects with more aggressive distance thresholds
+        if (this.environmentManager && this.environmentManager.environmentObjects) {
+            this.environmentManager.environmentObjects.forEach((objectInfo, index) => {
+                if (objectInfo.chunkKey) {
+                    const [chunkX, chunkZ] = objectInfo.chunkKey.split(',').map(Number);
+                    
+                    // Calculate distance from player chunk
+                    const distX = Math.abs(chunkX - playerChunkX);
+                    const distZ = Math.abs(chunkZ - playerChunkZ);
+                    
+                    // More aggressive cleanup - smaller view distance
+                    if (distX > aggressiveViewDistance || distZ > aggressiveViewDistance) {
+                        environmentObjectsToRemove.push({ index, objectInfo });
+                    }
+                }
+            });
+        }
+        
+        // Immediate processing without frame delays for urgent scenarios
+        // Remove structures
+        structuresToRemove.forEach(({ index, structureInfo }) => {
+            // Remove from scene
+            if (structureInfo.object && structureInfo.object.parent) {
+                this.scene.remove(structureInfo.object);
+            }
+            
+            // Return to pool or dispose
+            this.returnObjectToPool(structureInfo.object, structureInfo.type);
+            removedCount++;
+        });
+        
+        // Remove environment objects
+        environmentObjectsToRemove.forEach(({ index, objectInfo }) => {
+            // Remove from scene
+            if (objectInfo.object && objectInfo.object.parent) {
+                this.scene.remove(objectInfo.object);
+            }
+            
+            // Return to pool or dispose
+            this.returnObjectToPool(objectInfo.object, objectInfo.type);
+            removedCount++;
+        });
+        
+        // Update arrays after removal (immediate processing)
+        if (structuresToRemove.length > 0 && this.structureManager && this.structureManager.structures) {
+            const indicesToRemove = new Set(structuresToRemove.map(item => item.index));
+            this.structureManager.structures = this.structureManager.structures.filter(
+                (_, i) => !indicesToRemove.has(i)
+            );
+        }
+        
+        if (environmentObjectsToRemove.length > 0 && this.environmentManager && this.environmentManager.environmentObjects) {
+            const indicesToRemove = new Set(environmentObjectsToRemove.map(item => item.index));
+            this.environmentManager.environmentObjects = this.environmentManager.environmentObjects.filter(
+                (_, i) => !indicesToRemove.has(i)
+            );
+        }
+        
+        console.debug(`🧹 Aggressive cleanup removed ${removedCount} objects immediately`);
+        return removedCount;
+    }
+    
+    /**
      * Clear WebGL resources and caches
      */
     clearWebGLResources() {
