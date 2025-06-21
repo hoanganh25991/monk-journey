@@ -101,6 +101,12 @@ export class ShieldOfZenEffect extends SkillEffect {
         // Check if we have access to the game and player
         if (!this.skill || !this.skill.game || !this.skill.game.player || !this.skill.game.player.statusEffects) {
             console.warn('Cannot apply defense boost: missing required references');
+            
+            // Store the defense boost to apply later when references become available
+            this._pendingDefenseBoost = {
+                duration: this.skill.duration,
+                intensity: this.damageReduction * 100
+            };
             return;
         }
         
@@ -112,6 +118,9 @@ export class ShieldOfZenEffect extends SkillEffect {
         );
         
         console.debug(`Applied defense boost: ${this.damageReduction * 100}% for ${this.skill.duration} seconds`);
+        
+        // Clear any pending defense boost
+        this._pendingDefenseBoost = null;
     }
 
     /**
@@ -195,6 +204,18 @@ export class ShieldOfZenEffect extends SkillEffect {
      */
     update(delta) {
         if (!this.isActive || !this.effect) return;
+        
+        // Check for pending defense boost and apply if references are now available
+        if (this._pendingDefenseBoost && this.skill && this.skill.game && this.skill.game.player && this.skill.game.player.statusEffects) {
+            console.debug('Applying pending defense boost for Shield of Zen');
+            this.skill.game.player.statusEffects.applyEffect(
+                'defenseBoost',
+                this._pendingDefenseBoost.duration,
+                this._pendingDefenseBoost.intensity
+            );
+            console.debug(`Applied pending defense boost: ${this._pendingDefenseBoost.intensity}% for ${this._pendingDefenseBoost.duration} seconds`);
+            this._pendingDefenseBoost = null;
+        }
         
         this.elapsedTime += delta;
         
