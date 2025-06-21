@@ -10,7 +10,7 @@
  */
 export const DENSITY_LEVELS = {
     HIGH: 2.0,    // Reduced from 3.0
-    MEDIUM: 1.2,  // Reduced from 2.0
+    MEDIUM: 0.8,  // Reduced from 1.2 to improve performance
     LOW: 0.6,     // Reduced from 1.0
     MINIMAL: 0.3  // Reduced from 0.5
 };

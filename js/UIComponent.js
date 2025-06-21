@@ -127,7 +127,7 @@ export class UIComponent {
     }
 
     get mobile() {
-        return window.innerHeight <= 430;
+        return window.innerHeight <= 640;
     }
     
     /**
