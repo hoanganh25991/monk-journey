@@ -21,7 +21,7 @@ export class WaveStrikeEffect extends SkillEffect {
      */
     create(position, direction) {
         console.debug('Wave Strike effect created - sound should have been played by Skill.createEffect()');
-        // position.y -= 2.05;
+        // position.y -= 2.04;
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         

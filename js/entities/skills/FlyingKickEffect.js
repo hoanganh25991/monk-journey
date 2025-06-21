@@ -27,7 +27,7 @@ export class FlyingKickEffect extends SkillEffect {
      * @returns {THREE.Group} - The created effect
      */
     create(position, direction) {
-        position.y -= 2.05;
+        position.y -= 2.04;
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         

@@ -22,7 +22,7 @@ export class InnerSanctuaryEffect extends SkillEffect {
      */
     create(position, direction) {
         position = position.clone();
-        // position.y -= 3.0;
+        position.y -= 2.04;
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         

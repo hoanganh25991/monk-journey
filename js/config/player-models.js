@@ -10,9 +10,9 @@ export const CHARACTER_MODELS = [
         multiplier: 1.0,  // Default multiplier (1x size)
         // Default position and rotation adjustments
         defaultAdjustments: {
-            position: { x: 0, y: -2.05, z: 0 },
+            position: { x: 0, y: -2.04, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
-            heightOffset: 2.05 // Default height offset for movement
+            heightOffset: 2.04 // Default height offset for movement
         },
         // Add animations array for the model preview
         animations: [
@@ -32,9 +32,9 @@ export const CHARACTER_MODELS = [
         multiplier: 1.0,  // Default multiplier (1x size)
         // Default position and rotation adjustments
         defaultAdjustments: {
-            position: { x: 0, y: -2.05, z: 0 },
+            position: { x: 0, y: -2.04, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
-            heightOffset: 2.05 // Default height offset for movement
+            heightOffset: 2.04 // Default height offset for movement
         },
         // Add animations array for the model preview
         animations: [

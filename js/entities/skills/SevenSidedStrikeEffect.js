@@ -123,7 +123,7 @@ export class SevenSidedStrikeEffect extends SkillEffect {
         
         // Create strike points in a heptagon (7-sided) pattern
         const strikePoints = [];
-        const radius = this.skill.radius || 5;
+        const radius = (this.skill.radius || 5) * 2; // Double the radius to match desired size
         
         for (let i = 0; i < this.skill.hits; i++) {
             const angle = (i / 7) * Math.PI * 2;
@@ -152,7 +152,9 @@ export class SevenSidedStrikeEffect extends SkillEffect {
         }
         
         // Create a central vortex effect
-        const vortexGeometry = new THREE.RingGeometry(0.5, 2, 32);
+        const vortexInnerRadius = radius * 0.1; // 10% of strike radius
+        const vortexOuterRadius = radius * 0.4; // 40% of strike radius
+        const vortexGeometry = new THREE.RingGeometry(vortexInnerRadius, vortexOuterRadius, 32);
         const vortexMaterial = new THREE.MeshBasicMaterial({
             color: this.skill.color,
             transparent: true,
