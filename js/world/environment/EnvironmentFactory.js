@@ -54,6 +54,7 @@ import { LilyPad } from './LilyPad.js';
 import { SwampDebris } from './SwampDebris.js';
 import { SwampPlant } from './SwampPlant.js';
 import { MysteriousPortal } from './MysteriousPortal.js';
+import { SwampLight } from './SwampLight.js';
 
 // Import missing environment objects
 import { AshPile } from './AshPile.js';
@@ -506,6 +507,12 @@ export class EnvironmentFactory {
         this.register(ENVIRONMENT_OBJECTS.MAGIC_CIRCLE, (position, size, data = {}) => {
             const magicCircle = new MagicCircle(this.scene, this.worldManager, position, size, data);
             return magicCircle.createMesh();
+        });
+        
+        // Register swamp light environment object
+        this.register(ENVIRONMENT_OBJECTS.SWAMP_LIGHT, (position, size, data = {}) => {
+            const swampLight = new SwampLight(this.scene, this.worldManager, position, size, data);
+            return swampLight.object;
         });
         
         // Register missing environment objects that appear in map files
