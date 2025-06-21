@@ -1,6 +1,7 @@
 import {ZONE_TYPES} from './zone.js';
 import {ENVIRONMENT_OBJECTS} from './environment.js';
 import {STRUCTURE_OBJECTS} from './structure.js';
+import {ZONE_COLORS} from './colors.js';
 
 /**
  * Density Configuration
@@ -23,17 +24,19 @@ export const DENSITY_LEVELS = {
  * Zone-specific environment density values
  */
 export const ZONE_ENVIRONMENT_DENSITY = {
-    FOREST: 1.5,  // Reduced from 2.5
-    DESERT: 1.0,  // Reduced from 1.8
+    TERRANT: 1.0,  // Default environment density for Terrant
+    FOREST: 1.5,   // Reduced from 2.5
+    DESERT: 1.0,   // Reduced from 1.8
     MOUNTAIN: 1.2, // Reduced from 2.0
-    SWAMP: 1.8,   // Reduced from 3.0
-    MAGICAL: 1.5  // Reduced from 2.5
+    SWAMP: 1.8,    // Reduced from 3.0
+    MAGICAL: 1.5   // Reduced from 2.5
 };
 
 /**
  * Zone-specific structure density values
  */
 export const ZONE_STRUCTURE_DENSITY = {
+    TERRANT: 0.3,  // Default structure density for Terrant
     FOREST: 0.25,  // Reduced from 0.4
     DESERT: 0.2,   // Reduced from 0.35
     MOUNTAIN: 0.18, // Reduced from 0.3
@@ -41,7 +44,67 @@ export const ZONE_STRUCTURE_DENSITY = {
     MAGICAL: 0.25  // Reduced from 0.45
 };
 
+/**
+ * Zone definitions with positions and radii
+ * These define the physical layout of zones in the world
+ */
+export const ZONE_DEFINITIONS = [
+    // Central Terrant zone (starting area)
+    {
+        name: ZONE_TYPES.TERRANT,
+        center: { x: 0, y: 0, z: 0 },
+        radius: 150,
+        color: ZONE_COLORS.Terrant.soil
+    },
+    // Four cardinal direction zones
+    {
+        name: ZONE_TYPES.FOREST,
+        center: { x: 200, y: 0, z: 0 },
+        radius: 120,
+        color: ZONE_COLORS.Forest.foliage
+    },
+    {
+        name: ZONE_TYPES.DESERT,
+        center: { x: -200, y: 0, z: 0 },
+        radius: 120,
+        color: ZONE_COLORS.Desert.sand
+    },
+    {
+        name: ZONE_TYPES.MOUNTAIN,
+        center: { x: 0, y: 0, z: 200 },
+        radius: 120,
+        color: ZONE_COLORS.Mountains.ice
+    },
+    {
+        name: ZONE_TYPES.SWAMP,
+        center: { x: 0, y: 0, z: -200 },
+        radius: 120,
+        color: ZONE_COLORS.Swamp.vegetation
+    }
+];
+
 export const ZONE_DENSITIES = {
+    [ZONE_TYPES.TERRANT]: {
+        environment: ZONE_ENVIRONMENT_DENSITY.TERRANT,
+        structures: ZONE_STRUCTURE_DENSITY.TERRANT,
+        environmentTypes: [
+            ENVIRONMENT_OBJECTS.TREE,
+            ENVIRONMENT_OBJECTS.BUSH,
+            ENVIRONMENT_OBJECTS.FLOWER,
+            ENVIRONMENT_OBJECTS.TALL_GRASS,
+            ENVIRONMENT_OBJECTS.SMALL_PLANT,
+            ENVIRONMENT_OBJECTS.STONE_CIRCLE
+        ],
+        structureTypes: [
+            STRUCTURE_OBJECTS.VILLAGE,
+            STRUCTURE_OBJECTS.HOUSE,
+            STRUCTURE_OBJECTS.TOWER,
+            STRUCTURE_OBJECTS.TEMPLE,
+            STRUCTURE_OBJECTS.TAVERN,
+            STRUCTURE_OBJECTS.SHOP,
+            STRUCTURE_OBJECTS.BRIDGE
+        ]
+    },
     [ZONE_TYPES.FOREST]: { 
         environment: ZONE_ENVIRONMENT_DENSITY.FOREST,
         structures: ZONE_STRUCTURE_DENSITY.FOREST,
@@ -221,5 +284,7 @@ export const ZONE_DENSITIES = {
 export default {
     DENSITY_LEVELS,
     ZONE_ENVIRONMENT_DENSITY,
-    ZONE_STRUCTURE_DENSITY
+    ZONE_STRUCTURE_DENSITY,
+    ZONE_DEFINITIONS,
+    ZONE_DENSITIES
 };

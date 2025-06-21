@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ZONE_COLORS } from '../../config/colors.js';
+import { ZONE_DEFINITIONS } from '../../config/density.js';
 
 /**
  * Manages world zones and their properties
@@ -224,49 +225,15 @@ export class ZoneManager {
      * Create simplified zones throughout the world
      */
     createZones() {
-        // Simplified zone types - fewer zones, larger areas
-        const zoneTypes = [
-            { name: 'Terrant', color: ZONE_COLORS.Terrant.soil, radius: 100 },
-            { name: 'Forest', color: ZONE_COLORS.Forest.foliage, radius: 80 },
-            { name: 'Desert', color: ZONE_COLORS.Desert.sand, radius: 80 },
-            { name: 'Mountains', color: ZONE_COLORS.Mountains.ice, radius: 80 }
-        ];
-        
-        // Initialize zones array with large, simple regions
-        this.zones = [
-            // Central Terrant zone (starting area)
-            {
-                name: 'Terrant',
-                center: new THREE.Vector3(0, 0, 0),
-                radius: 150,
-                color: ZONE_COLORS.Terrant.soil
-            },
-            // Four cardinal direction zones
-            {
-                name: 'Forest',
-                center: new THREE.Vector3(200, 0, 0),
-                radius: 120,
-                color: ZONE_COLORS.Forest.foliage
-            },
-            {
-                name: 'Desert',
-                center: new THREE.Vector3(-200, 0, 0),
-                radius: 120,
-                color: ZONE_COLORS.Desert.sand
-            },
-            {
-                name: 'Mountains',
-                center: new THREE.Vector3(0, 0, 200),
-                radius: 120,
-                color: ZONE_COLORS.Mountains.ice
-            },
-            {
-                name: 'Swamp',
-                center: new THREE.Vector3(0, 0, -200),
-                radius: 120,
-                color: ZONE_COLORS.Swamp.vegetation
-            }
-        ];
+        // Initialize zones array from configuration
+        this.zones = ZONE_DEFINITIONS.map(zoneConfig => {
+            return {
+                name: zoneConfig.name,
+                center: new THREE.Vector3(zoneConfig.center.x, zoneConfig.center.y, zoneConfig.center.z),
+                radius: zoneConfig.radius,
+                color: zoneConfig.color
+            };
+        });
         
         // Build simple zone cache
         this.buildSimpleZoneCache();
