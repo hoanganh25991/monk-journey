@@ -80,11 +80,104 @@ export class Enemy {
         
         // Store the initial Y position for bosses to prevent sinking
         this.initialYPosition = null;
+        
+        // Object pooling flags
+        this.isPooled = false;
+        this.isActive = false;
+        this.poolId = null;
     }
     
     init() {
-        // Create enemy model
-        this.createModel();
+        // Create enemy model only if not pooled or if model doesn't exist
+        if (!this.isPooled || !this.modelGroup) {
+            this.createModel();
+        }
+    }
+    
+    /**
+     * Reset enemy for object pooling
+     * @param {Object} config - New enemy configuration
+     * @param {THREE.Vector3} position - New position
+     */
+    resetForPool(config, position) {
+        // Reset configuration
+        this.type = config.type || 'skeleton';
+        this.name = config.name || 'Enemy';
+        this.health = config.health || 50;
+        this.maxHealth = config.health || 50;
+        this.damage = config.damage || 10;
+        this.speed = config.speed || 3;
+        this.attackRange = config.attackRange || 1.5;
+        this.attackSpeed = config.attackSpeed || 1.5;
+        this.experienceValue = config.experienceValue || 20;
+        this.color = config.color || 0xcccccc;
+        this.scale = config.scale || 1;
+        this.isBoss = config.isBoss || false;
+        
+        // Reset state
+        this.state = {
+            isMoving: false,
+            isAttacking: false,
+            isDead: false,
+            attackCooldown: 0,
+            isKnockedBack: false,
+            knockbackEndTime: 0,
+            isAggressive: false,
+            aggressionEndTime: 0,
+            isStunned: false,
+            stunEndTime: 0
+        };
+        
+        // Reset position
+        this.position.copy(position);
+        this.rotation.set(0, 0, 0);
+        
+        // Reset pooling flags
+        this.isActive = true;
+        
+        // Apply behavior settings
+        this.applyBehaviorSettings();
+        
+        // Update collision radius
+        this.collisionRadius = 0.5 * this.scale;
+        this.heightOffset = 0.4 * this.scale;
+        
+        // Reset boss-specific properties
+        this.allowTerrainHeightUpdates = !this.isBoss;
+        this.initialPositionSet = false;
+        this.initialYPosition = null;
+        
+        // Show model if hidden
+        if (this.modelGroup) {
+            this.modelGroup.visible = true;
+            this.modelGroup.position.copy(this.position);
+            this.modelGroup.rotation.copy(this.rotation);
+            
+            // Update scale if needed
+            if (this.scale !== 1) {
+                this.modelGroup.scale.set(this.scale, this.scale, this.scale);
+            }
+        }
+    }
+    
+    /**
+     * Deactivate enemy for object pooling (hide but don't dispose)
+     */
+    deactivateForPool() {
+        this.isActive = false;
+        this.state.isDead = true;
+        
+        // Hide model instead of removing it
+        if (this.modelGroup) {
+            this.modelGroup.visible = false;
+        }
+        
+        // Cancel any ongoing animations
+        if (this.deathAnimationFrameId) {
+            cancelAnimationFrame(this.deathAnimationFrameId);
+            this.deathAnimationFrameId = null;
+            this.deathAnimationInProgress = false;
+        }
     }
     
     applyBehaviorSettings() {
@@ -105,8 +198,10 @@ export class Enemy {
     }
 
     createModel() {
-        // Create a group for the enemy
-        this.modelGroup = new THREE.Group();
+        // Create a group for the enemy if it doesn't exist
+        if (!this.modelGroup) {
+            this.modelGroup = new THREE.Group();
+        }
         
         // Create the appropriate model using the factory
         this.model = EnemyModelFactory.createModel(this, this.modelGroup);
@@ -119,8 +214,10 @@ export class Enemy {
             this.modelGroup.scale.set(this.scale, this.scale, this.scale);
         }
         
-        // Add model to scene
-        this.scene.add(this.modelGroup);
+        // Add model to scene only if not already added
+        if (!this.modelGroup.parent) {
+            this.scene.add(this.modelGroup);
+        }
     }
     
     updateAnimations(delta) {
@@ -166,8 +263,8 @@ export class Enemy {
     }
 
     update(delta) {
-        // Skip update if dead, but allow minimal updates for death animation
-        if (this.state.isDead) {
+        // Skip update if not active (pooled) or dead, but allow minimal updates for death animation
+        if (!this.isActive || this.state.isDead) {
             // For bosses, we want to minimize processing when dead to prevent lag
             if (this.isBoss) {
                 // Only update if death animation is still in progress
@@ -1087,6 +1184,73 @@ export class Enemy {
     }
     
     remove() {
-        this.removeFromScene();
+        if (this.isPooled) {
+            // For pooled enemies, just hide the model
+            if (this.modelGroup) {
+                this.modelGroup.visible = false;
+            }
+            this.isActive = false;
+        } else {
+            // For non-pooled enemies, remove from scene and dispose resources
+            this.removeFromScene();
+        }
+    }
+    
+    /**
+     * Remove enemy from scene and dispose resources
+     * This is the actual disposal method that cleans up resources
+     */
+    removeFromScene() {
+        // Remove model from scene
+        if (this.modelGroup) {
+            this.scene.remove(this.modelGroup);
+            
+            // Dispose geometries and materials
+            if (this.model && typeof this.model.dispose === 'function') {
+                this.model.dispose();
+            } else {
+                // Manual disposal if model doesn't have dispose method
+                this.disposeModelResources(this.modelGroup);
+            }
+            
+            this.modelGroup = null;
+            this.model = null;
+        }
+    }
+    
+    /**
+     * Recursively dispose geometries and materials
+     * @param {THREE.Object3D} object - Object to dispose
+     */
+    disposeModelResources(object) {
+        if (!object) return;
+        
+        // Dispose geometry
+        if (object.geometry) {
+            object.geometry.dispose();
+        }
+        
+        // Dispose material(s)
+        if (object.material) {
+            if (Array.isArray(object.material)) {
+                object.material.forEach(material => {
+                    if (material.map) material.map.dispose();
+                    material.dispose();
+                });
+            } else {
+                if (object.material.map) object.material.map.dispose();
+                object.material.dispose();
+            }
+        }
+        
+        // Recursively dispose children
+        if (object.children && object.children.length > 0) {
+            // Create a copy of children array since we're modifying it
+            const children = [...object.children];
+            for (const child of children) {
+                this.disposeModelResources(child);
+                object.remove(child);
+            }
+        }
     }
 }

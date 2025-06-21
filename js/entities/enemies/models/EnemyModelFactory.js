@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { SkeletonModel } from './SkeletonModel.js';
 import { SkeletonArcherModel } from './SkeletonArcherModel.js';
 import { ZombieModel } from './ZombieModel.js';
@@ -22,6 +23,73 @@ import { AncientConstructModel } from './AncientConstructModel.js';
 import { AncientYetiModel } from './AncientYetiModel.js';
 import { SimpleEnemyModel } from './SimpleEnemyModel.js';
 import { DefaultModel } from './DefaultModel.js';
+
+/**
+ * Shared resource manager for enemy models
+ */
+class SharedResourceManager {
+    constructor() {
+        this.geometries = new Map();
+        this.materials = new Map();
+        this.initialized = false;
+    }
+    
+    init() {
+        if (this.initialized) return;
+        
+        // Create shared geometries
+        this.geometries.set('box_body', new THREE.BoxGeometry(0.6, 1.2, 0.3));
+        this.geometries.set('box_small', new THREE.BoxGeometry(0.4, 0.8, 0.2));
+        this.geometries.set('box_large', new THREE.BoxGeometry(0.8, 1.6, 0.4));
+        this.geometries.set('sphere_head', new THREE.SphereGeometry(0.25, 16, 16));
+        this.geometries.set('sphere_large', new THREE.SphereGeometry(0.4, 16, 16));
+        this.geometries.set('cylinder_arm', new THREE.CylinderGeometry(0.08, 0.08, 0.8, 8));
+        this.geometries.set('cylinder_leg', new THREE.CylinderGeometry(0.1, 0.1, 0.6, 8));
+        this.geometries.set('cylinder_thick', new THREE.CylinderGeometry(0.15, 0.15, 0.8, 8));
+        this.geometries.set('cone_horn', new THREE.ConeGeometry(0.1, 0.3, 8));
+        this.geometries.set('box_weapon', new THREE.BoxGeometry(0.1, 1, 0.1));
+        
+        // Create shared materials with common colors
+        this.materials.set('skeleton', new THREE.MeshStandardMaterial({ color: 0xcccccc }));
+        this.materials.set('zombie', new THREE.MeshStandardMaterial({ color: 0x4a5d23 }));
+        this.materials.set('demon', new THREE.MeshStandardMaterial({ color: 0x8b0000 }));
+        this.materials.set('frost', new THREE.MeshStandardMaterial({ color: 0x87ceeb }));
+        this.materials.set('fire', new THREE.MeshStandardMaterial({ color: 0xff4500 }));
+        this.materials.set('shadow', new THREE.MeshStandardMaterial({ color: 0x2f2f2f }));
+        this.materials.set('gold', new THREE.MeshStandardMaterial({ color: 0xffcc00 }));
+        this.materials.set('silver', new THREE.MeshStandardMaterial({ color: 0x888888 }));
+        this.materials.set('green', new THREE.MeshStandardMaterial({ color: 0x228b22 }));
+        this.materials.set('purple', new THREE.MeshStandardMaterial({ color: 0x800080 }));
+        
+        this.initialized = true;
+    }
+    
+    getGeometry(type) {
+        if (!this.initialized) this.init();
+        return this.geometries.get(type);
+    }
+    
+    getMaterial(type) {
+        if (!this.initialized) this.init();
+        return this.materials.get(type);
+    }
+    
+    dispose() {
+        // Dispose all shared resources
+        for (const geometry of this.geometries.values()) {
+            geometry.dispose();
+        }
+        for (const material of this.materials.values()) {
+            material.dispose();
+        }
+        this.geometries.clear();
+        this.materials.clear();
+        this.initialized = false;
+    }
+}
+
+// Global shared resource manager instance
+const sharedResources = new SharedResourceManager();
 
 /**
  * Factory class for creating enemy models
@@ -147,6 +215,38 @@ export class EnemyModelFactory {
                 console.warn(`No specific model implementation for enemy type: ${enemy.type}, using default model`);
                 return new DefaultModel(enemy, modelGroup);
         }
+    }
+    
+    /**
+     * Get shared geometry
+     * @param {string} type - Geometry type
+     * @returns {THREE.Geometry} Shared geometry
+     */
+    static getSharedGeometry(type) {
+        return sharedResources.getGeometry(type);
+    }
+    
+    /**
+     * Get shared material
+     * @param {string} type - Material type
+     * @returns {THREE.Material} Shared material
+     */
+    static getSharedMaterial(type) {
+        return sharedResources.getMaterial(type);
+    }
+    
+    /**
+     * Initialize shared resources
+     */
+    static initSharedResources() {
+        sharedResources.init();
+    }
+    
+    /**
+     * Dispose all shared resources (call when game ends)
+     */
+    static disposeSharedResources() {
+        sharedResources.dispose();
     }
     
     /**

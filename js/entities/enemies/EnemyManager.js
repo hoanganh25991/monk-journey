@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Enemy } from './Enemy.js';
+import { EnemyModelFactory } from './models/EnemyModelFactory.js';
 import { 
     ZONE_ENEMIES, 
     ZONE_BOSSES, 
@@ -114,9 +115,211 @@ export class EnemyManager {
         
         // Track enemies that have already dropped items to prevent duplicate drops
         this.processedDrops = new Map();
+        
+        // Object Pooling System
+        this.enemyPools = new Map(); // Pool for each enemy type
+        this.poolSizes = {
+            regular: 50,  // Regular enemies
+            boss: 5       // Bosses (smaller pool)
+        };
+        this.activeEnemies = new Map(); // Currently active enemies
+        
+        // Deferred Disposal System
+        this.disposalQueue = [];
+        this.maxDisposalsPerFrame = 3; // Limit disposals per frame for performance
+        
+        // Batch Processing
+        this.enemiesToRemove = []; // Batch collection for removal
+        this.batchProcessingEnabled = true;
+        
+        // Initialize shared resources
+        EnemyModelFactory.initSharedResources();
+        
+        // Note: Enemy pools will be initialized in init() method
     }
     
     // setGame method removed - game is now passed in constructor
+    
+    /**
+     * Initialize enemy pools for object pooling
+     */
+    initializeEnemyPools() {
+        console.debug('Initializing enemy pools...');
+        
+        // Create pools for each enemy type
+        const allEnemyTypes = [...this.enemyTypes, ...this.bossTypes];
+        
+        for (const enemyType of allEnemyTypes) {
+            const poolSize = enemyType.isBoss ? this.poolSizes.boss : this.poolSizes.regular;
+            const pool = [];
+            
+            // Pre-create enemies for the pool
+            for (let i = 0; i < poolSize; i++) {
+                const enemy = new Enemy(this.scene, this.player, enemyType);
+                enemy.isPooled = true;
+                enemy.isActive = false;
+                enemy.poolId = `${enemyType.type}_${i}`;
+                
+                // Initialize the enemy but keep it hidden
+                enemy.init();
+                if (enemy.modelGroup) {
+                    enemy.modelGroup.visible = false;
+                }
+                
+                pool.push(enemy);
+            }
+            
+            this.enemyPools.set(enemyType.type, pool);
+            console.debug(`Created pool for ${enemyType.type} with ${poolSize} enemies`);
+        }
+        
+        console.debug(`Enemy pools initialized with ${this.enemyPools.size} types`);
+    }
+    
+    /**
+     * Get an enemy from the pool or create a new one
+     * @param {string} enemyType - Type of enemy to spawn
+     * @param {Object} config - Enemy configuration
+     * @param {THREE.Vector3} position - Spawn position
+     * @returns {Enemy|null} Enemy instance or null if pool is exhausted
+     */
+    getEnemyFromPool(enemyType, config, position) {
+        const pool = this.enemyPools.get(enemyType);
+        
+        if (!pool || pool.length === 0) {
+            console.warn(`No available enemies in pool for type: ${enemyType}`);
+            return null;
+        }
+        
+        // Get enemy from pool
+        const enemy = pool.pop();
+        
+        // Reset enemy for reuse
+        enemy.resetForPool(config, position);
+        
+        // Add to active enemies
+        this.activeEnemies.set(enemy.id, enemy);
+        
+        return enemy;
+    }
+    
+    /**
+     * Return an enemy to the pool
+     * @param {Enemy} enemy - Enemy to return to pool
+     */
+    returnEnemyToPool(enemy) {
+        if (!enemy.isPooled) {
+            console.warn('Attempting to return non-pooled enemy to pool');
+            return;
+        }
+        
+        // Deactivate enemy
+        enemy.deactivateForPool();
+        
+        // Remove from active enemies
+        this.activeEnemies.delete(enemy.id);
+        
+        // Return to appropriate pool
+        const pool = this.enemyPools.get(enemy.type);
+        if (pool) {
+            pool.push(enemy);
+        }
+    }
+    
+    /**
+     * Queue enemy for deferred disposal
+     * @param {Enemy} enemy - Enemy to dispose
+     */
+    queueEnemyForDisposal(enemy) {
+        // Immediately hide the enemy
+        if (enemy.modelGroup) {
+            enemy.modelGroup.visible = false;
+        }
+        
+        // Add to disposal queue
+        this.disposalQueue.push(enemy);
+    }
+    
+    /**
+     * Process disposal queue with frame rate limiting
+     */
+    processDisposalQueue() {
+        const toProcess = Math.min(
+            this.disposalQueue.length,
+            this.maxDisposalsPerFrame
+        );
+        
+        for (let i = 0; i < toProcess; i++) {
+            const enemy = this.disposalQueue.shift();
+            
+            if (enemy.isPooled) {
+                // Return pooled enemy to pool
+                this.returnEnemyToPool(enemy);
+            } else {
+                // Dispose non-pooled enemy completely
+                enemy.remove();
+                this.enemies.delete(enemy.id);
+            }
+        }
+    }
+    
+    /**
+     * Mark enemy for batch removal
+     * @param {Enemy} enemy - Enemy to mark for removal
+     */
+    markEnemyForRemoval(enemy) {
+        enemy.state.isDead = true;
+        
+        if (!this.enemiesToRemove.includes(enemy)) {
+            this.enemiesToRemove.push(enemy);
+        }
+    }
+    
+    /**
+     * Process batch removal of enemies
+     */
+    processBatchRemoval() {
+        if (this.enemiesToRemove.length === 0) return;
+        
+        console.debug(`Processing batch removal of ${this.enemiesToRemove.length} enemies`);
+        
+        for (const enemy of this.enemiesToRemove) {
+            // Handle quest updates and drops (only for host in multiplayer)
+            if (!this.isMultiplayer || (this.isMultiplayer && this.isHost)) {
+                // Check for quest updates
+                if (this.game && this.game.questManager) {
+                    this.game.questManager.updateEnemyKill(enemy);
+                }
+                
+                // Check for item drops
+                this.handleEnemyDrop(enemy);
+                
+                // Increment kill counter for boss spawning (only for non-boss enemies)
+                if (!enemy.isBoss) {
+                    this.enemyKillCount++;
+                }
+            }
+            
+            // Queue for disposal or return to pool
+            if (enemy.isPooled) {
+                this.returnEnemyToPool(enemy);
+            } else {
+                this.queueEnemyForDisposal(enemy);
+            }
+            
+            // Remove from main enemies map
+            this.enemies.delete(enemy.id);
+            
+            // Clean up processed drops entry
+            this.processedDrops.delete(enemy.id);
+            
+            // Clean up last updated timestamp
+            this.enemyLastUpdated.delete(enemy.id);
+        }
+        
+        // Clear the batch removal array
+        this.enemiesToRemove.length = 0;
+    }
     
     /**
      * Pause all enemies in the game
@@ -155,6 +358,9 @@ export class EnemyManager {
     }
     
     async init() {
+        // Initialize enemy pools first
+        this.initializeEnemyPools();
+        
         // Spawn initial enemies
         for (let i = 0; i < this.maxEnemies / 2; i++) {
             this.spawnEnemy();
@@ -213,76 +419,32 @@ export class EnemyManager {
                 bossAlive = true;
             }
             
-            // Remove dead enemies
+            // Mark dead enemies for batch removal
             if (enemy.isDead()) {
-                // In multiplayer mode, only the host should handle quest updates and drops
-                if (!this.isMultiplayer || (this.isMultiplayer && this.isHost)) {
-                    // Check for quest updates
-                    if (this.game && this.game.questManager) {
-                        this.game.questManager.updateEnemyKill(enemy);
-                    }
-                    
-                    // Check for item drops
-                    this.handleEnemyDrop(enemy);
-                    
-                    // Increment kill counter for boss spawning (only for non-boss enemies)
-                    if (!enemy.isBoss) {
-                        this.enemyKillCount++;
-                        console.debug(`Enemy killed. Kill count: ${this.enemyKillCount}/${this.killsPerBossSpawn}`);
-                    }
-                }
-                
                 // Check if death animation is still in progress
                 if (!enemy.deathAnimationInProgress) {
-                    // For bosses, prioritize quick removal to prevent lag
-                    if (enemy.isBoss) {
-                        console.debug(`Removing dead boss ${enemy.id} from scene`);
-                        
-                        // Force immediate removal for bosses
-                        enemy.remove();
-                        this.enemies.delete(id);
-                        
-                        // Clean up processed drops entry for this enemy
-                        this.processedDrops.delete(id);
-                        
-                        // Clean up last updated timestamp
-                        this.enemyLastUpdated.delete(id);
-                        
-                        // Force a garbage collection hint if available
-                        if (window.gc) {
-                            try {
-                                window.gc();
-                            } catch (e) {
-                                // Ignore if gc is not available
-                            }
-                        }
-                    } else {
-                        // Regular enemy removal
-                        enemy.remove();
-                        this.enemies.delete(id);
-                        
-                        // Clean up processed drops entry for this enemy
-                        this.processedDrops.delete(id);
-                        
-                        // Clean up last updated timestamp
-                        this.enemyLastUpdated.delete(id);
-                    }
+                    // Mark for batch removal
+                    this.markEnemyForRemoval(enemy);
                 } else if (enemy.isBoss && enemy.deathAnimationInProgress) {
                     // For bosses, set a maximum time for death animation to prevent lag
-                    // If the boss has been dead for more than 2 seconds, force removal
                     if (!enemy.deathStartTime) {
                         enemy.deathStartTime = Date.now();
                     } else if (Date.now() - enemy.deathStartTime > 2000) {
                         console.debug(`Force removing boss ${enemy.id} after 2 seconds`);
                         enemy.deathAnimationInProgress = false;
-                        enemy.remove();
-                        this.enemies.delete(id);
-                        this.processedDrops.delete(id);
-                        this.enemyLastUpdated.delete(id);
+                        this.markEnemyForRemoval(enemy);
                     }
                 }
             }
         }
+        
+        // Process batch removal of dead enemies
+        if (this.batchProcessingEnabled) {
+            this.processBatchRemoval();
+        }
+        
+        // Process deferred disposal queue
+        this.processDisposalQueue();
         
         // Check if boss theme should be stopped (all bosses are dead)
         if (!bossAlive && this.game && this.game.audioManager && 
@@ -331,8 +493,15 @@ export class EnemyManager {
         // Get position
         const spawnPosition = position || this.getRandomSpawnPosition();
         
-        // Create enemy
-        const enemy = new Enemy(this.scene, this.player, scaledEnemyType);
+        // Try to get enemy from pool first
+        let enemy = this.getEnemyFromPool(scaledEnemyType.type, scaledEnemyType, spawnPosition);
+        
+        // If pool is exhausted, create new enemy (fallback)
+        if (!enemy) {
+            console.debug(`Pool exhausted for ${scaledEnemyType.type}, creating new enemy`);
+            enemy = new Enemy(this.scene, this.player, scaledEnemyType);
+            enemy.init();
+        }
         
         // Set world reference for terrain height
         if (this.game && this.game.world) {
@@ -342,11 +511,9 @@ export class EnemyManager {
             if (spawnPosition) {
                 const terrainHeight = this.game.world.getTerrainHeight(spawnPosition.x, spawnPosition.z);
                 spawnPosition.y = terrainHeight + enemy.heightOffset;
+                enemy.setPosition(spawnPosition.x, spawnPosition.y, spawnPosition.z);
             }
         }
-        
-        enemy.init();
-        enemy.setPosition(spawnPosition.x, spawnPosition.y, spawnPosition.z);
         
         // Assign enemy ID (for multiplayer)
         const id = enemyId || `enemy_${this.nextEnemyId++}`;
@@ -557,9 +724,42 @@ export class EnemyManager {
         return DIFFICULTY_SCALING.difficultyLevels[this.currentDifficulty];
     }
 
-    // Removed duplicate spawnEnemy method that was causing conflicts
+    /**
+     * Clean up all resources when game ends
+     */
+    cleanup() {
+        console.debug('Cleaning up EnemyManager resources...');
+        
+        // Process any remaining enemies in removal queue
+        while (this.disposalQueue.length > 0) {
+            const enemy = this.disposalQueue.shift();
+            enemy.remove();
+        }
+        
+        // Clean up all active enemies
+        for (const [id, enemy] of this.enemies.entries()) {
+            enemy.remove();
+        }
+        this.enemies.clear();
+        
+        // Clean up all pooled enemies
+        for (const [type, pool] of this.enemyPools.entries()) {
+            for (const enemy of pool) {
+                enemy.removeFromScene();
+            }
+            pool.length = 0;
+        }
+        this.enemyPools.clear();
+        
+        // Dispose shared resources
+        EnemyModelFactory.disposeSharedResources();
+        
+        // Clear all maps
+        this.activeEnemies.clear();
+        this.processedDrops.clear();
+        this.enemyLastUpdated.clear();
+    }
     
-
     
     /**
      * Spawns a dangerous large group of enemies (10-20) in a single location
