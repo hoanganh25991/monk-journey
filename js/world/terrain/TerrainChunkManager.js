@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import chunkPersistenceManager from './ChunkPersistenceManager.js';
 
 /**
  * Manages terrain chunk creation, buffering, and lifecycle
@@ -15,7 +16,9 @@ export class TerrainChunkManager {
         this.terrainChunks = {}; // Store terrain chunks by chunk key
         this.visibleTerrainChunks = {}; // Store currently visible terrain chunks
         
-        // Save/load functionality has been removed
+        // Enable chunk persistence
+        this.persistenceEnabled = true;
+        this.persistenceManager = chunkPersistenceManager;
     }
 
     /**
@@ -98,9 +101,9 @@ export class TerrainChunkManager {
      * Create a terrain chunk at the specified coordinates
      * @param {number} chunkX - X chunk coordinate
      * @param {number} chunkZ - Z chunk coordinate
-     * @returns {THREE.Mesh} - The created terrain chunk
+     * @returns {Promise<THREE.Mesh>} - The created terrain chunk
      */
-    createTerrainChunk(chunkX, chunkZ) {
+    async createTerrainChunk(chunkX, chunkZ) {
         const chunkKey = `${chunkX},${chunkZ}`;
         
         // Skip if this chunk already exists in active chunks
@@ -126,11 +129,27 @@ export class TerrainChunkManager {
             return this.terrainChunks[chunkKey];
         }
         
-        // Always create chunks since we don't use saved data anymore
-        const shouldCreateChunk = true;
+        // Check if this chunk exists in persistence storage
+        if (this.persistenceEnabled) {
+            try {
+                const hasPersistedChunk = await this.persistenceManager.hasChunk(chunkKey);
+                
+                if (hasPersistedChunk) {
+                    console.debug(`Loading persisted terrain chunk ${chunkKey}`);
+                    const chunkData = await this.persistenceManager.loadChunk(chunkKey);
+                    
+                    if (chunkData) {
+                        return this.createTerrainChunkFromPersistedData(chunkX, chunkZ, chunkData);
+                    }
+                }
+            } catch (error) {
+                console.error(`Error checking for persisted chunk ${chunkKey}:`, error);
+                // Continue with creating a new chunk
+            }
+        }
         
         console.debug(`Creating new terrain chunk ${chunkKey}`);
-        // If not loaded from storage, create a new chunk
+        // Create a new chunk
         return this.createNewTerrainChunk(chunkX, chunkZ);
     }
 
@@ -157,6 +176,15 @@ export class TerrainChunkManager {
         // Notify structure manager to generate structures for this chunk
         if (this.worldManager && this.worldManager.structureManager) {
             this.worldManager.structureManager.generateStructuresForChunk(chunkX, chunkZ);
+        }
+        
+        // Persist the chunk data for future use
+        if (this.persistenceEnabled) {
+            // Extract essential data for persistence
+            const chunkData = this.serializeChunkData(terrain, chunkX, chunkZ);
+            
+            // Queue the chunk for persistence (non-blocking)
+            this.persistenceManager.queueChunkForSave(chunkKey, chunkData);
         }
         
         return terrain;
@@ -188,13 +216,174 @@ export class TerrainChunkManager {
         console.debug(`Terrain chunk ${chunkX},${chunkZ} created from saved data`);
         return terrain;
     }
+    
+    /**
+     * Create a terrain chunk from persisted data
+     * @param {number} chunkX - X chunk coordinate
+     * @param {number} chunkZ - Z chunk coordinate
+     * @param {object} chunkData - Persisted chunk data
+     * @returns {THREE.Mesh} - The created terrain chunk
+     */
+    createTerrainChunkFromPersistedData(chunkX, chunkZ, chunkData) {
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // Create terrain mesh using the template system
+        const zoneType = chunkData.zoneType || 'Terrant';
+        
+        // Get the terrain template for this zone type
+        const template = this.templateManager.getOrCreateTerrainTemplate(
+            zoneType, 
+            this.terrainConfig.chunkSize, 
+            16
+        );
+        
+        // Create terrain mesh using the template
+        const terrain = new THREE.Mesh(template.geometry.clone(), template.material.clone());
+        terrain.rotation.x = -Math.PI / 2;
+        
+        // Set shadows
+        terrain.receiveShadow = true;
+        terrain.castShadow = true;
+        
+        // Apply terrain coloring with variations based on zone type
+        const themeColors = this.worldManager.zoneManager ? this.worldManager.zoneManager.currentThemeColors : null;
+        this.coloringManager.colorTerrainUniform(terrain, zoneType, themeColors);
+        
+        // Store zone type on the terrain for later reference
+        terrain.userData.zoneType = zoneType;
+        
+        // Position the terrain
+        const worldX = chunkX * this.terrainConfig.chunkSize;
+        const worldZ = chunkZ * this.terrainConfig.chunkSize;
+        
+        terrain.position.set(
+            worldX + this.terrainConfig.chunkSize / 2,
+            0,
+            worldZ + this.terrainConfig.chunkSize / 2
+        );
+        
+        // Add to scene
+        this.scene.add(terrain);
+        
+        // Store the terrain chunk
+        this.terrainChunks[chunkKey] = terrain;
+        
+        // Load structures if available
+        if (chunkData.structures && Array.isArray(chunkData.structures) && 
+            this.worldManager && this.worldManager.structureManager) {
+            this.worldManager.structureManager.loadStructuresForChunk(chunkX, chunkZ, chunkData.structures);
+        }
+        
+        // Load environment objects if available
+        if (chunkData.environmentObjects && Array.isArray(chunkData.environmentObjects) && 
+            this.worldManager && this.worldManager.environmentManager) {
+            this.worldManager.environmentManager.loadEnvironmentObjectsForChunk(chunkX, chunkZ, chunkData.environmentObjects);
+        }
+        
+        console.debug(`Terrain chunk ${chunkKey} created from persisted data`);
+        return terrain;
+    }
+    
+    /**
+     * Serialize chunk data for persistence
+     * @param {THREE.Mesh} terrain - The terrain mesh
+     * @param {number} chunkX - X chunk coordinate
+     * @param {number} chunkZ - Z chunk coordinate
+     * @returns {Object} - Serialized chunk data
+     */
+    serializeChunkData(terrain, chunkX, chunkZ) {
+        const chunkData = {
+            zoneType: terrain.userData.zoneType || 'Terrant',
+            structures: [],
+            environmentObjects: []
+        };
+        
+        // Get structures in this chunk if available
+        // Note: We don't directly serialize structures as they're managed separately
+        // The structure manager will handle loading structures for this chunk when needed
+        if (this.worldManager && this.worldManager.structureManager) {
+            try {
+                // Check if the method exists before calling it
+                if (typeof this.worldManager.structureManager.getStructuresInChunk === 'function') {
+                    const structures = this.worldManager.structureManager.getStructuresInChunk(chunkX, chunkZ);
+                    if (structures && structures.length > 0) {
+                        chunkData.structures = structures.map(structure => ({
+                            type: structure.type,
+                            position: {
+                                x: structure.position.x,
+                                y: structure.position.y,
+                                z: structure.position.z
+                            },
+                            rotation: structure.rotation ? {
+                                x: structure.rotation.x,
+                                y: structure.rotation.y,
+                                z: structure.rotation.z
+                            } : undefined,
+                            scale: structure.scale ? {
+                                x: structure.scale.x,
+                                y: structure.scale.y,
+                                z: structure.scale.z
+                            } : undefined
+                        }));
+                    }
+                } else {
+                    // Alternative approach if getStructuresInChunk doesn't exist
+                    // Just store the chunk coordinates for later structure generation
+                    chunkData.structureChunkCoords = { x: chunkX, z: chunkZ };
+                }
+            } catch (error) {
+                console.debug(`Error getting structures for chunk ${chunkX},${chunkZ}:`, error);
+                // Continue without structures
+            }
+        }
+        
+        // Get environment objects in this chunk if available
+        if (this.worldManager && this.worldManager.environmentManager) {
+            try {
+                // Check if the method exists before calling it
+                if (typeof this.worldManager.environmentManager.getEnvironmentObjectsInChunk === 'function') {
+                    const environmentObjects = this.worldManager.environmentManager.getEnvironmentObjectsInChunk(chunkX, chunkZ);
+                    if (environmentObjects && environmentObjects.length > 0) {
+                        chunkData.environmentObjects = environmentObjects.map(obj => ({
+                            type: obj.type,
+                            position: {
+                                x: obj.position.x,
+                                y: obj.position.y,
+                                z: obj.position.z
+                            },
+                            rotation: obj.rotation ? {
+                                x: obj.rotation.x,
+                                y: obj.rotation.y,
+                                z: obj.rotation.z
+                            } : undefined,
+                            scale: obj.scale ? {
+                                x: obj.scale.x,
+                                y: obj.scale.y,
+                                z: obj.scale.z
+                            } : undefined
+                        }));
+                    }
+                } else {
+                    // Alternative approach if getEnvironmentObjectsInChunk doesn't exist
+                    // Just store the chunk coordinates for later environment object generation
+                    chunkData.environmentChunkCoords = { x: chunkX, z: chunkZ };
+                }
+            } catch (error) {
+                console.debug(`Error getting environment objects for chunk ${chunkX},${chunkZ}:`, error);
+                // Continue without environment objects
+            }
+        }
+        
+        return chunkData;
+    }
 
     /**
      * Create a terrain chunk for the buffer (not immediately visible)
      * @param {number} chunkX - X chunk coordinate
      * @param {number} chunkZ - Z chunk coordinate
+     * @returns {Promise<void>}
      */
-    createBufferedTerrainChunk(chunkX, chunkZ) {
+    async createBufferedTerrainChunk(chunkX, chunkZ) {
         const chunkKey = `${chunkX},${chunkZ}`;
         
         // Skip if this chunk already exists in any collection
@@ -208,14 +397,43 @@ export class TerrainChunkManager {
             return;
         }
         
-        // Always create chunks since we don't use saved data anymore
-        const shouldCreateChunk = true;
+        // Check if this chunk exists in persistence storage
+        // Use a non-blocking approach to avoid performance impact
+        let usePersistedData = false;
+        let persistedChunkData = null;
         
-        // Determine zone type for this terrain chunk
-        let zoneType = 'Terrant'; // Default to Terrant for new terrain
+        if (this.persistenceEnabled) {
+            try {
+                // Use a timeout to prevent blocking for too long
+                const hasPersistedChunkPromise = Promise.race([
+                    this.persistenceManager.hasChunk(chunkKey),
+                    new Promise(resolve => setTimeout(() => resolve(false), 50)) // 50ms timeout
+                ]);
+                
+                const hasPersistedChunk = await hasPersistedChunkPromise;
+                
+                if (hasPersistedChunk) {
+                    // Try to load the persisted chunk data with a timeout
+                    const loadChunkPromise = Promise.race([
+                        this.persistenceManager.loadChunk(chunkKey),
+                        new Promise(resolve => setTimeout(() => resolve(null), 100)) // 100ms timeout
+                    ]);
+                    
+                    persistedChunkData = await loadChunkPromise;
+                    usePersistedData = persistedChunkData !== null;
+                }
+            } catch (error) {
+                console.debug(`Error checking for persisted chunk ${chunkKey}, will create new:`, error);
+                // Continue with creating a new chunk
+            }
+        }
         
-        // If we have a world manager with zone information, use it
-        if (this.worldManager && this.worldManager.getZoneAt) {
+        // If we have persisted data, use the zone type from it
+        let zoneType = usePersistedData && persistedChunkData.zoneType ? 
+            persistedChunkData.zoneType : 'Terrant';
+        
+        // If we don't have persisted data and have a world manager with zone information, use it
+        if (!usePersistedData && this.worldManager && this.worldManager.getZoneAt) {
             // Calculate world coordinates for this chunk
             const worldX = chunkX * this.terrainConfig.chunkSize + this.terrainConfig.chunkSize / 2;
             const worldZ = chunkZ * this.terrainConfig.chunkSize + this.terrainConfig.chunkSize / 2;
@@ -235,7 +453,9 @@ export class TerrainChunkManager {
             isPlaceholder: true,
             chunkX: chunkX,
             chunkZ: chunkZ,
-            zoneType: zoneType
+            zoneType: zoneType,
+            // Store persisted data reference if available
+            persistedData: usePersistedData ? persistedChunkData : null
         };
         
         // Store in buffer but don't create actual geometry yet
@@ -266,10 +486,24 @@ export class TerrainChunkManager {
         }
         
         // Extract coordinates and zone type
-        const { chunkX, chunkZ, zoneType } = placeholder;
+        const { chunkX, chunkZ, zoneType, persistedData } = placeholder;
         const zoneTypeName = zoneType || 'Terrant';
         
-        // If no saved data, create a new chunk using the template system
+        // If we have persisted data, use it to create the chunk
+        if (persistedData) {
+            console.debug(`Converting placeholder to real chunk using persisted data: ${chunkKey}`);
+            
+            // Create terrain from persisted data
+            const terrain = this.createTerrainChunkFromPersistedData(chunkX, chunkZ, persistedData);
+            
+            // Replace placeholder with real chunk
+            this.terrainBuffer[chunkKey] = terrain;
+            return;
+        }
+        
+        // If no persisted data, create a new chunk using the template system
+        console.debug(`Converting placeholder to real chunk (no persisted data): ${chunkKey}`);
+        
         // Get the terrain template for this zone type
         const template = this.templateManager.getOrCreateTerrainTemplate(
             zoneTypeName, 
@@ -417,6 +651,27 @@ export class TerrainChunkManager {
         this.terrainChunks = {};
         this.visibleTerrainChunks = {};
         this.terrainBuffer = {};
+        
+        // Flush any pending persistence operations
+        if (this.persistenceEnabled && this.persistenceManager) {
+            this.persistenceManager.flushWriteQueue().catch(error => {
+                console.error('Error flushing persistence queue during clear:', error);
+            });
+        }
+    }
+    
+    /**
+     * Cleanup resources when the manager is no longer needed
+     * This should be called when the game is unloaded
+     */
+    dispose() {
+        // Clear all chunks
+        this.clear();
+        
+        // Dispose the persistence manager
+        if (this.persistenceEnabled && this.persistenceManager) {
+            this.persistenceManager.dispose();
+        }
     }
 
     /**

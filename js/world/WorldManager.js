@@ -837,12 +837,19 @@ export class WorldManager {
     getContentStats() {
         const baseStats = this.generationManager.getContentStats();
         
+        // Count trees and rocks by filtering the main environmentObjects array
+        const trees = this.environmentManager.environmentObjects.filter(obj => 
+            obj.type && (obj.type === 'tree' || obj.type.includes('tree'))).length;
+            
+        const rocks = this.environmentManager.environmentObjects.filter(obj => 
+            obj.type && (obj.type === 'rock' || obj.type.includes('rock'))).length;
+        
         return {
             ...baseStats,
             environmentObjects: this.environmentManager.environmentObjects.length,
             structures: this.structureManager.structures.length,
-            trees: this.environmentManager.trees ? this.environmentManager.trees.length : 0,
-            rocks: this.environmentManager.rocks ? this.environmentManager.rocks.length : 0,
+            trees: trees,
+            rocks: rocks,
             buildings: this.structureManager.structures ? 
                 this.structureManager.structures.filter(s => s.type === 'house').length : 0
         };

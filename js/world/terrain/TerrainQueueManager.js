@@ -201,7 +201,11 @@ export class TerrainQueueManager {
             }
             
             // Create the chunk in the buffer (not visible yet)
-            this.terrainChunkManager.createBufferedTerrainChunk(nextChunk.chunkX, nextChunk.chunkZ);
+            // Use async method but don't await to keep processing non-blocking
+            this.terrainChunkManager.createBufferedTerrainChunk(nextChunk.chunkX, nextChunk.chunkZ)
+                .catch(error => {
+                    console.error(`Error creating buffered terrain chunk ${chunkKey}:`, error);
+                });
         }
         
         // If there are still chunks to process, continue in the next frame
@@ -286,5 +290,18 @@ export class TerrainQueueManager {
         this.lastQueueProcessTime = 0;
         this.lastPlayerChunk = { x: 0, z: 0 };
         this.playerMovementDirection.set(0, 0, 0);
+    }
+    
+    /**
+     * Dispose of resources when the manager is no longer needed
+     */
+    dispose() {
+        // Clear the queue
+        this.clear();
+        
+        // Remove references
+        this.terrainChunkManager = null;
+        this.terrainConfig = null;
+        this.game = null;
     }
 }

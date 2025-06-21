@@ -215,6 +215,36 @@ export class TerrainManager {
     }
     
     /**
+     * Dispose of all resources
+     * This should be called when the game is unloaded
+     */
+    dispose() {
+        // Clear all terrain first
+        this.clear();
+        
+        // Dispose managers
+        if (this.chunkManager && typeof this.chunkManager.dispose === 'function') {
+            this.chunkManager.dispose();
+        }
+        
+        if (this.queueManager && typeof this.queueManager.dispose === 'function') {
+            this.queueManager.dispose();
+        }
+        
+        if (this.templateManager && typeof this.templateManager.dispose === 'function') {
+            this.templateManager.dispose();
+        }
+        
+        if (this.coloringManager && typeof this.coloringManager.dispose === 'function') {
+            this.coloringManager.dispose();
+        }
+        
+        if (this.cleanupManager && typeof this.cleanupManager.dispose === 'function') {
+            this.cleanupManager.dispose();
+        }
+    }
+    
+    /**
      * Clear distant terrain chunks to free memory
      * @param {number} playerChunkX - Player's chunk X coordinate (optional)
      * @param {number} playerChunkZ - Player's chunk Z coordinate (optional)
