@@ -137,6 +137,11 @@ export class HUDManager {
         // Create map selection UI
         this.components.mapSelectionUI = new MapSelectionUI(this.game);
         this.components.mapSelectionUI.init();
+        
+        // Refresh button protection after all components are created
+        setTimeout(() => {
+            touchManager.refreshButtonProtection();
+        }, 100);
     }
     
     /**
