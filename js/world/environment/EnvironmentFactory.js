@@ -767,23 +767,12 @@ export class EnvironmentFactory {
             // Validate the result is a THREE.Object3D
             if (result && !(result instanceof THREE.Object3D)) {
                 console.error(`Factory creator for type ${type} returned invalid object. Expected THREE.Object3D, got:`, result);
-                globalErrorHandler.handleError(new Error(`Invalid object type returned for ${type}`), 'Environment Object Creation', {
-                    objectType: type,
-                    position: position,
-                    size: size,
-                    resultType: typeof result
-                });
                 return null;
             }
             
             return result;
         } catch (error) {
             console.error(`Error creating environment object of type ${type}:`, error);
-            globalErrorHandler.handleError(error, 'Environment Object Creation', {
-                objectType: type,
-                position: position,
-                size: size
-            });
             return null;
         }
     }

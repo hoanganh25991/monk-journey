@@ -115,12 +115,7 @@ export class EnvironmentManager {
                         }
                     }
                 } catch (error) {
-                    console.warn(`Failed to load environment object at index ${index}:`, error);
-                    globalErrorHandler.handleError(error, 'Environment Object Loading', {
-                        objectType: envData.type,
-                        position: envData.position,
-                        index: index
-                    });
+                    console.error(`Failed to load environment object at index ${index}:`, error);
                 }
             });
 
@@ -362,11 +357,6 @@ export class EnvironmentManager {
                 }
             } catch (error) {
                 console.error(`Failed to add object of type ${type} to scene:`, error);
-                globalErrorHandler.handleError(error, 'Scene Addition', {
-                    objectType: type,
-                    position: { x, y, z },
-                    scale: scale
-                });
                 return null;
             }
         }
