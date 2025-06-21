@@ -1,4 +1,5 @@
 import { UIComponent } from '../UIComponent.js';
+import { touchManager } from './TouchManager.js';
 
 /**
  * Map Selection UI component
@@ -45,8 +46,8 @@ export class MapSelectionUI extends UIComponent {
             // Set up event listeners
             this.setupEventListeners();
             
-            // Initially hide the modal
-            this.hide();
+            // Initially hide the modal and ensure it doesn't block interactions
+            this.forceHide();
             
             console.log('MapSelectionUI initialized successfully');
             return true;
@@ -94,6 +95,13 @@ export class MapSelectionUI extends UIComponent {
      */
     showMapSelectionModal() {
         console.log('Showing map selection modal');
+        
+        // Clear any stuck touches before showing modal
+        if (touchManager.hasActiveTouches()) {
+            console.debug('MapSelectionUI: Clearing stuck touches before showing modal');
+            touchManager.clearAllTouches();
+        }
+        
         this.show();
         
         // Focus the OK button for keyboard navigation
@@ -110,6 +118,8 @@ export class MapSelectionUI extends UIComponent {
     show() {
         if (this.modal) {
             this.modal.style.display = 'flex';
+            this.modal.style.visibility = 'visible';
+            this.modal.style.pointerEvents = 'auto';
             // Add a slight delay to trigger CSS animations
             setTimeout(() => {
                 this.modal.classList.add('show');
@@ -123,10 +133,33 @@ export class MapSelectionUI extends UIComponent {
     hide() {
         if (this.modal) {
             this.modal.classList.remove('show');
+            // Immediately disable pointer events to prevent blocking
+            this.modal.style.pointerEvents = 'none';
+            
+            // Clear any stuck touches when hiding modal
+            if (touchManager.hasActiveTouches()) {
+                console.debug('MapSelectionUI: Clearing stuck touches after hiding modal');
+                touchManager.clearAllTouches();
+            }
+            
             // Wait for animation to complete before hiding
             setTimeout(() => {
                 this.modal.style.display = 'none';
+                this.modal.style.visibility = 'hidden';
             }, 300);
+        }
+    }
+    
+    /**
+     * Force hide the modal immediately without animation
+     * Used during initialization to ensure modal doesn't block interactions
+     */
+    forceHide() {
+        if (this.modal) {
+            this.modal.classList.remove('show');
+            this.modal.style.display = 'none';
+            this.modal.style.visibility = 'hidden';
+            this.modal.style.pointerEvents = 'none';
         }
     }
     
@@ -135,7 +168,9 @@ export class MapSelectionUI extends UIComponent {
      * @returns {boolean} - True if modal is visible
      */
     isVisible() {
-        return this.modal && this.modal.style.display !== 'none';
+        if (!this.modal) return false;
+        const computedStyle = window.getComputedStyle(this.modal);
+        return computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden';
     }
     
     /**

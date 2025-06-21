@@ -50,6 +50,7 @@
     align-items: flex-start; /* Changed from center to flex-start to align items to the top */
     gap: var(--padding-small);
     z-index: 50; /* UI Controls */
+    pointer-events: auto; /* Enable touch/click events for buttons */
 }
 
 /* Home/Settings Button and Fullscreen Button */

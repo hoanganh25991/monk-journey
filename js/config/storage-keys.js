@@ -43,6 +43,7 @@ export const STORAGE_KEYS = {
     CAMERA_MODE: 'monk_journey_camera_mode',
     CAMERA_HEIGHT: 'monk_journey_camera_height',
     CAMERA_LOOK_OFFSET: 'monk_journey_camera_look_offset',
+    SHOW_MINIMAP: 'monk_journey_show_minimap',
     // MATERIAL_QUALITY key removed - using QUALITY_LEVEL instead
     
     // Save system keys

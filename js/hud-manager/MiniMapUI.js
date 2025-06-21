@@ -1,6 +1,7 @@
 import { UIComponent } from '../UIComponent.js';
 import * as THREE from 'three';
 import { STRUCTURE_OBJECTS, STRUCTURE_PROPERTIES } from '../config/structure.js';
+import { STORAGE_KEYS } from '../config/storage-keys.js';
 
 /**
  * Mini Map UI component
@@ -134,6 +135,9 @@ export class MiniMapUI extends UIComponent {
         // Add CSS for map controls
         this.addMapControlStyles();
         
+        // Check initial visibility setting
+        this.checkInitialVisibility();
+        
         return true;
     }
     
@@ -144,6 +148,30 @@ export class MiniMapUI extends UIComponent {
         // CSS styles are now defined in css/hud/minimap.css
         // This method is kept for backward compatibility
         console.debug('Mini map styles are now defined in CSS file');
+    }
+    
+    /**
+     * Check initial visibility setting from localStorage
+     */
+    checkInitialVisibility() {
+        try {
+            // Get the setting from localStorage (default to true if not set)
+            const showMinimap = localStorage.getItem(STORAGE_KEYS.SHOW_MINIMAP);
+            const isVisible = showMinimap === null ? true : (showMinimap === 'true');
+            
+            console.debug('MiniMapUI: Initial visibility setting:', isVisible);
+            
+            // Set initial visibility
+            if (isVisible) {
+                this.show();
+            } else {
+                this.hide();
+            }
+        } catch (error) {
+            console.error('MiniMapUI: Error checking initial visibility:', error);
+            // Default to visible if there's an error
+            this.show();
+        }
     }
     
     /**

@@ -3,6 +3,7 @@ import { UIComponent } from '../UIComponent.js';
 import { ModelPreview } from '../menu-system/ModelPreview.js';
 import { ItemPreview } from '../menu-system/ItemPreview.js';
 import { updateAnimation } from '../utils/AnimationUtils.js';
+import { touchManager } from './TouchManager.js';
 
 /**
  * Inventory UI component
@@ -361,6 +362,9 @@ export class InventoryUI extends UIComponent {
      * Toggle inventory visibility
      */
     toggleInventory() {
+        // Clear any stuck touches before toggling inventory
+        touchManager.forceReset();
+        
         if (this.isInventoryOpen) {
             // Hide any open item popup
             this.hideItemPopup();
@@ -371,6 +375,11 @@ export class InventoryUI extends UIComponent {
             
             // Resume game
             this.game.resume(false);
+            
+            // Clear touches again after closing to ensure clean state
+            setTimeout(() => {
+                touchManager.clearAllTouches();
+            }, 100);
         } else {
             // Update inventory items
             this.updateInventoryItems();
@@ -1087,6 +1096,9 @@ export class InventoryUI extends UIComponent {
      * Create and manage teleport portal using TeleportManager
      */
     teleportToOrigin() {
+        // Clear any stuck touches immediately when teleport button is clicked
+        touchManager.forceReset();
+        
         if (!this.game || !this.game.player) {
             console.warn('Cannot create portal: Game or player not available');
             if (this.game && this.game.hudManager) {
@@ -1339,6 +1351,12 @@ export class InventoryUI extends UIComponent {
         // Reset portal state
         this.isPortalActive = false;
         this.playerStartPosition = null;
+        
+        // Clear any stuck touches after teleport completion
+        if (touchManager.hasActiveTouches()) {
+            console.debug('InventoryUI: Clearing stuck touches after teleport completion');
+            touchManager.clearAllTouches();
+        }
 
         console.debug('Player automatically teleported to origin (0,0,0)');
     }
