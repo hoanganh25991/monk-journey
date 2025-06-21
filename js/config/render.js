@@ -29,7 +29,7 @@ export const MATERIAL_QUALITY_LEVELS = {
         maxVisibleObjects: 500
     },
     medium: {
-        shadowMapSize: 512,
+        shadowMapSize: 256,
         particleCount: 0.5,
         drawDistance: 0.6,
         textureQuality: 0.5,
@@ -69,9 +69,9 @@ export const FOG_CONFIG = {
     transitionSpeed: 0.05, // How quickly fog color transitions between zones
     
     // Distance-based fog settings
-    distanceFalloff: 1.5, // Controls how quickly visibility drops with distance
-    maxVisibleDistance: 150, // Maximum distance at which objects are still visible
-    darkeningFactor: 0.7, // How much darker distant objects become (0-1)
+    distanceFalloff: 2.5, // Controls how quickly visibility drops with distance
+    maxVisibleDistance: 16, // Maximum distance at which objects are still visible
+    darkeningFactor: 0.5, // How much darker distant objects become (0-1)
     
     // Quality level adjustments - adjusted to maintain consistent brightness
     qualityMultipliers: {
@@ -107,14 +107,14 @@ export const RENDER_CONFIG = {
         init: {
             antialias: false,
             powerPreference: 'high-performance',
-            precision: 'mediump',
+            precision: 'lowp',
             stencil: false,
             logarithmicDepthBuffer: false,
             depth: true,
             alpha: false
         },
         settings: {
-            pixelRatio: Math.min(window.devicePixelRatio, 0.9),
+            pixelRatio: Math.min(window.devicePixelRatio, 0.7),
             shadowMapEnabled: true,
             shadowMapType: 'PCFShadowMap',
             outputColorSpace: 'SRGBColorSpace'
@@ -125,7 +125,7 @@ export const RENDER_CONFIG = {
     low: {
         init: {
             antialias: false,
-            powerPreference: 'default',
+            powerPreference: 'high-performance',
             precision: 'lowp', // Changed from mediump for better performance
             stencil: false,
             logarithmicDepthBuffer: false,
@@ -145,7 +145,7 @@ export const RENDER_CONFIG = {
     minimal: {
         init: {
             antialias: false,
-            powerPreference: 'default', // Save battery on mobile
+            powerPreference: 'high-performance',
             precision: 'lowp',
             stencil: false,
             logarithmicDepthBuffer: false,

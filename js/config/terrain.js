@@ -8,9 +8,9 @@ export const TERRAIN_CONFIG = {
     height: 4, // Maximum terrain height
     
     // Terrain chunk properties
-    chunkSize: 16, // Size of each terrain chunk
-    chunkViewDistance: 4, // Reduced from 5 to 3 to improve performance
+    chunkSize: 16, // Size of each terrain chunk: original "16"
+    chunkViewDistance: 8, // How far forward: add "4"
     
     // Terrain buffering properties
-    bufferDistance: 1, // Reduced from 5 to 2 to improve performance
-};
+    bufferDistance: 1, // Buffer in-memory: smooth moving
+}
