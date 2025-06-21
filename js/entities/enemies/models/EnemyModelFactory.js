@@ -21,6 +21,7 @@ import { SpiderQueenModel } from './SpiderQueenModel.js';
 import { FrostMonarchModel } from './FrostMonarchModel.js';
 import { AncientConstructModel } from './AncientConstructModel.js';
 import { AncientYetiModel } from './AncientYetiModel.js';
+import { MoltenBehemothModel } from './MoltenBehemothModel.js';
 import { SimpleEnemyModel } from './SimpleEnemyModel.js';
 import { DefaultModel } from './DefaultModel.js';
 
@@ -193,6 +194,10 @@ export class EnemyModelFactory {
             // Fire bosses
             case 'inferno_lord':
                 return new InfernoLordModel(enemy, modelGroup);
+                
+            // Molten creatures
+            case 'molten_behemoth':
+                return new MoltenBehemothModel(enemy, modelGroup);
                 
             // Spider creatures
             case 'spider_queen':
