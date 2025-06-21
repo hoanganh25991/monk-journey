@@ -61,16 +61,16 @@ export const SKILL_SOUNDS = {
         id: 'waveStrike',
         file: 'wave_strike.mp3',
         volume: 1.0, // Increased from 0.8 to 1.0 for better audibility
-        simulated: {
-            frequency: 280,
-            duration: 0.4, // Increased duration slightly for better audibility
-            type: 'sine',
-            decay: true,
-            slide: 60, // Increased slide for more dramatic effect
-            noise: 0.08, // Increased noise for more watery sound
-            filter: 'lowpass',
-            vibrato: 8 // Added vibrato for wave-like effect
-        }
+        // simulated: {
+        //     frequency: 280,
+        //     duration: 0.4, // Increased duration slightly for better audibility
+        //     type: 'sine',
+        //     decay: true,
+        //     slide: 60, // Increased slide for more dramatic effect
+        //     noise: 0.08, // Increased noise for more watery sound
+        //     filter: 'lowpass',
+        //     vibrato: 8 // Added vibrato for wave-like effect
+        // }
     },
     waterImpact: {
         id: 'waterImpact',
