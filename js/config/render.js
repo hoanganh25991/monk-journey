@@ -61,24 +61,27 @@ export const FOG_CONFIG = {
     enabled: true,
     type: 'exp2', // 'exp2' for exponential squared fog (more realistic), 'exp' for exponential, 'linear' for linear
     color: 0x87CEEB, // Lighter blue-gray color for a brighter atmosphere 0x87CEEB 0xFFD39B 0xE8C49A 0xF8D98D 0xF6C75B #FFCC00B3 #FFCC00 #FFDD00
-    density: 0.005, // Reduced base fog density for lighter atmosphere
-    near: 10, // For linear fog only - increased distance where fog begins
-    far: 50, // For linear fog only - increased distance where fog is fully opaque
+    density: 0.005, // PERFORMANCE FIX: Increased fog density to hide distant objects better
+    near: 5, // For linear fog only - closer fog start for better hiding
+    far: 25, // For linear fog only - closer fog end for better performance
     
     // Fog transition settings
     transitionSpeed: 0.05, // How quickly fog color transitions between zones
     
-    // Distance-based fog settings
-    distanceFalloff: 2.5, // Controls how quickly visibility drops with distance
-    maxVisibleDistance: 16 * 2, // Maximum distance at which objects are still visible
-    darkeningFactor: 0.6, // How much darker distant objects become (0-1)
+    // Distance-based fog settings - PERFORMANCE FIX: More aggressive hiding
+    distanceFalloff: 2.0, // INCREASED: Controls how quickly visibility drops with distance
+    maxVisibleDistance: 16 * 2, // REDUCED: Maximum distance at which objects are still visible (was 32)
+    darkeningFactor: 0.8, // INCREASED: How much darker distant objects become (0-1)
     
-    // Quality level adjustments - adjusted to maintain consistent brightness
+    // PERFORMANCE FIX: Add frustum culling distance
+    frustumCullingDistance: 16 * 4, // Objects beyond this distance are not rendered at all
+    
+    // Quality level adjustments - PERFORMANCE FIX: More aggressive fog for performance
     qualityMultipliers: {
-        high: 0.9, // Slightly reduced fog density for high quality (better visibility)
-        medium: 1.2, // Reduced from 1.5 to prevent darkening
-        low: 1.5, // Reduced from 2.2 to prevent darkening
-        minimal: 2.0 // Reduced from 6.0 to prevent excessive darkening while still improving performance
+        high: 1.0, // Standard fog density for high quality
+        medium: 1.5, // More fog for medium quality to hide more objects
+        low: 2.5, // Much more fog for low quality to improve performance
+        minimal: 4.0 // Very dense fog for minimal quality to maximize performance
     }
 };
 
