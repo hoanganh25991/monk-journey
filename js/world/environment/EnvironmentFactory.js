@@ -92,6 +92,7 @@ import { Mushroom } from './Mushroom.js';
 import { FallenLog } from './FallenLog.js';
 import { SmallPlant } from './SmallPlant.js';
 import { AncientAltar } from './AncientAltar.js';
+import { ForgottenStatue } from './ForgottenStatue.js';
 
 /**
  * Environment Factory - Creates environment objects based on type
@@ -670,6 +671,12 @@ export class EnvironmentFactory {
         this.register(ENVIRONMENT_OBJECTS.ANCIENT_ALTAR, (position, size) => {
             const ancientAltar = new AncientAltar(this.scene, this.worldManager, position, size);
             return ancientAltar.object;
+        });
+        
+        // Register Forgotten Statue
+        this.register(ENVIRONMENT_OBJECTS.FORGOTTEN_STATUE, (position, size) => {
+            const forgottenStatue = new ForgottenStatue(this.scene, this.worldManager, position, size);
+            return forgottenStatue.object;
         });
     }
     
