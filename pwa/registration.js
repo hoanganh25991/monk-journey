@@ -21,12 +21,6 @@
             return;
         }
 
-
-        if (localStorage.getItem('monk_journey_debug_mode') === 'true') {
-            console.warn('Service workers are disabled in debug mode');
-            return;
-        }
-
         if (!('serviceWorker' in navigator)) {
             console.warn('Service workers are not supported in this browser');
             return;

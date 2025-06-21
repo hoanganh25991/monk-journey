@@ -30,7 +30,7 @@ export class GoogleDriveAdapter extends IStorageAdapter {
         
         // Define keys that should be treated as specific types (same as LocalStorageAdapter)
         this.booleanKeys = [
-            STORAGE_KEYS.DEBUG_MODE,
+            STORAGE_KEYS.DISABLE_FULL_SCREEN,
             STORAGE_KEYS.LOG_ENABLED,
             STORAGE_KEYS.ADAPTIVE_QUALITY,
             STORAGE_KEYS.SHOW_PERFORMANCE_INFO,

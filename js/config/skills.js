@@ -406,6 +406,6 @@ export const SKILLS = [...PRIMARY_ATTACKS, ...NORMAL_SKILLS];
 
 /** @type {SkillConfig[]} */
 export const BATTLE_SKILLS = [
+    PRIMARY_ATTACKS[1], // First primary skill
     ...NORMAL_SKILLS.slice(0, 7), // First 7 normal skills
-    PRIMARY_ATTACKS[0], // First primary skill
 ]

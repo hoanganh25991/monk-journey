@@ -12,6 +12,7 @@ import { TalismanModel } from './accessory/TalismanModel.js';
 import { RingModel } from './accessory/RingModel.js';
 import { PotionModel } from './consumable/PotionModel.js';
 import { FoodModel } from './consumable/FoodModel.js';
+import { ScrollModel } from './consumable/ScrollModel.js';
 
 /**
  * Factory class for creating item models
@@ -81,6 +82,8 @@ export class ItemModelFactory {
                         return new PotionModel(item, modelGroup);
                     case 'food':
                         return new FoodModel(item, modelGroup);
+                    case 'scroll':
+                        return new ScrollModel(item, modelGroup);
                     // Add more consumable subtypes as they are implemented
                     default:
                         console.warn(`No specific model for consumable subtype: ${subType}, using default`);
