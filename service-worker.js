@@ -4,13 +4,13 @@
  */
 
 const CACHE_NAME = 'monk-journey-cache';
-const CACHE_VERSION = '47';
+const CACHE_VERSION = '48';
 const CACHE_KEY = CACHE_NAME + '-v' + CACHE_VERSION;
 
 
 // Total cache size in bytes and MB
-const TOTAL_CACHE_SIZE_BYTES = 8304367;
-const TOTAL_CACHE_SIZE_MB = 7.92;
+const TOTAL_CACHE_SIZE_BYTES = 8389251;
+const TOTAL_CACHE_SIZE_MB = 8.00;
 
 // Assets to cache
 const ASSETS_TO_CACHE = [
@@ -116,6 +116,7 @@ const ASSETS_TO_CACHE = [
   'js/entities/items/models/armor/RobeModel.js',
   'js/entities/items/models/consumable/FoodModel.js',
   'js/entities/items/models/consumable/PotionModel.js',
+  'js/entities/items/models/consumable/ScrollModel.js',
   'js/entities/items/models/weapons/DaggerModel.js',
   'js/entities/items/models/weapons/FistModel.js',
   'js/entities/items/models/weapons/StaffModel.js',
@@ -236,6 +237,7 @@ const ASSETS_TO_CACHE = [
   'js/hud-manager/HomeUI.js',
   'js/hud-manager/InventoryButton.js',
   'js/hud-manager/InventoryUI.js',
+  'js/hud-manager/MapSelectionUI.js',
   'js/hud-manager/MiniMapButton.js',
   'js/hud-manager/MiniMapUI.js',
   'js/hud-manager/NotificationsUI.js',
