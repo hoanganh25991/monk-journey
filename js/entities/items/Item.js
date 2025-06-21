@@ -10,6 +10,7 @@ export class Item {
         this.level = config.level || 1;
         this.rarity = config.rarity || 'common'; // common, uncommon, rare, epic, legendary, mythic
         this.amount = config.amount || 1;
+        this.templateId = config.templateId || null; // Store original template ID for save/load
 
         // Base stats
         this.baseStats = config.baseStats || {};

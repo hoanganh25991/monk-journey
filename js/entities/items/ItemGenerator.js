@@ -57,7 +57,8 @@ export class ItemGenerator {
             secondaryStats: secondaryStats,
             specialEffects: specialEffects,
             setId: setId,
-            visual: template.visual
+            visual: template.visual,
+            templateId: template.id // Store the original template ID for save/load
         });
         
         return item;
