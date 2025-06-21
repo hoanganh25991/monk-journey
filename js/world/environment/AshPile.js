@@ -59,7 +59,7 @@ export class AshPile {
         ashGroup.position.copy(position);
         
         // Add to scene
-        this.scene.add(ashGroup);
+        // this.scene.add(ashGroup);
         
         return ashGroup;
     }

@@ -69,9 +69,7 @@ export class BerryBush {
         bushGroup.position.copy(position);
         
         // Add to scene if scene is provided
-        if (this.scene) {
-            this.scene.add(bushGroup);
-        }
+        // this.scene.add(bushGroup);
         
         return bushGroup;
     }

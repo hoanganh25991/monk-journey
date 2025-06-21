@@ -70,8 +70,8 @@ export const FOG_CONFIG = {
     
     // Distance-based fog settings
     distanceFalloff: 2.5, // Controls how quickly visibility drops with distance
-    maxVisibleDistance: 16, // Maximum distance at which objects are still visible
-    darkeningFactor: 0.5, // How much darker distant objects become (0-1)
+    maxVisibleDistance: 16 * 2, // Maximum distance at which objects are still visible
+    darkeningFactor: 0.6, // How much darker distant objects become (0-1)
     
     // Quality level adjustments - adjusted to maintain consistent brightness
     qualityMultipliers: {

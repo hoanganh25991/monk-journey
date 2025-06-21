@@ -5,7 +5,6 @@ import { Bush } from './Bush.js';
 import { Flower } from './Flower.js';
 import { TallGrass } from './TallGrass.js';
 import { AncientTree } from './AncientTree.js';
-import { TreeCluster } from './TreeCluster.js';
 import { EnvironmentFactory } from './EnvironmentFactory.js';
 import { ENVIRONMENT_OBJECTS, ENVIRONMENT_CATEGORIES } from '../../config/environment.js';
 
@@ -70,52 +69,65 @@ export class EnvironmentManager {
      * @param {Array} environmentData - Array of environment object data from map
      */
     loadFromMapData(environmentData) {
-        if (!environmentData || !Array.isArray(environmentData)) {
-            console.warn('No environment data provided to load');
-            return;
-        }
-
-        console.debug(`Loading ${environmentData.length} environment objects from map data`);
-
-        // Clear existing environment objects
-        this.clear();
-
-        environmentData.forEach(envData => {
-            if (envData.position && envData.type) {
-                const object = this.createEnvironmentObject(
-                    envData.type, 
-                    envData.position.x, 
-                    envData.position.z,
-                    envData.scale || 1.0
-                );
-
-                if (object) {
-                    // Apply rotation if specified
-                    if (envData.rotation !== undefined) {
-                        object.rotation.y = envData.rotation;
-                    }
-                    
-                    // Add to environment objects
-                    this.environmentObjects.push({
-                        type: envData.type,
-                        object: object,
-                        position: new THREE.Vector3(
-                            envData.position.x, 
-                            envData.position.y || 0, 
-                            envData.position.z
-                        ),
-                        scale: envData.scale || 1.0,
-                        id: envData.id,
-                        groupId: envData.groupId
-                    });
-                    
-                    // Add to type-specific collections for minimap
-                    this.addToTypeCollection(envData.type, object);
-                }
+        const safeLoadFromMapData = safeWrap((data) => {
+            if (!data || !Array.isArray(data)) {
+                console.warn('No environment data provided to load');
+                return;
             }
-        });
 
-        console.debug(`Successfully loaded ${this.environmentObjects.length} environment objects`);
+            console.debug(`Loading ${data.length} environment objects from map data`);
+
+            // Clear existing environment objects
+            this.clear();
+
+            data.forEach((envData, index) => {
+                try {
+                    if (envData.position && envData.type) {
+                        const object = this.createEnvironmentObject(
+                            envData.type, 
+                            envData.position.x, 
+                            envData.position.z,
+                            envData.scale || 1.0
+                        );
+
+                        if (object) {
+                            // Apply rotation if specified
+                            if (envData.rotation !== undefined) {
+                                object.rotation.y = envData.rotation;
+                            }
+                            
+                            // Add to environment objects
+                            this.environmentObjects.push({
+                                type: envData.type,
+                                object: object,
+                                position: new THREE.Vector3(
+                                    envData.position.x, 
+                                    envData.position.y || 0, 
+                                    envData.position.z
+                                ),
+                                scale: envData.scale || 1.0,
+                                id: envData.id,
+                                groupId: envData.groupId
+                            });
+                            
+                            // Add to type-specific collections for minimap
+                            this.addToTypeCollection(envData.type, object);
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`Failed to load environment object at index ${index}:`, error);
+                    globalErrorHandler.handleError(error, 'Environment Object Loading', {
+                        objectType: envData.type,
+                        position: envData.position,
+                        index: index
+                    });
+                }
+            });
+
+            console.debug(`Successfully loaded ${this.environmentObjects.length} environment objects`);
+        }, 'Environment Data Loading');
+        
+        safeLoadFromMapData(environmentData);
     }
     
     /**
@@ -313,6 +325,12 @@ export class EnvironmentManager {
         }
         
         if (object) {
+            // Validate that the object is a THREE.Object3D instance
+            if (!(object instanceof THREE.Object3D)) {
+                console.error(`Invalid object created for type ${type}. Expected THREE.Object3D, got:`, object);
+                return null;
+            }
+            
             // Position the object on the terrain (only for traditional objects)
             // Factory-created objects already have their position set
             if (!this.environmentFactory.canCreate(type)) {
@@ -338,8 +356,18 @@ export class EnvironmentManager {
             }
             
             // Add to scene (only if not already added by factory)
-            if (object.parent === null) {
-                this.scene.add(object);
+            try {
+                if (object.parent === null) {
+                    this.scene.add(object);
+                }
+            } catch (error) {
+                console.error(`Failed to add object of type ${type} to scene:`, error);
+                globalErrorHandler.handleError(error, 'Scene Addition', {
+                    objectType: type,
+                    position: { x, y, z },
+                    scale: scale
+                });
+                return null;
             }
         }
         

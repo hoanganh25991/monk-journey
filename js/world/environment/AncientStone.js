@@ -47,7 +47,7 @@ export class AncientStone {
         stoneGroup.position.copy(position);
         
         // Add to scene
-        this.scene.add(stoneGroup);
+        // this.scene.add(stoneGroup);
         
         return stoneGroup;
     }

@@ -29,7 +29,7 @@ export class DesertShrine extends EnvironmentObject {
         this.object = this.create();
         
         // Add the object to the scene
-        this.addToScene(this.object);
+        // this.addToScene(this.object);
     }
     
     /**

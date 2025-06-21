@@ -29,8 +29,8 @@ export class MagicalStone extends EnvironmentObject {
         // Create the stone
         this.object = this.create();
         
-        // Add the object to the scene
-        this.addToScene(this.object);
+        // Note: The object will be added to the scene by the EnvironmentFactory
+        // to avoid double-adding when used through the factory
     }
     
     /**
