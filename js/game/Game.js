@@ -31,7 +31,7 @@ import storageService from '../save-manager/StorageService.js';
  * @class
  * @property {HTMLElement} canvas - The main game canvas element
  * @property {THREE.Clock} clock - Clock used for tracking time and calculating delta time between frames
- * @property {boolean} debugMode - Flag to enable/disable debug logging
+ * @property {boolean} disableFullScreen - Flag to disable fullscreen functionality
  * @property {boolean} animationLoopStarted - Flag to prevent multiple animation loops from starting
  * @property {GameState} state - Manages the game state (running, paused, etc.)
  * @property {GameEvents} events - Event system for game-wide event handling
@@ -61,7 +61,7 @@ export class Game {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
         this.clock = new THREE.Clock();
-        this.debugMode = false; // Set to true to enable debug logging
+        this.disableFullScreen = false; // Set to true to disable fullscreen functionality
         
         // Flag to prevent multiple animation loops
         this.animationLoopStarted = false;
@@ -394,8 +394,8 @@ export class Game {
      * @returns {Promise} A promise that resolves when fullscreen is entered or rejects if there's an error
      */
     async requestFullscreen() {
-        if (await storageService.loadData(STORAGE_KEYS.DEBUG_MODE)) {
-            console.warn('Fullscreen request is ignored in debug mode.');
+        if (await storageService.loadData(STORAGE_KEYS.DISABLE_FULL_SCREEN)) {
+            console.warn('Fullscreen request is ignored when fullscreen is disabled.');
             return Promise.resolve();
         }
         console.debug("Requesting fullscreen mode...");

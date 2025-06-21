@@ -63,15 +63,21 @@ export class InventorySerializer {
             console.debug(`Loading ${inventoryData.inventory.length} inventory items`);
             
             inventoryData.inventory.forEach(itemData => {
-                // Find the item template by name
-                const itemTemplate = ITEM_TEMPLATES.find(template => template.name === itemData.name);
+                // Find the item template by name or ID
+                let itemTemplate = ITEM_TEMPLATES.find(template => template.name === itemData.name);
+                
+                // If not found by name, try to find by ID
+                if (!itemTemplate && itemData.id) {
+                    itemTemplate = ITEM_TEMPLATES.find(template => template.id === itemData.id);
+                }
                 
                 if (itemTemplate) {
                     // Create a new item from the template
                     const item = { ...itemTemplate, amount: itemData.amount };
                     player.addToInventory(item);
                 } else {
-                    console.warn(`Item template not found for: ${itemData.name}`);
+                    console.warn(`Item template not found for: ${itemData.name} (ID: ${itemData.id || 'N/A'})`);
+                    console.debug('Available item names:', ITEM_TEMPLATES.map(t => t.name));
                     // Fallback to just adding the basic item data we have
                     player.addToInventory(itemData);
                 }
@@ -89,18 +95,27 @@ export class InventorySerializer {
         if (inventoryData.equipment) {
             console.debug('Loading player equipment');
             
-            Object.entries(inventoryData.equipment).forEach(([slot, itemName]) => {
-                if (itemName && player.inventory.equipment.hasOwnProperty(slot)) {
-                    // Find the item template by name
-                    const itemTemplate = ITEM_TEMPLATES.find(template => template.name === itemName);
+            Object.entries(inventoryData.equipment).forEach(([slot, itemData]) => {
+                if (itemData && player.inventory.equipment.hasOwnProperty(slot)) {
+                    // Handle both string (legacy) and object formats
+                    const itemName = typeof itemData === 'string' ? itemData : itemData.name;
+                    const itemId = typeof itemData === 'object' ? itemData.id : null;
+                    
+                    // Find the item template by name or ID
+                    let itemTemplate = ITEM_TEMPLATES.find(template => template.name === itemName);
+                    
+                    // If not found by name, try to find by ID
+                    if (!itemTemplate && itemId) {
+                        itemTemplate = ITEM_TEMPLATES.find(template => template.id === itemId);
+                    }
                     
                     if (itemTemplate) {
                         // Set the equipment slot with the full item data
                         player.inventory.equipment[slot] = { ...itemTemplate };
                     } else {
-                        console.warn(`Equipment template not found for: ${itemName}`);
-                        // Fallback to just setting the name
-                        player.inventory.equipment[slot] = { name: itemName };
+                        console.warn(`Equipment template not found for: ${itemName} (ID: ${itemId || 'N/A'})`);
+                        // Fallback to just setting the available data
+                        player.inventory.equipment[slot] = typeof itemData === 'string' ? { name: itemData } : itemData;
                     }
                 }
             });

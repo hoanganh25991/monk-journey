@@ -1034,6 +1034,11 @@
                 <div id="debug-tab" class="tab-content">
                     <h2 id="debug-title">Debug Settings</h2>
                     <div id="debug-container" class="settings-section">
+                        <div id="disable-full-screen-container" class="setting-item">
+                            <label for="disable-full-screen-checkbox" class="settings-label">Disable Full Screen: </label>
+                            <input type="checkbox" id="disable-full-screen-checkbox" class="settings-checkbox">
+                            <span class="settings-description">Prevent automatic fullscreen mode activation</span>
+                        </div>
                         <div id="show-debug-info-container" class="setting-item">
                             <label for="show-debug-info-checkbox" class="settings-label">Show Performance Info (FPS, GPU, Quality): </label>
                             <input type="checkbox" id="show-debug-info-checkbox" class="settings-checkbox" checked>
@@ -1042,11 +1047,6 @@
                             <label for="log-enabled-checkbox" class="settings-label">Enable Console Logs: </label>
                             <input type="checkbox" id="log-enabled-checkbox" class="settings-checkbox">
                             <span class="settings-description">Disable for better performance (requires page reload)</span>
-                        </div>
-                        <div id="debug-mode-container" class="setting-item">
-                            <label for="debug-mode-checkbox" class="settings-label">Debug Mode: </label>
-                            <input type="checkbox" id="debug-mode-checkbox" class="settings-checkbox">
-                            <span class="settings-description">Enable for local development and testing</span>
                         </div>
                     </div>
                 </div>

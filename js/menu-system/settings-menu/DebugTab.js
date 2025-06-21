@@ -19,7 +19,7 @@ export class DebugTab extends SettingsTab {
         // Debug settings elements
         this.adaptiveCheckbox = document.getElementById('adaptive-checkbox');
         this.showPerformanceInfoCheckbox = document.getElementById('show-debug-info-checkbox');
-        this.debugModeCheckbox = document.getElementById('debug-mode-checkbox');
+        this.disableFullScreenCheckbox = document.getElementById('disable-full-screen-checkbox');
         this.logEnabledCheckbox = document.getElementById('log-enabled-checkbox');
         
         // Initialize storage service and tab
@@ -59,8 +59,8 @@ export class DebugTab extends SettingsTab {
             this.adaptiveCheckbox.checked = newValue === true || newValue === 'true';
         } else if (key === STORAGE_KEYS.SHOW_PERFORMANCE_INFO && this.showPerformanceInfoCheckbox) {
             this.showPerformanceInfoCheckbox.checked = newValue === true || newValue === 'true';
-        } else if (key === STORAGE_KEYS.DEBUG_MODE && this.debugModeCheckbox) {
-            this.debugModeCheckbox.checked = newValue === true || newValue === 'true';
+        } else if (key === STORAGE_KEYS.DISABLE_FULL_SCREEN && this.disableFullScreenCheckbox) {
+            this.disableFullScreenCheckbox.checked = newValue === true || newValue === 'true';
         } else if (key === STORAGE_KEYS.LOG_ENABLED && this.logEnabledCheckbox) {
             this.logEnabledCheckbox.checked = newValue === true || newValue === 'true';
         }
@@ -109,21 +109,21 @@ export class DebugTab extends SettingsTab {
             });
         }
         
-        if (this.debugModeCheckbox) {
-            // Set current debug mode state synchronously
-            const debugMode = this.loadSettingSync(STORAGE_KEYS.DEBUG_MODE, false);
+        if (this.disableFullScreenCheckbox) {
+            // Set current disable full screen state synchronously
+            const disableFullScreen = this.loadSettingSync(STORAGE_KEYS.DISABLE_FULL_SCREEN, false);
             
             // Handle both boolean and string values
-            this.debugModeCheckbox.checked = debugMode === true || debugMode === 'true';
+            this.disableFullScreenCheckbox.checked = disableFullScreen === true || disableFullScreen === 'true';
             
             // Add change event listener
-            this.debugModeCheckbox.addEventListener('change', () => {
+            this.disableFullScreenCheckbox.addEventListener('change', () => {
                 // Save immediately to localStorage
-                this.saveSetting(STORAGE_KEYS.DEBUG_MODE, this.debugModeCheckbox.checked.toString());
+                this.saveSetting(STORAGE_KEYS.DISABLE_FULL_SCREEN, this.disableFullScreenCheckbox.checked.toString());
                 
-                // Apply debug mode settings immediately if game is available
+                // Apply disable full screen settings immediately if game is available
                 if (this.game) {
-                    this.game.debugMode = this.debugModeCheckbox.checked;
+                    this.game.disableFullScreen = this.disableFullScreenCheckbox.checked;
                 }
             });
         }
@@ -179,8 +179,8 @@ export class DebugTab extends SettingsTab {
             savePromises.push(this.saveSetting(STORAGE_KEYS.SHOW_PERFORMANCE_INFO, this.showPerformanceInfoCheckbox.checked.toString()));
         }
         
-        if (this.debugModeCheckbox) {
-            savePromises.push(this.saveSetting(STORAGE_KEYS.DEBUG_MODE, this.debugModeCheckbox.checked.toString()));
+        if (this.disableFullScreenCheckbox) {
+            savePromises.push(this.saveSetting(STORAGE_KEYS.DISABLE_FULL_SCREEN, this.disableFullScreenCheckbox.checked.toString()));
         }
         
         if (this.logEnabledCheckbox) {
@@ -207,8 +207,8 @@ export class DebugTab extends SettingsTab {
                     this.showPerformanceInfoCheckbox.checked = false;
                 }
                 
-                if (this.debugModeCheckbox) {
-                    this.debugModeCheckbox.checked = false;
+                if (this.disableFullScreenCheckbox) {
+                    this.disableFullScreenCheckbox.checked = false;
                 }
                 
                 if (this.logEnabledCheckbox) {

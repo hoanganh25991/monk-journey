@@ -143,6 +143,56 @@ export class PlayerStatusEffects {
                     
                     console.debug("Defense boost effect expired");
                 }
+            },
+            // Freeze effect
+            freeze: {
+                apply: (intensity) => {
+                    // Store original movement speed and can-move state
+                    const originalSpeed = this.playerStats.getMovementSpeed();
+                    const originalCanMove = this.playerMovement.canMove;
+                    
+                    // Apply freeze effect (completely stop movement)
+                    this.playerStats.movementSpeed = 0;
+                    this.playerMovement.canMove = false;
+                    
+                    // Visual feedback
+                    if (this.game?.hudManager) {
+                        this.game.hudManager.showStatusEffect('freeze');
+                    }
+                    
+                    // Add visual effect to player model if available
+                    if (this.game?.effectsManager) {
+                        this.game.effectsManager.createFreezeEffect(this.playerMovement.getPosition());
+                    }
+                    
+                    console.debug(`Applied freeze effect for ${intensity} seconds`);
+                    
+                    // Return original values for restoration later
+                    return { speed: originalSpeed, canMove: originalCanMove };
+                },
+                remove: (originalValue) => {
+                    // Restore original movement speed and can-move state
+                    if (originalValue && typeof originalValue === 'object') {
+                        this.playerStats.movementSpeed = originalValue.speed;
+                        this.playerMovement.canMove = originalValue.canMove;
+                    } else {
+                        // Fallback to default values
+                        this.playerStats.movementSpeed = this.playerStats.baseMovementSpeed || 5;
+                        this.playerMovement.canMove = true;
+                    }
+                    
+                    // Remove visual feedback
+                    if (this.game?.hudManager) {
+                        this.game.hudManager.hideStatusEffect('freeze');
+                    }
+                    
+                    // Remove freeze effect if it exists
+                    if (this.game?.effectsManager) {
+                        this.game.effectsManager.removeFreezeEffect();
+                    }
+                    
+                    console.debug("Freeze effect expired");
+                }
             }
         };
     }
