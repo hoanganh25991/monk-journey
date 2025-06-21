@@ -8,6 +8,7 @@ export class PerformanceManager {
         this.statsEnabled = false;
         this.currentQualityLevel = 'high';
         this.performanceSettings = {};
+        this.expandedStatsView = true; // Default to expanded view
     }
     
     async init() {
@@ -22,10 +23,16 @@ export class PerformanceManager {
             // Create and show stats
             this.stats = new Stats();
             document.body.appendChild(this.stats.dom);
-            this.stats.dom.style.zIndex = 9999;
+            this.stats.dom.style.zIndex = 50;
             this.stats.dom.style.position = "fixed";
             this.stats.dom.style.top = "0px";
             this.stats.dom.style.left = "0px";
+            
+            // Apply expanded view if enabled
+            if (this.expandedStatsView) {
+                this.applyExpandedStatsView();
+            }
+            
             this.statsEnabled = true;
         } else if (!shouldShowStats && this.stats) {
             // Hide and remove stats
@@ -34,7 +41,64 @@ export class PerformanceManager {
             }
             this.stats = null;
             this.statsEnabled = false;
+        } else if (shouldShowStats && this.stats && this.statsEnabled) {
+            // Update the view mode if stats are already visible
+            if (this.expandedStatsView) {
+                this.applyExpandedStatsView();
+            } else {
+                this.applyDefaultStatsView();
+            }
         }
+    }
+    
+    applyExpandedStatsView() {
+        if (!this.stats || !this.stats.dom) return;
+        
+        // Find all canvas elements inside stats.dom
+        const panels = this.stats.dom.children;
+        for (let i = 0; i < panels.length; i++) {
+            const panel = panels[i];
+            // Make all panels visible
+            panel.style.display = 'block';
+            // Add some margin between panels
+            panel.style.marginBottom = '5px';
+        }
+        
+        // Adjust the container to accommodate all panels
+        this.stats.dom.style.width = 'auto';
+        this.stats.dom.style.height = 'auto';
+        this.stats.dom.style.display = 'flex';
+        this.stats.dom.style.flexDirection = 'column';
+    }
+    
+    applyDefaultStatsView() {
+        if (!this.stats || !this.stats.dom) return;
+        
+        // Reset to default Three.js Stats styling
+        const panels = this.stats.dom.children;
+        for (let i = 0; i < panels.length; i++) {
+            const panel = panels[i];
+            // Only the first panel is visible by default in Three.js Stats
+            panel.style.display = i === 0 ? 'block' : 'none';
+            panel.style.marginBottom = '0';
+        }
+        
+        // Reset container to default Three.js Stats styling
+        this.stats.dom.style.width = '80px';
+        this.stats.dom.style.height = '48px';
+        this.stats.dom.style.display = 'block';
+    }
+    
+    toggleStatsViewMode() {
+        this.expandedStatsView = !this.expandedStatsView;
+        this.updateStatsVisibility();
+        return this.expandedStatsView;
+    }
+    
+    setExpandedStatsView(enabled) {
+        this.expandedStatsView = enabled;
+        this.updateStatsVisibility();
+        return this.expandedStatsView;
     }
 
     getDrawDistanceMultiplier() {
@@ -56,6 +120,10 @@ export class PerformanceManager {
 
     isPerformanceStatsEnabled() {
         return localStorage.getItem(STORAGE_KEYS.SHOW_PERFORMANCE_INFO) === 'true';
+    }
+    
+    isExpandedStatsViewEnabled() {
+        return this.expandedStatsView;
     }
     
     update() {
