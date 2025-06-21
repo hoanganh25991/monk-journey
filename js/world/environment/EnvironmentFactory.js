@@ -91,6 +91,7 @@ import { RockFormation } from './RockFormation.js';
 import { Mushroom } from './Mushroom.js';
 import { FallenLog } from './FallenLog.js';
 import { SmallPlant } from './SmallPlant.js';
+import { AncientAltar } from './AncientAltar.js';
 
 /**
  * Environment Factory - Creates environment objects based on type
@@ -663,6 +664,12 @@ export class EnvironmentFactory {
             this.scene.add(passGroup);
             
             return passGroup;
+        });
+        
+        // Register Ancient Altar
+        this.register(ENVIRONMENT_OBJECTS.ANCIENT_ALTAR, (position, size) => {
+            const ancientAltar = new AncientAltar(this.scene, this.worldManager, position, size);
+            return ancientAltar.object;
         });
     }
     
