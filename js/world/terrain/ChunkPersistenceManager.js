@@ -37,6 +37,14 @@ export class ChunkPersistenceManager {
         }
         
         this.isInitializing = true;
+        console.debug('ChunkPersistenceManager: Initializing IndexedDB...');
+        
+        // Load stored chunks from memory first
+        try {
+            await this.loadStoredChunksFromIndexedDB();
+        } catch (error) {
+            console.warn('Failed to preload stored chunks list:', error);
+        }
         
         return new Promise((resolve) => {
             try {
@@ -60,6 +68,9 @@ export class ChunkPersistenceManager {
                     this.isInitializing = false;
                     console.debug('ChunkPersistenceManager initialized with IndexedDB');
                     
+                    // Log the number of stored chunks
+                    console.debug(`IndexedDB initialized with ${this.storedChunks.size} stored chunks`);
+                    
                     // Start the write interval
                     this.startWriteInterval();
                     
@@ -77,6 +88,61 @@ export class ChunkPersistenceManager {
                 this.isInitialized = false;
                 this.isInitializing = false;
                 resolve(false);
+            }
+        });
+    }
+    
+    /**
+     * Load the list of stored chunks from IndexedDB to memory
+     * This helps avoid redundant database checks
+     * @returns {Promise<void>}
+     */
+    async loadStoredChunksFromIndexedDB() {
+        return new Promise((resolve, reject) => {
+            try {
+                const request = indexedDB.open(this.dbName, this.dbVersion);
+                
+                request.onsuccess = (event) => {
+                    const db = event.target.result;
+                    
+                    // Check if the store exists
+                    if (!db.objectStoreNames.contains(this.storeName)) {
+                        console.debug('No chunks store found in IndexedDB');
+                        resolve();
+                        return;
+                    }
+                    
+                    const transaction = db.transaction([this.storeName], 'readonly');
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.getAllKeys();
+                    
+                    request.onsuccess = (event) => {
+                        const keys = event.target.result;
+                        
+                        // Add all keys to the stored chunks set
+                        keys.forEach(key => {
+                            if (typeof key === 'string') {
+                                this.storedChunks.add(key);
+                            }
+                        });
+                        
+                        console.debug(`Preloaded ${this.storedChunks.size} chunk keys from IndexedDB`);
+                        resolve();
+                    };
+                    
+                    request.onerror = (event) => {
+                        console.error('Error loading stored chunks:', event.target.error);
+                        reject(event.target.error);
+                    };
+                };
+                
+                request.onerror = (event) => {
+                    console.error('Error opening database:', event.target.error);
+                    reject(event.target.error);
+                };
+            } catch (error) {
+                console.error('Error in loadStoredChunksFromIndexedDB:', error);
+                reject(error);
             }
         });
     }

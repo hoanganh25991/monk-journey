@@ -105,7 +105,8 @@ export class WorldManager {
         // Initialize LOD manager
         this.lodManager.init();
         
-        // Initialize terrain
+        // Initialize terrain - CRITICAL: This must be awaited properly
+        console.debug("Initializing terrain manager...");
         await this.terrainManager.init();
         
         // Initialize environment manager
@@ -137,16 +138,30 @@ export class WorldManager {
             const startChunkZ = Math.floor(startPosition.z / this.terrainManager.terrainChunkSize);
             
             // Generate content in a smaller 3x3 grid around the starting position instead of 5x5
-            const initialGenDistance = 1; // Reduced from 2 to 1
+            // MEMORY OPTIMIZATION: Reduce initial generation distance to minimum
+            const initialGenDistance = 1; // Keep at 1 for minimal initial memory usage
             console.debug(`Generating initial content in ${(initialGenDistance*2+1)*(initialGenDistance*2+1)} chunks around starting position`);
+            
+            // Log memory usage before chunk generation
+            if (window.performance && window.performance.memory) {
+                const memoryInfo = window.performance.memory;
+                console.debug(`Memory usage before initial chunk generation: ${Math.round(memoryInfo.usedJSHeapSize / (1024 * 1024))}MB / ${Math.round(memoryInfo.jsHeapSizeLimit / (1024 * 1024))}MB`);
+            }
             
             // Use a promise-based approach with setTimeout to prevent UI freezing
             await this.generateInitialChunksProgressively(startChunkX, startChunkZ, initialGenDistance);
             
-            // Generate a special landmark near the starting position - but with 50% chance to skip for better performance
-            if (Math.random() < 0.5) {
-                this.generateZoneLandmark(startPosition, this.generationManager.currentZoneType);
+            // Log memory usage after chunk generation
+            if (window.performance && window.performance.memory) {
+                const memoryInfo = window.performance.memory;
+                console.debug(`Memory usage after initial chunk generation: ${Math.round(memoryInfo.usedJSHeapSize / (1024 * 1024))}MB / ${Math.round(memoryInfo.jsHeapSizeLimit / (1024 * 1024))}MB`);
             }
+            
+            // MEMORY OPTIMIZATION: Skip landmark generation on initial load to reduce memory usage
+            // Only generate landmarks when player moves to that area
+            // if (Math.random() < 0.5) {
+            //     this.generateZoneLandmark(startPosition, this.generationManager.currentZoneType);
+            // }
         }
         
         console.debug("World initialization complete");

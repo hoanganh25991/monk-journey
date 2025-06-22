@@ -245,13 +245,24 @@ export class Game {
             this.updateLoadingProgress(25, 'Generating terrain...', 'This may take a moment');
             
             // Initialize the world (includes terrain generation)
+            // IMPORTANT: Properly await world initialization to ensure terrain is loaded from IndexedDB
+            console.debug('Waiting for world initialization to complete...');
             await this.world.init();
+            
+            // Wait for terrain queue to be fully processed
+            if (this.world.terrainManager && this.world.terrainManager.queueManager) {
+                console.debug('Waiting for initial terrain generation to complete...');
+                await this.world.terrainManager.queueManager.waitForInitialTerrainGeneration();
+            }
             
             // Terrain is already pre-generated during world initialization
             this.updateLoadingProgress(30, 'Terrain generation complete', 'World chunks created');
             
-            // TODO: Add functionality to save generated terrain to localStorage
-            // for faster loading in the future once we're satisfied with generation
+            // Log memory usage after terrain generation
+            if (window.performance && window.performance.memory) {
+                const memoryInfo = window.performance.memory;
+                console.debug(`Memory usage after terrain generation: ${Math.round(memoryInfo.usedJSHeapSize / (1024 * 1024))}MB / ${Math.round(memoryInfo.jsHeapSizeLimit / (1024 * 1024))}MB`);
+            }
             
             this.isWorldLoading = false;
             

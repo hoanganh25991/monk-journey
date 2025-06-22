@@ -82,18 +82,42 @@ export class TerrainManager {
      * @returns {Promise<boolean>} - True if initialization was successful
      */
     async init() {
+        console.debug("TerrainManager: Starting initialization...");
+        
+        // Log memory usage before terrain initialization
+        if (window.performance && window.performance.memory) {
+            const memoryInfo = window.performance.memory;
+            console.debug(`Memory usage before terrain initialization: ${Math.round(memoryInfo.usedJSHeapSize / (1024 * 1024))}MB / ${Math.round(memoryInfo.jsHeapSizeLimit / (1024 * 1024))}MB`);
+        }
+        
+        // Make sure the persistence manager is initialized
+        if (this.chunkManager.persistenceEnabled && this.chunkManager.persistenceManager) {
+            console.debug("TerrainManager: Initializing persistence manager...");
+            await this.chunkManager.persistenceManager.waitForInit();
+        }
+        
         // Create base terrain
+        console.debug("TerrainManager: Creating base terrain...");
         await this.createBaseTerrain();
         
         // Set flag to indicate initial terrain is created
         this.initialTerrainCreated = true;
         
         // Initialize the first chunks around the player
+        console.debug("TerrainManager: Updating terrain for player at origin...");
         this.updateForPlayer(new THREE.Vector3(0, 0, 0));
         
         // Wait for initial terrain chunks to be fully generated
+        console.debug("TerrainManager: Waiting for initial terrain generation to complete...");
         await this.queueManager.waitForInitialTerrainGeneration();
         
+        // Log memory usage after terrain initialization
+        if (window.performance && window.performance.memory) {
+            const memoryInfo = window.performance.memory;
+            console.debug(`Memory usage after terrain initialization: ${Math.round(memoryInfo.usedJSHeapSize / (1024 * 1024))}MB / ${Math.round(memoryInfo.jsHeapSizeLimit / (1024 * 1024))}MB`);
+        }
+        
+        console.debug("TerrainManager: Initialization complete");
         return true;
     }
     

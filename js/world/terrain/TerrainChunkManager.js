@@ -129,18 +129,28 @@ export class TerrainChunkManager {
             return this.terrainChunks[chunkKey];
         }
         
-        // Check if this chunk exists in persistence storage
+        // Check if this chunk exists in persistence storage - IMPROVED PERSISTENCE CHECK
         if (this.persistenceEnabled) {
             try {
+                // Make sure persistence manager is initialized
+                if (!this.persistenceManager.isInitialized) {
+                    await this.persistenceManager.waitForInit();
+                }
+                
+                // Check if chunk exists in IndexedDB
                 const hasPersistedChunk = await this.persistenceManager.hasChunk(chunkKey);
                 
                 if (hasPersistedChunk) {
-                    console.debug(`Loading persisted terrain chunk ${chunkKey}`);
+                    console.debug(`Loading persisted terrain chunk ${chunkKey} from IndexedDB`);
                     const chunkData = await this.persistenceManager.loadChunk(chunkKey);
                     
                     if (chunkData) {
                         return this.createTerrainChunkFromPersistedData(chunkX, chunkZ, chunkData);
+                    } else {
+                        console.warn(`Failed to load persisted chunk data for ${chunkKey}, creating new chunk`);
                     }
+                } else {
+                    console.debug(`No persisted chunk found for ${chunkKey} in IndexedDB`);
                 }
             } catch (error) {
                 console.error(`Error checking for persisted chunk ${chunkKey}:`, error);
@@ -404,23 +414,37 @@ export class TerrainChunkManager {
         
         if (this.persistenceEnabled) {
             try {
+                // Make sure persistence manager is initialized
+                if (!this.persistenceManager.isInitialized) {
+                    await this.persistenceManager.waitForInit();
+                }
+                
                 // Use a timeout to prevent blocking for too long
                 const hasPersistedChunkPromise = Promise.race([
                     this.persistenceManager.hasChunk(chunkKey),
-                    new Promise(resolve => setTimeout(() => resolve(false), 50)) // 50ms timeout
+                    new Promise(resolve => setTimeout(() => resolve(false), 100)) // Increased timeout to 100ms
                 ]);
                 
                 const hasPersistedChunk = await hasPersistedChunkPromise;
                 
                 if (hasPersistedChunk) {
+                    console.debug(`Found persisted chunk ${chunkKey} in IndexedDB for buffer`);
                     // Try to load the persisted chunk data with a timeout
                     const loadChunkPromise = Promise.race([
                         this.persistenceManager.loadChunk(chunkKey),
-                        new Promise(resolve => setTimeout(() => resolve(null), 100)) // 100ms timeout
+                        new Promise(resolve => setTimeout(() => resolve(null), 150)) // Increased timeout to 150ms
                     ]);
                     
                     persistedChunkData = await loadChunkPromise;
                     usePersistedData = persistedChunkData !== null;
+                    
+                    if (usePersistedData) {
+                        console.debug(`Successfully loaded persisted chunk data for ${chunkKey}`);
+                    } else {
+                        console.warn(`Failed to load persisted chunk data for ${chunkKey} within timeout`);
+                    }
+                } else {
+                    console.debug(`No persisted chunk found for ${chunkKey} in IndexedDB for buffer`);
                 }
             } catch (error) {
                 console.debug(`Error checking for persisted chunk ${chunkKey}, will create new:`, error);
