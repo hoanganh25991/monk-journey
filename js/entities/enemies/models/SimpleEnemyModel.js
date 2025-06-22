@@ -133,10 +133,16 @@ export class SimpleEnemyModel extends EnemyModel {
                 this.modelGroup.position.y = 0.1;
             }
             
-            // Always apply slight rotation for more natural movement
-            if (!this.enemy.state.isAttacking) {
-                // Slightly rotate the model
-                this.modelGroup.rotation.y = Math.sin(time * 0.5) * 0.1;
+            // Apply subtle head movement without affecting the main facing direction
+            // The main Y rotation (facing direction) is handled by the Enemy class
+            if (!this.enemy.state.isAttacking && this.modelGroup.children.length > 1) {
+                // Only animate the head (second child) for subtle movement
+                const head = this.modelGroup.children[1]; // Head is the second child
+                if (head) {
+                    // Subtle head bobbing and turning
+                    head.rotation.x = Math.sin(time * 1.2) * 0.05; // Slight nod
+                    head.rotation.y = Math.sin(time * 0.8) * 0.1;  // Slight head turn
+                }
             }
         }
     }
