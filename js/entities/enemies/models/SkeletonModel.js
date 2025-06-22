@@ -95,12 +95,17 @@ export class SkeletonModel extends EnemyModel {
         // Add some additional skeleton-specific animations
         if (this.modelGroup) {
             // Idle animation - slight swaying when not moving or attacking
-            if (!this.enemy.state.isMoving && !this.enemy.state.isAttacking) {
+            // Note: Y rotation (facing direction) is handled by the Enemy class
+            if (!this.enemy.state.isMoving && !this.enemy.state.isAttacking && this.modelGroup.children.length > 0) {
                 const idleSpeed = 1.5;
                 const idleAmplitude = 0.03;
                 
-                // Make the skeleton sway slightly when idle
-                this.modelGroup.rotation.y += Math.sin(time * idleSpeed) * idleAmplitude * 0.01;
+                // Make the skeleton's body sway slightly when idle (X and Z rotation only)
+                const body = this.modelGroup.children[0]; // Body is the first child
+                if (body) {
+                    body.rotation.x = Math.sin(time * idleSpeed) * idleAmplitude * 0.5;
+                    body.rotation.z = Math.cos(time * idleSpeed * 0.7) * idleAmplitude * 0.3;
+                }
             }
             
             // Skeleton King attack animation with sword

@@ -165,8 +165,9 @@ export class ZombieBruteModel extends ZombieModel {
         
         // Make the zombie brute sway more heavily
         if (this.modelGroup) {
-            // Slow, heavy swaying motion
-            this.modelGroup.rotation.y = Math.sin(time * 0.3) * 0.15;
+            // Slow, heavy swaying motion (only X and Z rotation, Y rotation handled by Enemy class)
+            this.modelGroup.rotation.x = Math.sin(time * 0.3) * 0.08;
+            this.modelGroup.rotation.z = Math.cos(time * 0.25) * 0.12;
             
             // Breathing-like motion with minimum height to stay above ground
             // Calculate breathing motion

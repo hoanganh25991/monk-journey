@@ -158,8 +158,14 @@ export class FrostElementalModel extends EnemyModel {
                 shell.scale.set(shellPulseFactor, shellPulseFactor, shellPulseFactor);
             }
             
-            // Rotate the entire model slowly
-            this.modelGroup.rotation.y += delta * 0.3;
+            // Rotate individual frost parts instead of the entire model
+            // (Y rotation is handled by Enemy class for facing direction)
+            if (this.modelGroup.children.length > 1) {
+                const shell = this.modelGroup.children[1]; // Outer shell
+                if (shell) {
+                    shell.rotation.y += delta * 0.3;
+                }
+            }
         }
         
         // Update snow particles
