@@ -7,7 +7,7 @@ export class ChunkPersistenceManager {
         this.db = null;
         this.dbName = 'MonkJourneyChunks';
         this.storeName = 'chunks';
-        this.dbVersion = 1;
+        this.dbVersion = null; // Will be determined dynamically
         this.isInitialized = false;
         this.isInitializing = false;
         
@@ -22,6 +22,11 @@ export class ChunkPersistenceManager {
         
         // Track which chunks are stored to avoid redundant operations
         this.storedChunks = new Set();
+        
+        // Fallback mode when IndexedDB is completely unavailable
+        this.fallbackMode = false;
+        this.recreationAttempts = 0;
+        this.maxRecreationAttempts = 3;
         
         // Initialize the database
         this.init();
@@ -39,49 +44,122 @@ export class ChunkPersistenceManager {
         this.isInitializing = true;
         console.debug('ChunkPersistenceManager: Initializing IndexedDB...');
         
-        // Load stored chunks from memory first
-        try {
-            await this.loadStoredChunksFromIndexedDB();
-        } catch (error) {
-            console.warn('Failed to preload stored chunks list:', error);
-        }
-        
         return new Promise((resolve) => {
             try {
-                const request = indexedDB.open(this.dbName, this.dbVersion);
+                // First, try to open without specifying version to get current version
+                const versionRequest = indexedDB.open(this.dbName);
+                
+                versionRequest.onsuccess = (event) => {
+                    const tempDb = event.target.result;
+                    const currentVersion = tempDb.version;
+                    tempDb.close();
+                    
+                    // Now open with the correct version (current + 1 if we need to upgrade)
+                    const needsUpgrade = !tempDb.objectStoreNames.contains(this.storeName);
+                    const targetVersion = needsUpgrade ? currentVersion + 1 : currentVersion;
+                    
+                    console.debug(`Current DB version: ${currentVersion}, target version: ${targetVersion}`);
+                    this.openDatabaseWithVersion(targetVersion, needsUpgrade).then(resolve);
+                };
+                
+                versionRequest.onerror = (event) => {
+                    // Database doesn't exist, create with version 1
+                    console.debug('Database does not exist, creating with version 1');
+                    this.openDatabaseWithVersion(1, true).then(resolve);
+                };
+                
+                versionRequest.onblocked = () => {
+                    console.warn('Version check blocked, trying with version 1');
+                    this.openDatabaseWithVersion(1, true).then(resolve);
+                };
+            } catch (error) {
+                console.error('Error checking database version:', error);
+                // Fallback to version 1
+                this.openDatabaseWithVersion(1, true).then(resolve);
+            }
+        });
+    }
+    
+    /**
+     * Open database with specific version
+     * @param {number} version - Database version
+     * @param {boolean} needsUpgrade - Whether upgrade is needed
+     * @returns {Promise<boolean>} Success status
+     */
+    async openDatabaseWithVersion(version, needsUpgrade) {
+        return new Promise((resolve) => {
+            try {
+                this.dbVersion = version;
+                const request = indexedDB.open(this.dbName, version);
                 
                 request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    
-                    // Create object store for chunks if it doesn't exist
-                    if (!db.objectStoreNames.contains(this.storeName)) {
-                        const store = db.createObjectStore(this.storeName, { keyPath: 'id' });
-                        // Add index for timestamp to help with cleanup
-                        store.createIndex('timestamp', 'timestamp', { unique: false });
-                        console.debug('Created chunks object store with timestamp index');
+                    try {
+                        const db = event.target.result;
+                        console.debug(`Upgrading database to version ${version}`);
+                        
+                        // Create object store for chunks if it doesn't exist
+                        if (!db.objectStoreNames.contains(this.storeName)) {
+                            const store = db.createObjectStore(this.storeName, { keyPath: 'id' });
+                            store.createIndex('timestamp', 'timestamp', { unique: false });
+                            console.debug('Created chunks object store with timestamp index');
+                        }
+                    } catch (error) {
+                        console.error('Error during database upgrade:', error);
                     }
                 };
                 
                 request.onsuccess = (event) => {
                     this.db = event.target.result;
+                    
+                    // Verify that the object store exists
+                    if (!this.db.objectStoreNames.contains(this.storeName)) {
+                        console.error(`Object store '${this.storeName}' still missing after initialization`);
+                        this.db.close();
+                        this.db = null;
+                        this.isInitialized = false;
+                        this.isInitializing = false;
+                        resolve(false);
+                        return;
+                    }
+                    
                     this.isInitialized = true;
                     this.isInitializing = false;
-                    console.debug('ChunkPersistenceManager initialized with IndexedDB');
-                    
-                    // Log the number of stored chunks
-                    console.debug(`IndexedDB initialized with ${this.storedChunks.size} stored chunks`);
+                    console.debug(`ChunkPersistenceManager initialized with IndexedDB version ${version}`);
                     
                     // Start the write interval
                     this.startWriteInterval();
+                    
+                    // Load stored chunks list in background
+                    this.loadStoredChunksFromIndexedDB().catch(error => {
+                        console.warn('Failed to preload stored chunks list:', error);
+                    });
                     
                     resolve(true);
                 };
                 
                 request.onerror = (event) => {
-                    console.error('Error initializing IndexedDB:', event.target.error);
+                    console.error('Error opening IndexedDB:', event.target.error);
                     this.isInitialized = false;
                     this.isInitializing = false;
-                    resolve(false);
+                    
+                    // If this is a version error, try to delete and recreate
+                    if (event.target.error.name === 'VersionError') {
+                        console.warn('Version error detected, attempting to recreate database');
+                        this.deleteAndRecreateDatabase().then(resolve);
+                    } else {
+                        resolve(false);
+                    }
+                };
+                
+                request.onblocked = () => {
+                    console.warn('Database opening blocked - another tab may have the database open');
+                    // Set a timeout to avoid waiting forever
+                    setTimeout(() => {
+                        console.warn('Database opening timed out, enabling fallback mode');
+                        this.isInitialized = false;
+                        this.isInitializing = false;
+                        resolve(false);
+                    }, 10000);
                 };
             } catch (error) {
                 console.error('Error setting up IndexedDB:', error);
@@ -89,6 +167,40 @@ export class ChunkPersistenceManager {
                 this.isInitializing = false;
                 resolve(false);
             }
+        });
+    }
+    
+    /**
+     * Delete and recreate database (simple approach)
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteAndRecreateDatabase() {
+        console.warn('Deleting and recreating database...');
+        
+        return new Promise((resolve) => {
+            const deleteRequest = indexedDB.deleteDatabase(this.dbName);
+            
+            const timeout = setTimeout(() => {
+                console.warn('Database deletion timed out, enabling fallback mode');
+                resolve(false);
+            }, 10000);
+            
+            deleteRequest.onsuccess = () => {
+                clearTimeout(timeout);
+                console.debug('Database deleted, creating fresh database');
+                this.openDatabaseWithVersion(1, true).then(resolve);
+            };
+            
+            deleteRequest.onerror = (event) => {
+                clearTimeout(timeout);
+                console.error('Failed to delete database:', event.target.error);
+                resolve(false);
+            };
+            
+            deleteRequest.onblocked = () => {
+                console.warn('Database deletion blocked');
+                // Don't resolve here, wait for timeout
+            };
         });
     }
     
@@ -199,6 +311,132 @@ export class ChunkPersistenceManager {
     }
     
     /**
+     * Check if the database is healthy and ready to use
+     * @returns {boolean} Whether the database is healthy
+     */
+    isDatabaseHealthy() {
+        return !this.fallbackMode &&
+               this.isInitialized && 
+               this.db && 
+               !this.db.closed && 
+               this.db.objectStoreNames.contains(this.storeName);
+    }
+    
+    /**
+     * Check if the system is running in fallback mode
+     * @returns {boolean} Whether fallback mode is enabled
+     */
+    isFallbackMode() {
+        return this.fallbackMode;
+    }
+    
+    /**
+     * Attempt to reset and re-enable IndexedDB from fallback mode
+     * @returns {Promise<boolean>} Success status
+     */
+    async resetFromFallbackMode() {
+        if (!this.fallbackMode) {
+            console.debug('Not in fallback mode, no reset needed');
+            return true;
+        }
+        
+        console.log('Attempting to reset from fallback mode...');
+        
+        // Reset state
+        this.fallbackMode = false;
+        this.recreationAttempts = 0;
+        this.isInitialized = false;
+        this.isInitializing = false;
+        
+        // Try to initialize again
+        const success = await this.init();
+        if (success) {
+            console.log('Successfully reset from fallback mode');
+            return true;
+        } else {
+            console.warn('Failed to reset from fallback mode, re-enabling fallback');
+            this.enableFallbackMode();
+            return false;
+        }
+    }
+    
+    /**
+     * Handle database corruption by attempting to recreate it
+     * @param {string} operation - The operation that failed
+     * @param {Error} error - The error that occurred
+     * @returns {Promise<void>}
+     */
+    async handleDatabaseCorruption(operation, error) {
+        console.error(`Database corruption detected during ${operation}:`, error);
+        
+        // Check if we've exceeded maximum recreation attempts
+        if (this.recreationAttempts >= this.maxRecreationAttempts) {
+            console.warn(`Maximum database recreation attempts (${this.maxRecreationAttempts}) exceeded, enabling fallback mode`);
+            this.enableFallbackMode();
+            return;
+        }
+        
+        this.recreationAttempts++;
+        console.log(`Database recreation attempt ${this.recreationAttempts}/${this.maxRecreationAttempts}`);
+        
+        // Mark database as unhealthy
+        this.isInitialized = false;
+        
+        // Close existing connection
+        if (this.db) {
+            this.db.close();
+            this.db = null;
+        }
+        
+        // Clear caches
+        this.storedChunks.clear();
+        this.writeQueue.clear();
+        
+        // Attempt to recreate the database
+        try {
+            const success = await this.recreateDatabase();
+            if (success) {
+                console.log(`Database successfully recreated after ${operation} failure`);
+                // Reset recreation attempts on success
+                this.recreationAttempts = 0;
+            } else {
+                console.error(`Failed to recreate database after ${operation} failure (attempt ${this.recreationAttempts})`);
+                if (this.recreationAttempts >= this.maxRecreationAttempts) {
+                    this.enableFallbackMode();
+                }
+            }
+        } catch (recreateError) {
+            console.error(`Error recreating database after ${operation} failure:`, recreateError);
+            if (this.recreationAttempts >= this.maxRecreationAttempts) {
+                this.enableFallbackMode();
+            }
+        }
+    }
+    
+    /**
+     * Enable fallback mode when IndexedDB is completely unavailable
+     */
+    enableFallbackMode() {
+        console.warn('Enabling fallback mode - IndexedDB persistence disabled');
+        this.fallbackMode = true;
+        this.isInitialized = false;
+        this.isInitializing = false;
+        
+        // Close database connection
+        if (this.db) {
+            this.db.close();
+            this.db = null;
+        }
+        
+        // Clear all caches
+        this.storedChunks.clear();
+        this.writeQueue.clear();
+        
+        // Stop write interval
+        this.stopWriteInterval();
+    }
+    
+    /**
      * Queue a chunk for saving to IndexedDB
      * This method is non-blocking and returns immediately
      * 
@@ -207,6 +445,11 @@ export class ChunkPersistenceManager {
      * @returns {boolean} Whether the chunk was queued (false if queue is full)
      */
     queueChunkForSave(chunkKey, chunkData) {
+        // Skip if in fallback mode
+        if (this.fallbackMode) {
+            return false;
+        }
+        
         // Skip if already in stored chunks set
         if (this.storedChunks.has(chunkKey)) {
             return true;
@@ -279,6 +522,12 @@ export class ChunkPersistenceManager {
             return;
         }
         
+        // Check if database is healthy before creating transaction
+        if (!this.isDatabaseHealthy()) {
+            console.debug(`Database is not healthy, cannot save batch`);
+            return;
+        }
+        
         return new Promise((resolve) => {
             try {
                 const transaction = this.db.transaction([this.storeName], 'readwrite');
@@ -324,6 +573,15 @@ export class ChunkPersistenceManager {
                 });
             } catch (error) {
                 console.error('Error creating transaction for batch save:', error);
+                
+                // If this is a NotFoundError, it means the object store doesn't exist
+                if (error.name === 'NotFoundError') {
+                    // Handle database corruption in background (don't wait for it)
+                    this.handleDatabaseCorruption('saveBatch', error).catch(handleError => {
+                        console.error('Failed to handle database corruption:', handleError);
+                    });
+                }
+                
                 resolve();
             }
         });
@@ -335,6 +593,11 @@ export class ChunkPersistenceManager {
      * @returns {Promise<Object|null>} The chunk data or null if not found
      */
     async loadChunk(chunkKey) {
+        // Return null immediately if in fallback mode
+        if (this.fallbackMode) {
+            return null;
+        }
+        
         // Wait for initialization
         const initialized = await this.waitForInit();
         if (!initialized) {
@@ -344,6 +607,12 @@ export class ChunkPersistenceManager {
         // Check if this chunk is in the write queue
         if (this.writeQueue.has(chunkKey)) {
             return this.writeQueue.get(chunkKey).data;
+        }
+        
+        // Check if database is healthy before creating transaction
+        if (!this.isDatabaseHealthy()) {
+            console.debug(`Database is not healthy, returning null for chunk ${chunkKey}`);
+            return null;
         }
         
         return new Promise((resolve) => {
@@ -367,8 +636,22 @@ export class ChunkPersistenceManager {
                     console.error(`Error loading chunk ${chunkKey}:`, event.target.error);
                     resolve(null);
                 };
+                
+                transaction.onerror = (event) => {
+                    console.error(`Transaction error for loading chunk ${chunkKey}:`, event.target.error);
+                    resolve(null);
+                };
             } catch (error) {
                 console.error(`Error in transaction for loading chunk ${chunkKey}:`, error);
+                
+                // If this is a NotFoundError, it means the object store doesn't exist
+                if (error.name === 'NotFoundError') {
+                    // Handle database corruption in background (don't wait for it)
+                    this.handleDatabaseCorruption('loadChunk', error).catch(handleError => {
+                        console.error('Failed to handle database corruption:', handleError);
+                    });
+                }
+                
                 resolve(null);
             }
         });
@@ -380,6 +663,11 @@ export class ChunkPersistenceManager {
      * @returns {Promise<boolean>} Whether the chunk exists
      */
     async hasChunk(chunkKey) {
+        // Return false immediately if in fallback mode
+        if (this.fallbackMode) {
+            return false;
+        }
+        
         // Wait for initialization
         const initialized = await this.waitForInit();
         if (!initialized) {
@@ -394,6 +682,12 @@ export class ChunkPersistenceManager {
         // Check if this chunk is in the write queue
         if (this.writeQueue.has(chunkKey)) {
             return true;
+        }
+        
+        // Check if database is healthy before creating transaction
+        if (!this.isDatabaseHealthy()) {
+            console.debug(`Database is not healthy, returning false for chunk ${chunkKey}`);
+            return false;
         }
         
         return new Promise((resolve) => {
@@ -412,11 +706,26 @@ export class ChunkPersistenceManager {
                     }
                 };
                 
-                request.onerror = () => {
+                request.onerror = (event) => {
+                    console.error(`Error checking for chunk ${chunkKey}:`, event.target.error);
+                    resolve(false);
+                };
+                
+                transaction.onerror = (event) => {
+                    console.error(`Transaction error for checking chunk ${chunkKey}:`, event.target.error);
                     resolve(false);
                 };
             } catch (error) {
                 console.error(`Error checking for chunk ${chunkKey}:`, error);
+                
+                // If this is a NotFoundError, it means the object store doesn't exist
+                if (error.name === 'NotFoundError') {
+                    // Handle database corruption in background (don't wait for it)
+                    this.handleDatabaseCorruption('hasChunk', error).catch(handleError => {
+                        console.error('Failed to handle database corruption:', handleError);
+                    });
+                }
+                
                 resolve(false);
             }
         });
@@ -442,6 +751,12 @@ export class ChunkPersistenceManager {
             this.writeQueue.delete(chunkKey);
         }
         
+        // Check if object store exists before creating transaction
+        if (!this.db || !this.db.objectStoreNames.contains(this.storeName)) {
+            console.debug(`Object store '${this.storeName}' does not exist, considering chunk ${chunkKey} as deleted`);
+            return true;
+        }
+        
         return new Promise((resolve) => {
             try {
                 const transaction = this.db.transaction([this.storeName], 'readwrite');
@@ -454,6 +769,11 @@ export class ChunkPersistenceManager {
                 
                 request.onerror = (event) => {
                     console.error(`Error deleting chunk ${chunkKey}:`, event.target.error);
+                    resolve(false);
+                };
+                
+                transaction.onerror = (event) => {
+                    console.error(`Transaction error for deleting chunk ${chunkKey}:`, event.target.error);
                     resolve(false);
                 };
             } catch (error) {
@@ -480,6 +800,12 @@ export class ChunkPersistenceManager {
         // Clear write queue
         this.writeQueue.clear();
         
+        // Check if object store exists before creating transaction
+        if (!this.db || !this.db.objectStoreNames.contains(this.storeName)) {
+            console.debug(`Object store '${this.storeName}' does not exist, considering all chunks as cleared`);
+            return true;
+        }
+        
         return new Promise((resolve) => {
             try {
                 const transaction = this.db.transaction([this.storeName], 'readwrite');
@@ -492,6 +818,11 @@ export class ChunkPersistenceManager {
                 
                 request.onerror = (event) => {
                     console.error('Error clearing chunks:', event.target.error);
+                    resolve(false);
+                };
+                
+                transaction.onerror = (event) => {
+                    console.error('Transaction error for clearing chunks:', event.target.error);
                     resolve(false);
                 };
             } catch (error) {
@@ -510,6 +841,12 @@ export class ChunkPersistenceManager {
         // Wait for initialization
         const initialized = await this.waitForInit();
         if (!initialized) {
+            return 0;
+        }
+        
+        // Check if object store exists before creating transaction
+        if (!this.db || !this.db.objectStoreNames.contains(this.storeName)) {
+            console.debug(`Object store '${this.storeName}' does not exist, no chunks to cleanup`);
             return 0;
         }
         
@@ -549,6 +886,11 @@ export class ChunkPersistenceManager {
                 
                 request.onerror = (event) => {
                     console.error('Error cleaning up old chunks:', event.target.error);
+                    resolve(0);
+                };
+                
+                transaction.onerror = (event) => {
+                    console.error('Transaction error for cleaning up old chunks:', event.target.error);
                     resolve(0);
                 };
             } catch (error) {
@@ -607,6 +949,17 @@ export class ChunkPersistenceManager {
         this.storedChunks.clear();
         this.writeQueue.clear();
     }
+    
+    /**
+     * Recreate the database from scratch (simplified)
+     * @returns {Promise<boolean>} Success status
+     */
+    async recreateDatabase() {
+        console.warn('Recreating IndexedDB database...');
+        return this.deleteAndRecreateDatabase();
+    }
+    
+
 }
 
 // Create a singleton instance
