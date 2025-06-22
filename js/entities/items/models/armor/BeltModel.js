@@ -25,7 +25,7 @@ export class BeltModel extends ItemModel {
         this.addDecorations();
         
         // Position the belt correctly
-        this.modelGroup.scale.set(0.7, 0.7, 0.7);
+        this.modelGroup.scale.set(0.7 / 3, 0.7 / 3, 0.7 / 3); // 1/3 scale applied
     }
     
     /**

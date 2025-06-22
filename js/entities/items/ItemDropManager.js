@@ -60,8 +60,26 @@ export class ItemDropManager {
         const itemModel = ItemModelFactory.createModel(item, itemGroup);
         itemModel.createModel();
         
+        // Create a flat ring around the item for better visibility
+        const ringGeometry = new THREE.RingGeometry(0.4, 0.6, 16); // Smaller ring, just slightly larger than item
+        const ringMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.6,
+            side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        
+        // Position the ring flat and parallel to the ground, always horizontal
+        ring.rotation.x = -Math.PI / 2; // Rotate to lay flat and parallel to ground
+        ring.position.copy(itemGroup.position); // Copy the item group's position
+        ring.position.y += 0.05; // Slightly above ground level
+        
+        // Add the ring directly to the scene (not to itemGroup) to keep it always horizontal
+        this.scene.add(ring);
+        
         // Scale the item to make it more visible (3x larger)
-        itemGroup.scale.set(3, 3, 3);
+        // itemGroup.scale.set(3, 3, 3);
         
         // Apply rarity effects safely
         try {
@@ -73,6 +91,9 @@ export class ItemDropManager {
         // Ensure all materials in the item are properly initialized
         this.validateItemMaterials(itemGroup);
         
+        // Validate ring material separately
+        this.validateRingMaterial(ring);
+        
         // Add to scene
         this.scene.add(itemGroup);
         
@@ -81,6 +102,7 @@ export class ItemDropManager {
             item: item,
             group: itemGroup,
             model: itemModel,
+            ring: ring,
             dropTime: Date.now()
         });
         
@@ -123,6 +145,24 @@ export class ItemDropManager {
             // Always update rotation for smooth animation
             if (itemData.group) {
                 itemData.group.rotation.y += delta * this.rotationSpeed;
+            }
+            
+            // Animate the ring with a subtle pulsing effect
+            if (itemData.ring) {
+                const time = Date.now() * 0.002; // Slow pulsing
+                const pulseScale = 1 + Math.sin(time) * 0.1; // Pulse between 0.9 and 1.1
+                itemData.ring.scale.set(pulseScale, pulseScale, pulseScale);
+                
+                // Safe opacity pulsing to prevent WebGL issues
+                try {
+                    const newOpacity = 0.4 + Math.sin(time * 1.5) * 0.2; // Pulse between 0.2 and 0.6
+                    if (itemData.ring.material && Math.abs(itemData.ring.material.opacity - newOpacity) > 0.01) {
+                        itemData.ring.material.opacity = newOpacity;
+                    }
+                } catch (error) {
+                    // Silently handle material update errors to prevent WebGL issues
+                    console.warn('Ring material update error:', error.message);
+                }
             }
             
             // Update item model animations safely
@@ -177,6 +217,22 @@ export class ItemDropManager {
             itemData.model.dispose();
         }
         
+        // Dispose of ring resources if available
+        if (itemData.ring) {
+            try {
+                if (itemData.ring.geometry) {
+                    itemData.ring.geometry.dispose();
+                }
+                if (itemData.ring.material) {
+                    itemData.ring.material.dispose();
+                }
+                // Remove ring from scene since it's added directly to scene
+                this.scene.remove(itemData.ring);
+            } catch (error) {
+                console.warn('Error disposing ring resources:', error.message);
+            }
+        }
+        
         // Remove item group from scene
         if (itemData.group) {
             this.scene.remove(itemData.group);
@@ -213,6 +269,22 @@ export class ItemDropManager {
         // Dispose of model resources if available
         if (itemData.model && typeof itemData.model.dispose === 'function') {
             itemData.model.dispose();
+        }
+        
+        // Dispose of ring resources if available
+        if (itemData.ring) {
+            try {
+                if (itemData.ring.geometry) {
+                    itemData.ring.geometry.dispose();
+                }
+                if (itemData.ring.material) {
+                    itemData.ring.material.dispose();
+                }
+                // Remove ring from scene since it's added directly to scene
+                this.scene.remove(itemData.ring);
+            } catch (error) {
+                console.warn('Error disposing ring resources during pickup:', error.message);
+            }
         }
         
         // Remove item group from scene
@@ -279,6 +351,50 @@ export class ItemDropManager {
                 });
             }
         });
+    }
+    
+    /**
+     * Validate ring material to prevent WebGL errors
+     * @param {THREE.Mesh} ring - The ring mesh to validate
+     */
+    validateRingMaterial(ring) {
+        if (!ring || !ring.material) return;
+        
+        try {
+            // Ensure the ring material is properly configured
+            const material = ring.material;
+            
+            // MeshBasicMaterial should be safe, but let's ensure proper properties
+            if (material.type === 'MeshBasicMaterial') {
+                // Ensure transparency is properly set
+                if (material.transparent && (material.opacity === undefined || material.opacity === null)) {
+                    material.opacity = 0.6;
+                }
+                
+                // Mark for update to ensure proper compilation
+                material.needsUpdate = true;
+                
+                // Set a unique name for debugging
+                if (!material.name) {
+                    material.name = 'ItemDropRingMaterial';
+                }
+            }
+        } catch (error) {
+            console.warn('Ring material validation error:', error.message);
+            
+            // Replace with a safe fallback material
+            try {
+                const fallbackMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.6,
+                    side: THREE.DoubleSide
+                });
+                ring.material = fallbackMaterial;
+            } catch (fallbackError) {
+                console.error('Failed to create fallback ring material:', fallbackError.message);
+            }
+        }
     }
     
     /**

@@ -20,7 +20,7 @@ export class RobeModel extends ItemModel {
             metalness: 0.1
         });
         const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        body.position.y = 0;
+        body.position.y = 2.04;
         body.castShadow = true;
         
         this.modelGroup.add(body);
@@ -47,7 +47,7 @@ export class RobeModel extends ItemModel {
         this.addDecorativeElements();
         
         // Position the robe correctly
-        this.modelGroup.scale.set(0.6, 0.6, 0.6); // Scale down
+        this.modelGroup.scale.set(0.6 / 3, 0.6 / 3, 0.6 / 3); // Scale down to 1/3 of original size
     }
     
     /**

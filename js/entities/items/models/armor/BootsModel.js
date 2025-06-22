@@ -20,7 +20,7 @@ export class BootsModel extends ItemModel {
         this.addDecorations();
         
         // Position the boots correctly
-        this.modelGroup.scale.set(0.8, 0.8, 0.8);
+        this.modelGroup.scale.set(0.8 / 3, 0.8 / 3, 0.8 / 3); // 1/3 scale applied
     }
     
     /**

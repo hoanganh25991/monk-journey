@@ -166,7 +166,7 @@ export class GlovesModel extends ItemModel {
             mythic: 1.25
         };
         
-        const scale = scaleMultipliers[this.item.rarity] || 1.0;
+        const scale = (scaleMultipliers[this.item.rarity] || 1.0) / 3; // 1/3 scale applied
         this.modelGroup.scale.setScalar(scale);
     }
 }

@@ -44,7 +44,7 @@ export class HelmetModel extends ItemModel {
         
         // Position the helmet correctly
         this.modelGroup.rotation.x = Math.PI / 6; // Tilt slightly
-        this.modelGroup.scale.set(0.7, 0.7, 0.7); // Scale down a bit
+        this.modelGroup.scale.set(0.7 / 3, 0.7 / 3, 0.7 / 3); // Scale down a bit (1/3 scale applied)
     }
     
     /**
