@@ -95,11 +95,11 @@ export class GameplayTab extends SettingsTab {
                 this.cameraZoomValue.textContent = zoomValue;
             }
         } else if (key === STORAGE_KEYS.TARGET_FPS && this.fpsSlider && this.fpsValue) {
-            const parsedFPS = parseInt(newValue) || 60;
+            const parsedFPS = parseInt(newValue) || 120;
             this.fpsSlider.value = parsedFPS;
             this.fpsValue.textContent = parsedFPS;
         } else if (key === STORAGE_KEYS.QUALITY_LEVEL && this.materialQualitySelect) {
-            this.materialQualitySelect.value = newValue || 'high';
+            this.materialQualitySelect.value = newValue || 'medium';
         } else if (key === STORAGE_KEYS.SHOW_MINIMAP && this.showMinimapCheckbox) {
             this.showMinimapCheckbox.checked = newValue === true || newValue === 'true';
         }
@@ -284,8 +284,8 @@ export class GameplayTab extends SettingsTab {
         // Initialize FPS slider if it exists (moved from PerformanceTab)
         if (this.fpsSlider && this.fpsValue) {
             // Set current target FPS synchronously
-            const targetFPS = this.loadSettingSync(STORAGE_KEYS.TARGET_FPS, 60);
-            const parsedFPS = parseInt(targetFPS) || 60;
+            const targetFPS = this.loadSettingSync(STORAGE_KEYS.TARGET_FPS, 120);
+            const parsedFPS = parseInt(targetFPS) || 120;
             this.fpsSlider.value = parsedFPS;
             this.fpsValue.textContent = parsedFPS;
             
@@ -306,8 +306,8 @@ export class GameplayTab extends SettingsTab {
                     this.saveSetting(STORAGE_KEYS.TARGET_FPS, value.toString());
                     
                     // Apply target FPS immediately if game is available
-                    if (this.game) {
-                        this.game.targetFPS = value;
+                    if (this.game && this.game.setTargetFPS) {
+                        this.game.setTargetFPS(value);
                     }
                 }, 300); // Reduced debounce time
             });
@@ -600,12 +600,12 @@ export class GameplayTab extends SettingsTab {
         }
         
         if (this.fpsSlider && this.fpsValue) {
-            this.fpsSlider.value = 60; // Default FPS
-            this.fpsValue.textContent = 60;
+            this.fpsSlider.value = 120; // Default FPS
+            this.fpsValue.textContent = 120;
         }
         
         if (this.materialQualitySelect) {
-            this.materialQualitySelect.value = 'high'; // Default to high quality
+            this.materialQualitySelect.value = 'medium'; // Default to high quality
         }
         
         // Save all the reset values
