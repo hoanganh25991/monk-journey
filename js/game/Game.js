@@ -95,7 +95,7 @@ export class Game {
             // Load material quality setting (support 4 levels: high, medium, low, minimal)
             const materialQuality = await storageService.loadData(STORAGE_KEYS.QUALITY_LEVEL);
             const validQualityLevels = ['high', 'medium', 'low', 'minimal'];
-            this.materialQuality = validQualityLevels.includes(materialQuality) ? materialQuality : 'high';
+            this.materialQuality = validQualityLevels.includes(materialQuality) ? materialQuality : 'medium';
             console.debug(`Game initialized with material quality: ${this.materialQuality}`);
         } catch (error) {
             console.error('Error loading initial settings:', error);

@@ -29,12 +29,13 @@ export const MATERIAL_QUALITY_LEVELS = {
         maxVisibleObjects: 500
     },
     medium: {
-        shadowMapSize: 512,
-        particleCount: 0.5,
-        drawDistance: 0.6,
-        textureQuality: 0.5,
-        objectDetail: 0.6,
-        maxVisibleObjects: 250
+        shadowMapSize: 0, // Reduced from 256 to match disabled shadows
+        particleCount: 0.3, // Reduced from 0.5 to prevent particle buildup
+        drawDistance: 0.5, // Reduced from 0.6 to cull distant objects sooner
+        textureQuality: 0.4, // Reduced from 0.5 for memory efficiency
+        objectDetail: 0.5, // Reduced from 0.6 for simpler geometry
+        maxVisibleObjects: 200, // Reduced from 250 to prevent object accumulation
+        memoryOptimized: true // Flag for additional memory management
     },
     low: {
         shadowMapSize: 128, // Reduced from 256
@@ -70,13 +71,13 @@ export const FOG_CONFIG = {
     
     // Distance-based fog settings
     distanceFalloff: 1.5, // Controls how quickly visibility drops with distance
-    maxVisibleDistance: 150, // Maximum distance at which objects are still visible
+    maxVisibleDistance: 16 * 2, // Maximum distance at which objects are still visible
     darkeningFactor: 0.7, // How much darker distant objects become (0-1)
     
     // Quality level adjustments - adjusted to maintain consistent brightness
     qualityMultipliers: {
         high: 0.9, // Slightly reduced fog density for high quality (better visibility)
-        medium: 1.2, // Reduced from 1.5 to prevent darkening
+        medium: 1.4, // Increased from 1.2 to help cull distant objects and improve performance
         low: 1.5, // Reduced from 2.2 to prevent darkening
         minimal: 2.0 // Reduced from 6.0 to prevent excessive darkening while still improving performance
     }
@@ -107,17 +108,17 @@ export const RENDER_CONFIG = {
         init: {
             antialias: false,
             powerPreference: 'high-performance',
-            precision: 'mediump',
+            precision: 'lowp',
             stencil: false,
             logarithmicDepthBuffer: false,
             depth: true,
             alpha: false
         },
         settings: {
-            pixelRatio: Math.min(window.devicePixelRatio, 0.9),
-            shadowMapEnabled: true,
-            shadowMapType: 'PCFShadowMap',
-            outputColorSpace: 'SRGBColorSpace'
+            pixelRatio: Math.min(window.devicePixelRatio, 0.6), // Reduced from 0.7 for better performance
+            shadowMapEnabled: false, // Disabled shadows to reduce GPU load
+            shadowMapType: 'BasicShadowMap', // Lighter shadow type if shadows are re-enabled
+            outputColorSpace: 'SRGBColorSpace' // Changed to linear for better performance
         }
     },
     
@@ -125,7 +126,7 @@ export const RENDER_CONFIG = {
     low: {
         init: {
             antialias: false,
-            powerPreference: 'default',
+            powerPreference: 'high-performance',
             precision: 'lowp', // Changed from mediump for better performance
             stencil: false,
             logarithmicDepthBuffer: false,
@@ -137,7 +138,6 @@ export const RENDER_CONFIG = {
             shadowMapEnabled: false,
             shadowMapType: 'BasicShadowMap',
             outputColorSpace: 'LinearSRGBColorSpace', // Changed to linear for performance
-            optimizedRendering: true // Flag for additional rendering optimizations
         }
     },
     
@@ -145,7 +145,7 @@ export const RENDER_CONFIG = {
     minimal: {
         init: {
             antialias: false,
-            powerPreference: 'default', // Save battery on mobile
+            powerPreference: 'high-performance',
             precision: 'lowp',
             stencil: false,
             logarithmicDepthBuffer: false,
