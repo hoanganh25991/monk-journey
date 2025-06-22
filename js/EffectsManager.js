@@ -354,6 +354,146 @@ export class EffectsManager {
     }
     
     /**
+     * Create a freeze effect around the player
+     * @param {Object} position - 3D position {x, y, z}
+     * @returns {Object|null} - The created freeze effect or null if creation failed
+     */
+    createFreezeEffect(position) {
+        // Check if freeze effect already exists
+        const existingEffect = this.effects.find(effect => effect.type === 'freeze');
+        if (existingEffect) {
+            // Update position of existing effect
+            if (existingEffect.group) {
+                existingEffect.group.position.copy(position);
+            }
+            return existingEffect;
+        }
+        
+        // Create a freeze effect using ice-like crystals around the player
+        const group = new THREE.Group();
+        
+        // Create multiple ice crystal shapes
+        const crystalGeometry = new THREE.ConeGeometry(0.1, 0.4, 6);
+        const iceMaterial = new THREE.MeshBasicMaterial({
+            color: 0x88ccff, // Light blue ice color
+            transparent: true,
+            opacity: 0.7,
+            side: THREE.DoubleSide
+        });
+        
+        // Create several ice crystals around the player
+        for (let i = 0; i < 8; i++) {
+            const crystal = new THREE.Mesh(crystalGeometry, iceMaterial);
+            
+            // Position crystals in a circle around the player
+            const angle = (i / 8) * Math.PI * 2;
+            const radius = 1.0;
+            crystal.position.x = Math.cos(angle) * radius;
+            crystal.position.z = Math.sin(angle) * radius;
+            crystal.position.y = Math.random() * 0.5; // Random height variation
+            
+            // Random rotation for each crystal
+            crystal.rotation.x = Math.random() * Math.PI;
+            crystal.rotation.z = Math.random() * Math.PI;
+            
+            group.add(crystal);
+        }
+        
+        // Add a central ice sphere
+        const sphereGeometry = new THREE.SphereGeometry(1.1, 16, 16);
+        const sphereMaterial = new THREE.MeshBasicMaterial({
+            color: 0xaaddff, // Lighter blue for the sphere
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.DoubleSide
+        });
+        
+        const iceSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        group.add(iceSphere);
+        
+        // Position the effect
+        group.position.copy(position);
+        
+        // Create a custom effect object
+        const freezeEffect = {
+            type: 'freeze',
+            group: group,
+            isActive: true,
+            isPaused: false,
+            duration: 3.0, // 3 seconds duration
+            elapsedTime: 0,
+            crystals: group.children.filter(child => child.geometry === crystalGeometry),
+            iceSphere: iceSphere,
+            
+            // Update method for the freeze effect
+            update: function(delta) {
+                // Update elapsed time
+                this.elapsedTime += delta;
+                
+                // Rotate the ice crystals
+                this.crystals.forEach((crystal, index) => {
+                    crystal.rotation.y += delta * (0.5 + index * 0.1);
+                    crystal.position.y = 0.2 + 0.1 * Math.sin(this.elapsedTime * 2 + index);
+                });
+                
+                // Pulse the ice sphere
+                const scale = 1.0 + 0.05 * Math.sin(this.elapsedTime * 4);
+                this.iceSphere.scale.set(scale, scale, scale);
+                
+                // Pulse opacity of the sphere
+                sphereMaterial.opacity = 0.2 + 0.1 * Math.sin(this.elapsedTime * 3);
+                
+                // Check if effect has expired
+                if (this.elapsedTime >= this.duration) {
+                    this.isActive = false;
+                }
+            },
+            
+            // Dispose method to clean up resources
+            dispose: function() {
+                if (this.group && this.group.parent) {
+                    this.group.parent.remove(this.group);
+                }
+                crystalGeometry.dispose();
+                iceMaterial.dispose();
+                sphereGeometry.dispose();
+                sphereMaterial.dispose();
+            }
+        };
+        
+        // Add the effect to the scene
+        if (this.game && this.game.scene) {
+            this.game.scene.add(group);
+            
+            // Add to the effects array for updates
+            this.effects.push(freezeEffect);
+            
+            return freezeEffect;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Remove the freeze effect
+     */
+    removeFreezeEffect() {
+        // Find the freeze effect
+        const effectIndex = this.effects.findIndex(effect => effect.type === 'freeze');
+        
+        if (effectIndex >= 0) {
+            // Get the effect
+            const effect = this.effects[effectIndex];
+            
+            // Dispose the effect
+            effect.dispose();
+            
+            // Remove from the effects array
+            this.effects.splice(effectIndex, 1);
+        }
+    }
+    
+    /**
      * Get all active effects
      * @returns {Array} - Array of active effects
      */
