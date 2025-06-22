@@ -113,22 +113,58 @@ export class EnvironmentFactory {
      */
     registerEnvironmentObjects() {
         // Register environment objects with dedicated classes
-        this.register(ENVIRONMENT_OBJECTS.WATER, (position, size) => new WaterFeature(this.scene, this.worldManager, position, size));
-        this.register(ENVIRONMENT_OBJECTS.LAVA, (position, size) => new LavaFeature(this.scene, this.worldManager, position, size));
-        this.register(ENVIRONMENT_OBJECTS.CRYSTAL_FORMATION, (position, size) => new CrystalFormation(this.scene, this.worldManager, position, size));
-        this.register(ENVIRONMENT_OBJECTS.RARE_PLANT, (position, size) => new RarePlant(this.scene, this.worldManager, position, size));
-        this.register(ENVIRONMENT_OBJECTS.MAGICAL_STONE, (position, size) => new MagicalStone(this.scene, this.worldManager, position, size));
-        this.register(ENVIRONMENT_OBJECTS.ANCIENT_ARTIFACT, (position, size) => new AncientArtifact(this.scene, this.worldManager, position, size));
-        this.register(ENVIRONMENT_OBJECTS.MOSS, (position, size) => new Moss(this.scene, this.worldManager, position, size));
-        this.register(ENVIRONMENT_OBJECTS.OASIS, (position, size) => new Oasis(this.scene, this.worldManager, position, size));
-        this.register(ENVIRONMENT_OBJECTS.OBSIDIAN_FORMATION, (position, size) => new ObsidianFormation(this.scene, this.worldManager, position, size));
-        this.register(ENVIRONMENT_OBJECTS.DESERT_SHRINE, (position, size) => new DesertShrine(this.scene, this.worldManager, position, size));
+        this.register(ENVIRONMENT_OBJECTS.WATER, (position, size) => {
+            const waterFeature = new WaterFeature(this.scene, this.worldManager, position, size);
+            return waterFeature.object;
+        });
+        this.register(ENVIRONMENT_OBJECTS.LAVA, (position, size) => {
+            const lavaFeature = new LavaFeature(this.scene, this.worldManager, position, size);
+            return lavaFeature.object;
+        });
+        this.register(ENVIRONMENT_OBJECTS.CRYSTAL_FORMATION, (position, size) => {
+            const crystalFormation = new CrystalFormation(this.scene, this.worldManager, position, size);
+            return crystalFormation.object;
+        });
+        this.register(ENVIRONMENT_OBJECTS.RARE_PLANT, (position, size) => {
+            const rarePlant = new RarePlant(this.scene, this.worldManager, position, size);
+            return rarePlant.object;
+        });
+        this.register(ENVIRONMENT_OBJECTS.MAGICAL_STONE, (position, size) => {
+            const magicalStone = new MagicalStone(this.scene, this.worldManager, position, size);
+            return magicalStone.object;
+        });
+        this.register(ENVIRONMENT_OBJECTS.ANCIENT_ARTIFACT, (position, size) => {
+            const ancientArtifact = new AncientArtifact(this.scene, this.worldManager, position, size);
+            return ancientArtifact.object;
+        });
+        this.register(ENVIRONMENT_OBJECTS.MOSS, (position, size) => {
+            const moss = new Moss(this.scene, this.worldManager, position, size);
+            return moss.object;
+        });
+        this.register(ENVIRONMENT_OBJECTS.OASIS, (position, size) => {
+            const oasis = new Oasis(this.scene, this.worldManager, position, size);
+            return oasis.object;
+        });
+        this.register(ENVIRONMENT_OBJECTS.OBSIDIAN_FORMATION, (position, size) => {
+            const obsidianFormation = new ObsidianFormation(this.scene, this.worldManager, position, size);
+            return obsidianFormation.object;
+        });
+        this.register(ENVIRONMENT_OBJECTS.DESERT_SHRINE, (position, size) => {
+            const desertShrine = new DesertShrine(this.scene, this.worldManager, position, size);
+            return desertShrine.object;
+        });
         this.register(ENVIRONMENT_OBJECTS.TREE_CLUSTER, (data) => {
             const treeCluster = new TreeCluster(this.scene, this.worldManager, data);
             return treeCluster.group;
         });
-        this.register(ENVIRONMENT_OBJECTS.SMALL_PEAK, (position, size) => new SmallPeak(this.scene, this.worldManager, position, size));
-        this.register(ENVIRONMENT_OBJECTS.SNOW_PATCH, (position, size) => new SnowPatch(this.scene, this.worldManager, position, size));
+        this.register(ENVIRONMENT_OBJECTS.SMALL_PEAK, (position, size) => {
+            const smallPeak = new SmallPeak(this.scene, this.worldManager, position, size);
+            return smallPeak.object;
+        });
+        this.register(ENVIRONMENT_OBJECTS.SNOW_PATCH, (position, size) => {
+            const snowPatch = new SnowPatch(this.scene, this.worldManager, position, size);
+            return snowPatch.object;
+        });
         
         // Register village and urban environment objects
         this.register(ENVIRONMENT_OBJECTS.MARKET, (position, size, data) => {
@@ -472,7 +508,7 @@ export class EnvironmentFactory {
         // Register bog pit environment object
         this.register(ENVIRONMENT_OBJECTS.BOG_PIT, (position, size, data = {}) => {
             const bogPit = new BogPit(this.scene, this.worldManager, position, size);
-            return bogPit;
+            return bogPit.object;
         });
         
         // Register forest shrine environment object
@@ -484,7 +520,7 @@ export class EnvironmentFactory {
         // Register ice formation environment object
         this.register(ENVIRONMENT_OBJECTS.ICE_FORMATION, (position, size, data = {}) => {
             const iceFormation = new IceFormation(this.scene, this.worldManager, position, size);
-            return iceFormation;
+            return iceFormation.object;
         });
         
         // Register crystal outcrop environment object
