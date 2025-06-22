@@ -20,7 +20,7 @@ export class ItemDropManager {
         this.autoRemoveDistance = 16 * 16;
         
         // Optimization: Only check pickup distances every few frames
-        this.pickupCheckInterval = 0.2; // Check every 100ms instead of every frame
+        this.pickupCheckInterval = 0.3; // Check every 100ms instead of every frame
         this.timeSinceLastPickupCheck = 0;
         
         // Rotation optimization
@@ -147,34 +147,6 @@ export class ItemDropManager {
                 itemData.group.rotation.y += delta * this.rotationSpeed;
             }
             
-            // Animate the ring with a subtle pulsing effect
-            if (itemData.ring) {
-                const time = Date.now() * 0.002; // Slow pulsing
-                const pulseScale = 1 + Math.sin(time) * 0.1; // Pulse between 0.9 and 1.1
-                itemData.ring.scale.set(pulseScale, pulseScale, pulseScale);
-                
-                // Safe opacity pulsing to prevent WebGL issues
-                try {
-                    const newOpacity = 0.4 + Math.sin(time * 1.5) * 0.2; // Pulse between 0.2 and 0.6
-                    if (itemData.ring.material && Math.abs(itemData.ring.material.opacity - newOpacity) > 0.01) {
-                        itemData.ring.material.opacity = newOpacity;
-                    }
-                } catch (error) {
-                    // Silently handle material update errors to prevent WebGL issues
-                    console.warn('Ring material update error:', error.message);
-                }
-            }
-            
-            // Update item model animations safely
-            if (itemData.model && typeof itemData.model.updateAnimations === 'function') {
-                try {
-                    itemData.model.updateAnimations(delta);
-                } catch (error) {
-                    // Silently handle animation errors to prevent WebGL issues
-                    console.warn(`Animation update error for item ${itemData.item.name}:`, error.message);
-                }
-            }
-            
             // Only check distances periodically to reduce computation
             if (shouldCheckPickup && playerPosition) {
                 const itemPosition = itemData.group.position;
@@ -187,7 +159,7 @@ export class ItemDropManager {
                 }
                 
                 // Auto-pickup if player is close enough (instant pickup)
-                if (distance < 2.5) {
+                if (distance < 1.5) {
                     this.pickupItem(id);
                     continue; // Skip to next item since this one was picked up
                 }
