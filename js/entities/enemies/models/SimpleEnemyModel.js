@@ -106,6 +106,7 @@ export class SimpleEnemyModel extends EnemyModel {
         const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
         rightEye.position.set(0.15, 1.9, 0.3);
         this.modelGroup.add(rightEye);
+        return this.modelGroup;
     }
     
     /**

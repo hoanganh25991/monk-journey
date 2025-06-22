@@ -32,6 +32,7 @@ export class Enemy {
         this.color = config.color || 0xcccccc;
         this.scale = config.scale || 1;
         this.isBoss = config.isBoss || false;
+        this.isActive = true;
         
         // Flag for minimap identification
         this.isEnemy = true;
@@ -166,8 +167,8 @@ export class Enemy {
     }
 
     update(delta) {
-        // Skip update if dead, but allow minimal updates for death animation
-        if (this.state.isDead) {
+        // Skip update if not active (pooled) or dead, but allow minimal updates for death animation
+        if (!this.isActive || this.state.isDead) {
             // For bosses, we want to minimize processing when dead to prevent lag
             if (this.isBoss) {
                 // Only update if death animation is still in progress
