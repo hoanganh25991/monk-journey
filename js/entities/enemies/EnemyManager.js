@@ -63,7 +63,7 @@ export class EnemyManager {
         this.loadingManager = loadingManager;
         this.enemies = new Map(); // Changed to Map for easier lookup by ID
         this.enemyMeshes = [];
-        this.maxEnemies = 30; // Increased max enemies for world exploration
+        this.maxEnemies = 50 * 2; // Increased max enemies for world exploration
         this.spawnRadius = 90; // 3x increased spawn radius (was 30)
         this.spawnTimer = 0;
         this.spawnInterval = 5; // Spawn enemy every 5 seconds
@@ -75,10 +75,10 @@ export class EnemyManager {
         this.enemiesPerChunk = 5; // Number of enemies to spawn per chunk
         this.chunkSpawnRadius = 240; // 3x increased chunk spawn radius (was 80)
         // Increased group size for more dangerous encounters
-        this.enemyGroupSize = { min: 3, max: 20 }; // Enemies can now spawn in much larger groups
+        this.enemyGroupSize = { min: 3, max: 50 }; // Enemies can now spawn in much larger groups
         
         // Simplified enemy spawning configuration
-        this.dangerousGroupChance = 0.3; // 30% chance to spawn a dangerous large group
+        this.dangerousGroupChance = 0.1; // 10% chance to spawn a dangerous large group
         
         // Import enemy configuration from config/enemies.js
         this.zoneEnemies = ZONE_ENEMIES;
@@ -557,17 +557,8 @@ export class EnemyManager {
     spawnDangerousGroup() {
         // Get player position
         const playerPosition = this.player.getPosition().clone();
-        
-        // Determine group size (20-50 enemies with 30% chance, otherwise 10-20)
-        let groupSize;
-        if (Math.random() < 0.3) {
-            // 30% chance for a large group (20-50 enemies)
-            groupSize = 20 + Math.floor(Math.random() * 31);
-            console.debug(`Spawning a LARGE dangerous group of ${groupSize} enemies!`);
-        } else {
-            // 70% chance for a regular group (10-20 enemies)
-            groupSize = 10 + Math.floor(Math.random() * 11);
-        }
+        const groupSize = 20 + Math.floor(Math.random() * this.enemyGroupSize.max / 2);
+        console.debug(`Spawning a LARGE dangerous group of ${groupSize} enemies!`);
         
         // Get available zones
         const availableZones = Object.keys(this.zoneEnemies);
