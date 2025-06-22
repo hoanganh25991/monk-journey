@@ -150,6 +150,11 @@ export class ItemDropManager {
             const distance = playerPosition.distanceTo(itemPosition);
             
             if (distance > 100) {
+                // Dispose of model resources if available
+                if (itemData.model && typeof itemData.model.dispose === 'function') {
+                    itemData.model.dispose();
+                }
+                
                 // Remove item group from scene
                 if (itemData.group) {
                     this.scene.remove(itemData.group);
@@ -170,26 +175,31 @@ export class ItemDropManager {
             }
             
             // Update item model animations
-            if (itemData.model) {
-                itemData.model.updateAnimations(delta);
-                
-                // Make items float and rotate for better visibility
-                const time = Date.now() * 0.001; // Convert to seconds
-                const floatHeight = Math.sin(time * 2) * 0.1; // Gentle floating effect
+            if (itemData.model && typeof itemData.model.updateAnimations === 'function') {
+                try {
+                    itemData.model.updateAnimations(delta);
+                } catch (error) {
+                    console.warn(`Error updating animations for item ${id}:`, error);
+                    // Continue with other updates even if animation fails
+                }
+            }
+            
+            // Make items float and rotate for better visibility
+            const time = Date.now() * 0.001; // Convert to seconds
+            const floatHeight = Math.sin(time * 2) * 0.1; // Gentle floating effect
+            
+            // Apply floating effect
+            if (itemData.group) {
+                // Store the base height if not already stored
+                if (!itemData.baseHeight) {
+                    itemData.baseHeight = itemData.group.position.y;
+                }
                 
                 // Apply floating effect
-                if (itemData.group) {
-                    // Store the base height if not already stored
-                    if (!itemData.baseHeight) {
-                        itemData.baseHeight = itemData.group.position.y;
-                    }
-                    
-                    // Apply floating effect
-                    itemData.group.position.y = itemData.baseHeight + floatHeight;
-                    
-                    // Apply rotation effect
-                    itemData.group.rotation.y += delta * 1.0; // Rotate items slowly
-                }
+                itemData.group.position.y = itemData.baseHeight + floatHeight;
+                
+                // Apply rotation effect
+                itemData.group.rotation.y += delta * 1.0; // Rotate items slowly
             }
             
             // Update light beam effect
@@ -227,6 +237,11 @@ export class ItemDropManager {
             
             // Auto-remove item if it's been on the ground for too long
             if (timeOnGround >= this.autoRemoveDelay) {
+                // Dispose of model resources if available
+                if (itemData.model && typeof itemData.model.dispose === 'function') {
+                    itemData.model.dispose();
+                }
+                
                 // Remove item group from scene
                 if (itemData.group) {
                     this.scene.remove(itemData.group);
@@ -272,6 +287,11 @@ export class ItemDropManager {
             }
         }
         
+        // Dispose of model resources if available
+        if (itemData.model && typeof itemData.model.dispose === 'function') {
+            itemData.model.dispose();
+        }
+        
         // Remove item group from scene
         if (itemData.group) {
             this.scene.remove(itemData.group);
@@ -294,6 +314,11 @@ export class ItemDropManager {
     clear() {
         // Remove all items and beam groups from scene
         for (const [id, itemData] of this.droppedItems.entries()) {
+            // Dispose of model resources if available
+            if (itemData.model && typeof itemData.model.dispose === 'function') {
+                itemData.model.dispose();
+            }
+            
             if (itemData.group) {
                 this.scene.remove(itemData.group);
             }

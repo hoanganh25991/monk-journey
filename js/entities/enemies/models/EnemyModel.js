@@ -43,6 +43,11 @@ export class EnemyModel {
     /**
      * Update model animations
      * @param {number} delta - Time since last update in seconds
+     * 
+     * IMPORTANT: Do not modify this.modelGroup.rotation.y in subclasses!
+     * The Y rotation (facing direction) is managed by the Enemy class to ensure
+     * enemies face the player correctly. Only modify individual child rotations
+     * or X/Z rotations of the model group for animations.
      */
     updateAnimations(delta) {
         // Default implementation for basic animations

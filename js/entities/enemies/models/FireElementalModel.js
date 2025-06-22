@@ -144,8 +144,14 @@ export class FireElementalModel extends EnemyModel {
                 flame.scale.set(flamePulseFactor, flamePulseFactor, flamePulseFactor);
             }
             
-            // Rotate the entire model slowly
-            this.modelGroup.rotation.y += delta * 0.5;
+            // Rotate individual flame parts instead of the entire model
+            // (Y rotation is handled by Enemy class for facing direction)
+            if (this.modelGroup.children.length > 1) {
+                const flame = this.modelGroup.children[1]; // Outer flame
+                if (flame) {
+                    flame.rotation.y += delta * 0.5;
+                }
+            }
         }
         
         // Update flame particles

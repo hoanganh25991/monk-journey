@@ -82,18 +82,42 @@ export class TerrainManager {
      * @returns {Promise<boolean>} - True if initialization was successful
      */
     async init() {
+        console.debug("TerrainManager: Starting initialization...");
+        
+        // Log memory usage before terrain initialization
+        if (window.performance && window.performance.memory) {
+            const memoryInfo = window.performance.memory;
+            console.debug(`Memory usage before terrain initialization: ${Math.round(memoryInfo.usedJSHeapSize / (1024 * 1024))}MB / ${Math.round(memoryInfo.jsHeapSizeLimit / (1024 * 1024))}MB`);
+        }
+        
+        // Make sure the persistence manager is initialized
+        if (this.chunkManager.persistenceEnabled && this.chunkManager.persistenceManager) {
+            console.debug("TerrainManager: Initializing persistence manager...");
+            await this.chunkManager.persistenceManager.waitForInit();
+        }
+        
         // Create base terrain
+        console.debug("TerrainManager: Creating base terrain...");
         await this.createBaseTerrain();
         
         // Set flag to indicate initial terrain is created
         this.initialTerrainCreated = true;
         
         // Initialize the first chunks around the player
+        console.debug("TerrainManager: Updating terrain for player at origin...");
         this.updateForPlayer(new THREE.Vector3(0, 0, 0));
         
         // Wait for initial terrain chunks to be fully generated
+        console.debug("TerrainManager: Waiting for initial terrain generation to complete...");
         await this.queueManager.waitForInitialTerrainGeneration();
         
+        // Log memory usage after terrain initialization
+        if (window.performance && window.performance.memory) {
+            const memoryInfo = window.performance.memory;
+            console.debug(`Memory usage after terrain initialization: ${Math.round(memoryInfo.usedJSHeapSize / (1024 * 1024))}MB / ${Math.round(memoryInfo.jsHeapSizeLimit / (1024 * 1024))}MB`);
+        }
+        
+        console.debug("TerrainManager: Initialization complete");
         return true;
     }
     
@@ -107,7 +131,7 @@ export class TerrainManager {
             0, // Center X
             0, // Center Z
             this.terrainSize, // Use terrainSize for the base terrain
-            this.terrainResolution - 1, // Use slightly lower resolution for base terrain
+            this.terrainResolution, // Use slightly lower resolution for base terrain
             true, // Is base terrain
             new THREE.Vector3(0, 0, 0) // Position at center
         );
@@ -212,6 +236,36 @@ export class TerrainManager {
         // Reset terrain reference
         this.terrain = null;
         this.initialTerrainCreated = false;
+    }
+    
+    /**
+     * Dispose of all resources
+     * This should be called when the game is unloaded
+     */
+    dispose() {
+        // Clear all terrain first
+        this.clear();
+        
+        // Dispose managers
+        if (this.chunkManager && typeof this.chunkManager.dispose === 'function') {
+            this.chunkManager.dispose();
+        }
+        
+        if (this.queueManager && typeof this.queueManager.dispose === 'function') {
+            this.queueManager.dispose();
+        }
+        
+        if (this.templateManager && typeof this.templateManager.dispose === 'function') {
+            this.templateManager.dispose();
+        }
+        
+        if (this.coloringManager && typeof this.coloringManager.dispose === 'function') {
+            this.coloringManager.dispose();
+        }
+        
+        if (this.cleanupManager && typeof this.cleanupManager.dispose === 'function') {
+            this.cleanupManager.dispose();
+        }
     }
     
     /**

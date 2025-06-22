@@ -35,6 +35,9 @@ export class GameplayTab extends SettingsTab {
         this.cameraZoomSlider = document.getElementById('camera-zoom-slider');
         this.cameraZoomValue = document.getElementById('camera-zoom-value');
         
+        // UI settings
+        this.showMinimapCheckbox = document.getElementById('show-minimap-checkbox');
+        
         // FPS settings (moved from PerformanceTab)
         this.fpsSlider = document.getElementById('fps-slider');
         this.fpsValue = document.getElementById('fps-value');
@@ -92,11 +95,13 @@ export class GameplayTab extends SettingsTab {
                 this.cameraZoomValue.textContent = zoomValue;
             }
         } else if (key === STORAGE_KEYS.TARGET_FPS && this.fpsSlider && this.fpsValue) {
-            const parsedFPS = parseInt(newValue) || 60;
+            const parsedFPS = parseInt(newValue) || 120;
             this.fpsSlider.value = parsedFPS;
             this.fpsValue.textContent = parsedFPS;
         } else if (key === STORAGE_KEYS.QUALITY_LEVEL && this.materialQualitySelect) {
-            this.materialQualitySelect.value = newValue || 'high';
+            this.materialQualitySelect.value = newValue || 'medium';
+        } else if (key === STORAGE_KEYS.SHOW_MINIMAP && this.showMinimapCheckbox) {
+            this.showMinimapCheckbox.checked = newValue === true || newValue === 'true';
         }
     }
     
@@ -279,8 +284,8 @@ export class GameplayTab extends SettingsTab {
         // Initialize FPS slider if it exists (moved from PerformanceTab)
         if (this.fpsSlider && this.fpsValue) {
             // Set current target FPS synchronously
-            const targetFPS = this.loadSettingSync(STORAGE_KEYS.TARGET_FPS, 60);
-            const parsedFPS = parseInt(targetFPS) || 60;
+            const targetFPS = this.loadSettingSync(STORAGE_KEYS.TARGET_FPS, 120);
+            const parsedFPS = parseInt(targetFPS) || 120;
             this.fpsSlider.value = parsedFPS;
             this.fpsValue.textContent = parsedFPS;
             
@@ -301,10 +306,37 @@ export class GameplayTab extends SettingsTab {
                     this.saveSetting(STORAGE_KEYS.TARGET_FPS, value.toString());
                     
                     // Apply target FPS immediately if game is available
-                    if (this.game) {
-                        this.game.targetFPS = value;
+                    if (this.game && this.game.setTargetFPS) {
+                        this.game.setTargetFPS(value);
                     }
                 }, 300); // Reduced debounce time
+            });
+        }
+        
+        // Initialize minimap visibility checkbox if it exists
+        if (this.showMinimapCheckbox) {
+            // Set current minimap visibility state synchronously (default is true)
+            const showMinimap = this.loadSettingSync(STORAGE_KEYS.SHOW_MINIMAP, true);
+            this.showMinimapCheckbox.checked = showMinimap === true || showMinimap === 'true';
+            
+            // Add change event listener
+            this.showMinimapCheckbox.addEventListener('change', () => {
+                const isVisible = this.showMinimapCheckbox.checked;
+                this.saveSetting(STORAGE_KEYS.SHOW_MINIMAP, isVisible.toString());
+                
+                // Apply minimap visibility immediately if game is available
+                if (this.game && this.game.hudManager && this.game.hudManager.components && this.game.hudManager.components.miniMapUI) {
+                    if (isVisible) {
+                        this.game.hudManager.components.miniMapUI.show();
+                    } else {
+                        this.game.hudManager.components.miniMapUI.hide();
+                    }
+                    
+                    // Show notification
+                    if (this.game.hudManager) {
+                        this.game.hudManager.showNotification(`Mini map ${isVisible ? 'enabled' : 'disabled'}`);
+                    }
+                }
             });
         }
         
@@ -568,12 +600,12 @@ export class GameplayTab extends SettingsTab {
         }
         
         if (this.fpsSlider && this.fpsValue) {
-            this.fpsSlider.value = 60; // Default FPS
-            this.fpsValue.textContent = 60;
+            this.fpsSlider.value = 120; // Default FPS
+            this.fpsValue.textContent = 120;
         }
         
         if (this.materialQualitySelect) {
-            this.materialQualitySelect.value = 'high'; // Default to high quality
+            this.materialQualitySelect.value = 'medium'; // Default to high quality
         }
         
         // Save all the reset values

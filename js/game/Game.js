@@ -31,7 +31,7 @@ import storageService from '../save-manager/StorageService.js';
  * @class
  * @property {HTMLElement} canvas - The main game canvas element
  * @property {THREE.Clock} clock - Clock used for tracking time and calculating delta time between frames
- * @property {boolean} debugMode - Flag to enable/disable debug logging
+ * @property {boolean} disableFullScreen - Flag to disable fullscreen functionality
  * @property {boolean} animationLoopStarted - Flag to prevent multiple animation loops from starting
  * @property {GameState} state - Manages the game state (running, paused, etc.)
  * @property {GameEvents} events - Event system for game-wide event handling
@@ -61,7 +61,7 @@ export class Game {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
         this.clock = new THREE.Clock();
-        this.debugMode = false; // Set to true to enable debug logging
+        this.disableFullScreen = false; // Set to true to disable fullscreen functionality
         
         // Flag to prevent multiple animation loops
         this.animationLoopStarted = false;
@@ -245,13 +245,24 @@ export class Game {
             this.updateLoadingProgress(25, 'Generating terrain...', 'This may take a moment');
             
             // Initialize the world (includes terrain generation)
+            // IMPORTANT: Properly await world initialization to ensure terrain is loaded from IndexedDB
+            console.debug('Waiting for world initialization to complete...');
             await this.world.init();
+            
+            // Wait for terrain queue to be fully processed
+            if (this.world.terrainManager && this.world.terrainManager.queueManager) {
+                console.debug('Waiting for initial terrain generation to complete...');
+                await this.world.terrainManager.queueManager.waitForInitialTerrainGeneration();
+            }
             
             // Terrain is already pre-generated during world initialization
             this.updateLoadingProgress(30, 'Terrain generation complete', 'World chunks created');
             
-            // TODO: Add functionality to save generated terrain to localStorage
-            // for faster loading in the future once we're satisfied with generation
+            // Log memory usage after terrain generation
+            if (window.performance && window.performance.memory) {
+                const memoryInfo = window.performance.memory;
+                console.debug(`Memory usage after terrain generation: ${Math.round(memoryInfo.usedJSHeapSize / (1024 * 1024))}MB / ${Math.round(memoryInfo.jsHeapSizeLimit / (1024 * 1024))}MB`);
+            }
             
             this.isWorldLoading = false;
             
@@ -394,8 +405,8 @@ export class Game {
      * @returns {Promise} A promise that resolves when fullscreen is entered or rejects if there's an error
      */
     async requestFullscreen() {
-        if (await storageService.loadData(STORAGE_KEYS.DEBUG_MODE)) {
-            console.warn('Fullscreen request is ignored in debug mode.');
+        if (await storageService.loadData(STORAGE_KEYS.DISABLE_FULL_SCREEN)) {
+            console.warn('Fullscreen request is ignored when fullscreen is disabled.');
             return Promise.resolve();
         }
         console.debug("Requesting fullscreen mode...");

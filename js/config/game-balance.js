@@ -23,8 +23,8 @@ export const PLAYER_PROGRESSION = {
         intelligence: 10,
         
         // Movement and combat
-        movementSpeed: 15,
-        attackPower: 10
+        movementSpeed: 18,
+        attackPower: 20
     },
 
     // Experience scaling configuration
@@ -53,13 +53,13 @@ export const PLAYER_PROGRESSION = {
 
     // Stat increases per level (used for linear scaling)
     LEVEL_UP_STAT_INCREASES: {
-        maxHealth: 10,
+        maxHealth: 20,
         maxMana: 15,
         strength: 1,
         dexterity: 1,
         intelligence: 1,
         attackPower: 2,
-        movementSpeed: 0.5
+        movementSpeed: 0.25
     },
     
     // Exponential stat scaling configuration
@@ -69,41 +69,41 @@ export const PLAYER_PROGRESSION = {
         
         // Health scaling
         health: {
-            baseValue: 500,
-            growthFactor: 1.15
+            get baseValue(){ return PLAYER_PROGRESSION.DEFAULT_PLAYER_STATS.health},
+            growthFactor: 1.3
         },
         
         // Mana scaling
         mana: {
-            baseValue: 600,
+            get baseValue(){ return PLAYER_PROGRESSION.DEFAULT_PLAYER_STATS.mana},
             growthFactor: 1.2
         },
         
         // Attribute scaling
         strength: {
-            baseValue: 10,
+            get baseValue(){ return PLAYER_PROGRESSION.DEFAULT_PLAYER_STATS.strength},
             growthFactor: 1.1
         },
         
         dexterity: {
-            baseValue: 10,
+            get baseValue(){ return PLAYER_PROGRESSION.DEFAULT_PLAYER_STATS.dexterity},
             growthFactor: 1.1
         },
         
         intelligence: {
-            baseValue: 10,
+            get baseValue(){ return PLAYER_PROGRESSION.DEFAULT_PLAYER_STATS.intelligence},
             growthFactor: 1.1
         },
         
         // Combat scaling
         attackPower: {
-            baseValue: 10,
+            get baseValue(){ return PLAYER_PROGRESSION.DEFAULT_PLAYER_STATS.attackPower},
             growthFactor: 1.12
         },
         
         // Movement scaling
         movementSpeed: {
-            baseValue: 15,
+            get baseValue(){ return PLAYER_PROGRESSION.DEFAULT_PLAYER_STATS.movementSpeed},
             growthFactor: 1.08
         }
     }

@@ -61,7 +61,7 @@ export const FOG_CONFIG = {
     // Base fog settings
     enabled: true,
     type: 'exp2', // 'exp2' for exponential squared fog (more realistic), 'exp' for exponential, 'linear' for linear
-    color: 0x87CEEB, // Lighter blue-gray color for a brighter atmosphere 0x87CEEB 0xFFD39B 0xE8C49A 0xF8D98D 0xF6C75B
+    color: 0x87CEEB, // Lighter blue-gray color for a brighter atmosphere 0x87CEEB 0xFFD39B 0xE8C49A 0xF8D98D 0xF6C75B #FFCC00B3 #FFCC00 #FFDD00
     density: 0.0075, // Reduced base fog density for lighter atmosphere
     near: 10, // For linear fog only - increased distance where fog begins
     far: 50, // For linear fog only - increased distance where fog is fully opaque
@@ -74,7 +74,10 @@ export const FOG_CONFIG = {
     maxVisibleDistance: 16 * 2, // Maximum distance at which objects are still visible
     darkeningFactor: 0.7, // How much darker distant objects become (0-1)
     
-    // Quality level adjustments - adjusted to maintain consistent brightness
+    // PERFORMANCE FIX: Add frustum culling distance
+    frustumCullingDistance: 16 * 4, // Objects beyond this distance are not rendered at all
+    
+    // Quality level adjustments - PERFORMANCE FIX: More aggressive fog for performance
     qualityMultipliers: {
         high: 0.9, // Slightly reduced fog density for high quality (better visibility)
         medium: 1.4, // Increased from 1.2 to help cull distant objects and improve performance

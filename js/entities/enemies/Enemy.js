@@ -32,6 +32,7 @@ export class Enemy {
         this.color = config.color || 0xcccccc;
         this.scale = config.scale || 1;
         this.isBoss = config.isBoss || false;
+        this.isActive = true;
         
         // Flag for minimap identification
         this.isEnemy = true;
@@ -123,6 +124,30 @@ export class Enemy {
         this.scene.add(this.modelGroup);
     }
     
+    /**
+     * Calculate rotation to face a target position
+     * @param {THREE.Vector3} targetPosition - The position to face
+     */
+    faceTarget(targetPosition) {
+        const directionX = targetPosition.x - this.position.x;
+        const directionZ = targetPosition.z - this.position.z;
+        const length = Math.sqrt(directionX * directionX + directionZ * directionZ);
+        
+        if (length > 0) {
+            const normalizedDirectionX = directionX / length;
+            const normalizedDirectionZ = directionZ / length;
+            const newRotation = Math.atan2(normalizedDirectionX, normalizedDirectionZ);
+            
+            // Debug log rotation changes (only log occasionally to avoid spam)
+            if (Math.random() < 0.01) { // ~1% chance each frame
+                const rotationDegrees = (newRotation * 180 / Math.PI).toFixed(1);
+                console.debug(`Enemy ${this.id} facing target at ${rotationDegrees}°`);
+            }
+            
+            this.rotation.y = newRotation;
+        }
+    }
+
     updateAnimations(delta) {
         // Use the model's updateAnimations method
         if (this.model && typeof this.model.updateAnimations === 'function') {
@@ -166,8 +191,8 @@ export class Enemy {
     }
 
     update(delta) {
-        // Skip update if dead, but allow minimal updates for death animation
-        if (this.state.isDead) {
+        // Skip update if not active (pooled) or dead, but allow minimal updates for death animation
+        if (!this.isActive || this.state.isDead) {
             // For bosses, we want to minimize processing when dead to prevent lag
             if (this.isBoss) {
                 // Only update if death animation is still in progress
@@ -293,6 +318,9 @@ export class Enemy {
             // Stop moving when in attack range
             this.state.isMoving = false;
             
+            // Still face the target even when not moving
+            this.faceTarget(playerPosition);
+            
             // Attack target if cooldown is ready
             if (this.state.attackCooldown <= 0) {
                 console.debug(`Enemy ${this.id} attacking target, cooldown ready`);
@@ -327,7 +355,7 @@ export class Enemy {
                 const normalizedDirectionZ = directionZ / length;
                 
                 // Update rotation to face target
-                this.rotation.y = Math.atan2(normalizedDirectionX, normalizedDirectionZ);
+                this.faceTarget(playerPosition);
                 
                 // Calculate new position
                 // Apply 1.5x speed multiplier for faster movement
@@ -349,6 +377,11 @@ export class Enemy {
                     this.state.aggressionEndTime = Date.now() + (this.aggressionTimeout * 1000);
                 }
             }
+        }
+        
+        // Update model rotation to match enemy rotation
+        if (this.modelGroup) {
+            this.modelGroup.rotation.copy(this.rotation);
         }
         
         // Update animations
@@ -923,8 +956,9 @@ export class Enemy {
                         this.initialYPosition = terrainHeight + this.heightOffset;
                         this.position.y = this.initialYPosition;
                         
-                        // Update model position with this Y value
+                        // Update model position and rotation
                         this.modelGroup.position.copy(this.position);
+                        this.modelGroup.rotation.copy(this.rotation);
                         
                         // Mark as initialized
                         this.initialPositionSet = true;
@@ -950,13 +984,13 @@ export class Enemy {
                 
                 if (this.modelGroup) {
                     this.modelGroup.position.copy(this.position);
-                    this.modelGroup.rotation.y = this.rotation.y;
+                    this.modelGroup.rotation.copy(this.rotation);
                 }
             }
         } else if (this.modelGroup) {
             // If no world or terrain updates disabled, just update model position and rotation
             this.modelGroup.position.copy(this.position);
-            this.modelGroup.rotation.y = this.rotation.y;
+            this.modelGroup.rotation.copy(this.rotation);
         }
     }
 
@@ -1004,9 +1038,10 @@ export class Enemy {
                     this.initialYPosition = y;
                 }
                 
-                // Update model position
+                // Update model position and rotation
                 if (this.modelGroup) {
                     this.modelGroup.position.copy(this.position);
+                    this.modelGroup.rotation.copy(this.rotation);
                 }
                 
                 // Mark as initialized
@@ -1019,9 +1054,10 @@ export class Enemy {
         // For non-boss enemies, update all coordinates normally
         this.position.set(x, y, z);
         
-        // Update model position
+        // Update model position and rotation
         if (this.modelGroup) {
             this.modelGroup.position.copy(this.position);
+            this.modelGroup.rotation.copy(this.rotation);
         }
     }
     

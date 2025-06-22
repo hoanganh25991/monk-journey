@@ -54,6 +54,7 @@ import { LilyPad } from './LilyPad.js';
 import { SwampDebris } from './SwampDebris.js';
 import { SwampPlant } from './SwampPlant.js';
 import { MysteriousPortal } from './MysteriousPortal.js';
+import { SwampLight } from './SwampLight.js';
 
 // Import missing environment objects
 import { AshPile } from './AshPile.js';
@@ -90,6 +91,8 @@ import { RockFormation } from './RockFormation.js';
 import { Mushroom } from './Mushroom.js';
 import { FallenLog } from './FallenLog.js';
 import { SmallPlant } from './SmallPlant.js';
+import { AncientAltar } from './AncientAltar.js';
+import { ForgottenStatue } from './ForgottenStatue.js';
 
 /**
  * Environment Factory - Creates environment objects based on type
@@ -508,6 +511,12 @@ export class EnvironmentFactory {
             return magicCircle.createMesh();
         });
         
+        // Register swamp light environment object
+        this.register(ENVIRONMENT_OBJECTS.SWAMP_LIGHT, (position, size, data = {}) => {
+            const swampLight = new SwampLight(this.scene, this.worldManager, position, size, data);
+            return swampLight.object;
+        });
+        
         // Register missing environment objects that appear in map files
         this.register(ENVIRONMENT_OBJECTS.SMALL_CRYSTAL, (position, size) => {
             // Create a small crystal formation using a scaled-down crystal
@@ -656,6 +665,18 @@ export class EnvironmentFactory {
             this.scene.add(passGroup);
             
             return passGroup;
+        });
+        
+        // Register Ancient Altar
+        this.register(ENVIRONMENT_OBJECTS.ANCIENT_ALTAR, (position, size) => {
+            const ancientAltar = new AncientAltar(this.scene, this.worldManager, position, size);
+            return ancientAltar.object;
+        });
+        
+        // Register Forgotten Statue
+        this.register(ENVIRONMENT_OBJECTS.FORGOTTEN_STATUE, (position, size) => {
+            const forgottenStatue = new ForgottenStatue(this.scene, this.worldManager, position, size);
+            return forgottenStatue.object;
         });
     }
     

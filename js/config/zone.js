@@ -4,9 +4,10 @@
  */
 
 export const ZONE_TYPES = {
+    TERRANT: 'Terrant',
     FOREST: 'Forest',
     DESERT: 'Desert',
-    MOUNTAIN: 'Mountain',
+    MOUNTAIN: 'Mountains', // Note: This matches 'Mountains' in the ZONE_DEFINITIONS
     SWAMP: 'Swamp',
     MAGICAL: 'Magical'
 };

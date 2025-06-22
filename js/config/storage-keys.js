@@ -15,7 +15,7 @@ export const STORAGE_KEYS = {
     ADAPTIVE_QUALITY: 'monk_journey_adaptive_quality',
     TARGET_FPS: 'monk_journey_target_fps',
     SHOW_PERFORMANCE_INFO: 'monk_journey_show_performance_info',
-    DEBUG_MODE: 'monk_journey_debug_mode',
+    DISABLE_FULL_SCREEN: 'monk_journey_disable_full_screen',
     LOG_ENABLED: 'monk_journey_log_enabled',
     
     // Character settings
@@ -43,6 +43,7 @@ export const STORAGE_KEYS = {
     CAMERA_MODE: 'monk_journey_camera_mode',
     CAMERA_HEIGHT: 'monk_journey_camera_height',
     CAMERA_LOOK_OFFSET: 'monk_journey_camera_look_offset',
+    SHOW_MINIMAP: 'monk_journey_show_minimap',
     // MATERIAL_QUALITY key removed - using QUALITY_LEVEL instead
     
     // Save system keys

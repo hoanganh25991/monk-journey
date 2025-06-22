@@ -282,8 +282,9 @@ export class VoidWraithModel extends EnemyModel {
             // Hovering motion
             this.modelGroup.position.y = Math.sin(time * 0.8) * 0.1;
             
-            // Slight rotation
-            this.modelGroup.rotation.y = Math.sin(time * 0.3) * 0.1;
+            // Slight floating motion (only X and Z rotation, Y rotation handled by Enemy class)
+            this.modelGroup.rotation.x = Math.sin(time * 0.4) * 0.05;
+            this.modelGroup.rotation.z = Math.cos(time * 0.3) * 0.08;
             
             // Animate the void core
             const core = this.modelGroup.children[6]; // Void core

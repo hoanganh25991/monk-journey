@@ -68,7 +68,7 @@ export class SimpleEnemyModel extends EnemyModel {
         this.modelGroup.add(rightArm);
         
         // Create legs
-        const legGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.3);
+        const legGeometry = new THREE.BoxGeometry(0.3, 1.6, 0.3);
         const legMaterial = new THREE.MeshStandardMaterial({ 
             color: enemyColor,
             roughness: 0.7,
@@ -77,14 +77,14 @@ export class SimpleEnemyModel extends EnemyModel {
         
         // Left leg
         const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-        leftLeg.position.set(-0.3, -0.4, 0);
+        leftLeg.position.set(-0.3, -0.8, 0);
         leftLeg.castShadow = true;
         leftLeg.receiveShadow = true;
         this.modelGroup.add(leftLeg);
         
         // Right leg
         const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-        rightLeg.position.set(0.3, -0.4, 0);
+        rightLeg.position.set(0.3, -0.8, 0);
         rightLeg.castShadow = true;
         rightLeg.receiveShadow = true;
         this.modelGroup.add(rightLeg);
@@ -106,6 +106,7 @@ export class SimpleEnemyModel extends EnemyModel {
         const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
         rightEye.position.set(0.15, 1.9, 0.3);
         this.modelGroup.add(rightEye);
+        return this.modelGroup;
     }
     
     /**
@@ -132,10 +133,16 @@ export class SimpleEnemyModel extends EnemyModel {
                 this.modelGroup.position.y = 0.1;
             }
             
-            // Always apply slight rotation for more natural movement
-            if (!this.enemy.state.isAttacking) {
-                // Slightly rotate the model
-                this.modelGroup.rotation.y = Math.sin(time * 0.5) * 0.1;
+            // Apply subtle head movement without affecting the main facing direction
+            // The main Y rotation (facing direction) is handled by the Enemy class
+            if (!this.enemy.state.isAttacking && this.modelGroup.children.length > 1) {
+                // Only animate the head (second child) for subtle movement
+                const head = this.modelGroup.children[1]; // Head is the second child
+                if (head) {
+                    // Subtle head bobbing and turning
+                    head.rotation.x = Math.sin(time * 1.2) * 0.05; // Slight nod
+                    head.rotation.y = Math.sin(time * 0.8) * 0.1;  // Slight head turn
+                }
             }
         }
     }

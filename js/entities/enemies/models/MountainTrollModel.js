@@ -333,8 +333,9 @@ export class MountainTrollModel extends EnemyModel {
             // Slow, heavy breathing
             this.modelGroup.position.y = Math.sin(time * 0.5) * 0.05;
             
-            // Slight swaying
-            this.modelGroup.rotation.y = Math.sin(time * 0.3) * 0.05;
+            // Slight swaying (only X and Z rotation, Y rotation handled by Enemy class)
+            this.modelGroup.rotation.x = Math.sin(time * 0.3) * 0.02;
+            this.modelGroup.rotation.z = Math.cos(time * 0.4) * 0.03;
             
             // Animate club
             const clubHandle = this.modelGroup.children[10]; // Club handle

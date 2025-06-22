@@ -6,10 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
     <title>Monk Journey</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+
     <link rel="stylesheet" href="css/main.css">
     <!-- Font Awesome removed and replaced with custom icon.css -->
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#ffcc66">
+    <meta name="theme-color" content="#FFCC00">
     <meta name="description" content="A Diablo Immortal inspired game featuring a monk character">
     <meta name="orientation" content="landscape">
     <link rel="manifest" href="manifest.json">
@@ -101,6 +108,19 @@
             <div class="login-modal-buttons">
                 <button class="login-btn" id="conflict-use-cloud-btn">Use Cloud Version</button>
                 <button class="cancel-btn" id="conflict-use-local-btn">Use Local Version</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Selection Modal -->
+    <div id="map-selection-modal" class="login-modal-overlay">
+        <div class="login-modal-dialog">
+            <h3 class="login-modal-title">Map Selection</h3>
+            <p class="login-modal-message">
+                Map selection feature is coming soon! Stay tuned for exciting new worlds to explore.
+            </p>
+            <div class="login-modal-buttons">
+                <button class="login-btn" id="map-selection-ok-btn">OK</button>
             </div>
         </div>
     </div>
@@ -355,7 +375,7 @@
 
         <!-- Top Right UI (Home Button, Full Screen Button and Mini Map) -->
         <div id="top-right-container">
-            <!-- <button id="map-selector-button" class="circle-btn" title="Map Selector">🗺️</button> -->
+            <button id="map-selector-button" class="circle-btn" title="Map Selector">🗺️</button>
             <button id="inventory-button" class="circle-btn" title="Inventory">🎒</button>
             <button id="skill-tree-button" class="circle-btn" title="Skill Tree">🌲</button>
             <button id="skill-selection-button" class="circle-btn" title="Skill Selection">✨</button>
@@ -673,6 +693,16 @@
                             <div class="settings-description">Adjust the quality of game materials (affects performance)</div>
                         </div>
                         
+                        <!-- UI Settings -->
+                        <div id="ui-settings-container" class="setting-item">
+                            <h3>UI Settings</h3>
+                            <div id="show-minimap-container" class="setting-row">
+                                <label for="show-minimap-checkbox" class="settings-label">Show Mini Map</label>
+                                <input type="checkbox" id="show-minimap-checkbox" class="settings-checkbox" checked>
+                            </div>
+                            <div class="settings-description">Toggle mini map visibility in the top-right corner</div>
+                        </div>
+
                         <!-- Custom Skills Setting -->
                         <div id="custom-skills-container" class="setting-item">
                             <h3>Skill Options</h3>
@@ -686,8 +716,8 @@
                          <!-- FPS Setting -->
                         <div id="fps-container" class="setting-item">
                             <label for="fps-slider" class="settings-label">Target FPS: </label>
-                            <input type="range" id="fps-slider" class="settings-slider" min="30" max="120" step="5" value="60">
-                            <span id="fps-value" class="settings-value">60 FPS</span>
+                            <input type="range" id="fps-slider" class="settings-slider" min="30" max="240" step="5" value="120">
+                            <span id="fps-value" class="settings-value">120 FPS</span>
                         </div>
 
                         <!-- Game Difficulty Setting -->
@@ -706,7 +736,7 @@
                             <div class="setting-row">
                                 <label for="camera-zoom-slider" class="settings-label">Camera Zoom</label>
                                 <div style="display: flex; align-items: center;">
-                                    <input type="range" id="camera-zoom-slider" class="settings-slider" min="10" max="100" step="1" value="20">
+                                    <input type="range" id="camera-zoom-slider" class="settings-slider" min="10" max="100" step="5" value="20">
                                     <span id="camera-zoom-value" class="settings-value">20</span>
                                 </div>
                             </div>
@@ -1034,6 +1064,11 @@
                 <div id="debug-tab" class="tab-content">
                     <h2 id="debug-title">Debug Settings</h2>
                     <div id="debug-container" class="settings-section">
+                        <div id="disable-full-screen-container" class="setting-item">
+                            <label for="disable-full-screen-checkbox" class="settings-label">Disable Full Screen: </label>
+                            <input type="checkbox" id="disable-full-screen-checkbox" class="settings-checkbox">
+                            <span class="settings-description">Prevent automatic fullscreen mode activation</span>
+                        </div>
                         <div id="show-debug-info-container" class="setting-item">
                             <label for="show-debug-info-checkbox" class="settings-label">Show Performance Info (FPS, GPU, Quality): </label>
                             <input type="checkbox" id="show-debug-info-checkbox" class="settings-checkbox" checked>
@@ -1042,11 +1077,6 @@
                             <label for="log-enabled-checkbox" class="settings-label">Enable Console Logs: </label>
                             <input type="checkbox" id="log-enabled-checkbox" class="settings-checkbox">
                             <span class="settings-description">Disable for better performance (requires page reload)</span>
-                        </div>
-                        <div id="debug-mode-container" class="setting-item">
-                            <label for="debug-mode-checkbox" class="settings-label">Debug Mode: </label>
-                            <input type="checkbox" id="debug-mode-checkbox" class="settings-checkbox">
-                            <span class="settings-description">Enable for local development and testing</span>
                         </div>
                     </div>
                 </div>
