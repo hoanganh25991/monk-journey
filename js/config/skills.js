@@ -12,7 +12,7 @@ export const PRIMARY_ATTACKS = [
         name: 'Fist of Thunder',
         description: 'Teleport to the nearest enemy and strike them with lightning',
         type: 'teleport',
-        damage: 15, // Balanced primary attack damage
+        damage: 20, // Balanced primary attack damage
         manaCost: 0,
         cooldown: 0.2, // Very short cooldown for basic attack
         range: 15, // Teleport range
@@ -32,7 +32,7 @@ export const PRIMARY_ATTACKS = [
         description: "Extend your reach to strike enemies from a distance.",
         type: "projectile",
         damage: 10, // Keeping this the same as it's already balanced
-        manaCost: 0,
+        manaCost: 5,
         cooldown: 0.2,
         range: 25, // Increased range for a proper ranged attack
         radius: 1, // Small area of effect at impact point
