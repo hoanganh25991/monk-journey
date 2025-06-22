@@ -16,7 +16,8 @@ export class LocalStorageAdapter extends IStorageAdapter {
             STORAGE_KEYS.ADAPTIVE_QUALITY,
             STORAGE_KEYS.SHOW_PERFORMANCE_INFO,
             STORAGE_KEYS.MUTED,
-            STORAGE_KEYS.CUSTOM_SKILLS
+            STORAGE_KEYS.CUSTOM_SKILLS,
+            STORAGE_KEYS.SHOW_MINIMAP
         ];
         
         this.stringKeys = [
