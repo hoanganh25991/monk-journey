@@ -159,8 +159,16 @@ export class PotionModel extends ItemModel {
         if (this.modelGroup) {
             // Make the liquid glow pulse
             const liquid = this.modelGroup.children[1]; // Liquid
-            if (liquid && liquid.material) {
-                liquid.material.emissiveIntensity = 0.3 + Math.sin(time * 1.5) * 0.2;
+            if (liquid && liquid.material && liquid.material.type === 'MeshStandardMaterial') {
+                try {
+                    const newIntensity = 0.3 + Math.sin(time * 1.5) * 0.2;
+                    if (liquid.material.emissiveIntensity !== newIntensity) {
+                        liquid.material.emissiveIntensity = newIntensity;
+                    }
+                } catch (error) {
+                    // Silently ignore material update errors to prevent WebGL issues
+                    console.warn('Material update error in PotionModel:', error.message);
+                }
             }
             
             // Animate bubbles rising

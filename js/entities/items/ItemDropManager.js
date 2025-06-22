@@ -63,8 +63,15 @@ export class ItemDropManager {
         // Scale the item to make it more visible (3x larger)
         itemGroup.scale.set(3, 3, 3);
         
-        // Apply rarity effects
-        ItemModelFactory.applyRarityEffects(itemModel, item.rarity);
+        // Apply rarity effects safely
+        try {
+            ItemModelFactory.applyRarityEffects(itemModel, item.rarity);
+        } catch (error) {
+            console.warn(`Failed to apply rarity effects for item ${item.name}:`, error.message);
+        }
+        
+        // Ensure all materials in the item are properly initialized
+        this.validateItemMaterials(itemGroup);
         
         // Add to scene
         this.scene.add(itemGroup);
@@ -80,6 +87,11 @@ export class ItemDropManager {
         // Show notification
         if (this.game && this.game.hudManager) {
             this.game.hudManager.showNotification(`${item.name} dropped!`);
+        }
+        
+        // Notify game of item drop for more frequent material validation
+        if (this.game && typeof this.game.notifyItemDropped === 'function') {
+            this.game.notifyItemDropped();
         }
         
         return item.id;
@@ -210,6 +222,63 @@ export class ItemDropManager {
         
         // Remove from map
         this.droppedItems.delete(itemId);
+    }
+    
+    /**
+     * Validate and fix materials in an item group to prevent WebGL errors
+     * @param {THREE.Group} itemGroup - The item group to validate
+     */
+    validateItemMaterials(itemGroup) {
+        if (!itemGroup) return;
+        
+        itemGroup.traverse((child) => {
+            if (child.isMesh && child.material) {
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                
+                materials.forEach((material, index) => {
+                    if (!material) return;
+                    
+                    try {
+                        // Ensure material properties are compatible with material type
+                        if (material.type === 'MeshBasicMaterial') {
+                            // Remove properties that MeshBasicMaterial doesn't support
+                            if (material.roughness !== undefined) delete material.roughness;
+                            if (material.metalness !== undefined) delete material.metalness;
+                            if (material.emissiveIntensity !== undefined) delete material.emissiveIntensity;
+                        } else if (material.type === 'MeshLambertMaterial') {
+                            // Remove properties that MeshLambertMaterial doesn't support
+                            if (material.roughness !== undefined) delete material.roughness;
+                            if (material.metalness !== undefined) delete material.metalness;
+                            if (material.emissiveIntensity !== undefined) delete material.emissiveIntensity;
+                        }
+                        
+                        // Mark material for update to ensure proper compilation
+                        material.needsUpdate = true;
+                        
+                        // Set a unique name for debugging
+                        if (!material.name) {
+                            material.name = `ItemMaterial_${child.name || 'unnamed'}_${index}`;
+                        }
+                        
+                    } catch (error) {
+                        console.warn(`Material validation error for ${child.name || 'unnamed'}:`, error.message);
+                        
+                        // Replace with a safe fallback material
+                        const fallbackMaterial = new THREE.MeshBasicMaterial({
+                            color: 0x808080,
+                            transparent: material.transparent || false,
+                            opacity: material.opacity || 1
+                        });
+                        
+                        if (Array.isArray(child.material)) {
+                            child.material[index] = fallbackMaterial;
+                        } else {
+                            child.material = fallbackMaterial;
+                        }
+                    }
+                });
+            }
+        });
     }
     
     /**

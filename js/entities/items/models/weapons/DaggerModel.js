@@ -117,9 +117,17 @@ export class DaggerModel extends ItemModel {
         if (this.modelGroup) {
             // Make the blade gleam
             const blade = this.modelGroup.children[0];
-            if (blade && blade.material) {
-                // Vary the metalness slightly to create a gleaming effect
-                blade.material.metalness = 0.7 + Math.sin(time * 3) * 0.3;
+            if (blade && blade.material && blade.material.type === 'MeshStandardMaterial') {
+                try {
+                    // Vary the metalness slightly to create a gleaming effect
+                    const newMetalness = 0.7 + Math.sin(time * 3) * 0.3;
+                    if (blade.material.metalness !== newMetalness) {
+                        blade.material.metalness = newMetalness;
+                    }
+                } catch (error) {
+                    // Silently ignore material update errors to prevent WebGL issues
+                    console.warn('Material update error in DaggerModel:', error.message);
+                }
             }
             
             // Subtle rotation

@@ -78,7 +78,9 @@ export class Game {
         // WebGL state tracking
         this.webglContextLost = false;
         this.lastMaterialValidation = 0;
-        this.materialValidationInterval = 5000; // Validate materials every 5 seconds
+        this.materialValidationInterval = 2000; // Validate materials every 2 seconds (more frequent)
+        this.lastItemDropTime = 0;
+        this.itemDropValidationWindow = 5000; // 5 seconds after item drop for more frequent validation
     }
     
     /**
@@ -1445,35 +1447,105 @@ export class Game {
                 materials.forEach((material, index) => {
                     if (!material) return;
                     
-                    // Check if material needs to be compiled
-                    if (material.needsUpdate) {
-                        try {
-                            // Force material compilation
-                            if (this.renderer) {
-                                this.renderer.compile(scene, this.camera);
+                    // Check for invalid or disposed materials
+                    try {
+                        // Test if material is still valid by accessing a property
+                        const testColor = material.color;
+                        
+                        // Check if material needs to be compiled or has shader issues
+                        if (material.needsUpdate || this.isMaterialProblematic(material)) {
+                            try {
+                                // Force material compilation
+                                if (this.renderer && !this.webglContextLost) {
+                                    this.renderer.compile(scene, this.camera);
+                                }
+                                material.needsUpdate = false;
+                            } catch (error) {
+                                console.warn(`Material compilation failed for object ${object.name || 'unnamed'}:`, error.message);
+                                this.replaceMaterialWithFallback(object, material, index);
                             }
-                        } catch (error) {
-                            console.warn(`Material compilation failed for object ${object.name || 'unnamed'}:`, error.message);
-                            
-                            // Replace with a basic material as fallback
-                            const fallbackMaterial = new THREE.MeshBasicMaterial({ 
-                                color: 0x808080,
-                                transparent: material.transparent,
-                                opacity: material.opacity || 1
-                            });
-                            
-                            if (Array.isArray(object.material)) {
-                                object.material[index] = fallbackMaterial;
-                            } else {
-                                object.material = fallbackMaterial;
-                            }
-                            
-                            console.warn(`Replaced problematic material with fallback for object ${object.name || 'unnamed'}`);
                         }
+                    } catch (error) {
+                        console.warn(`Material validation failed for object ${object.name || 'unnamed'}:`, error.message);
+                        this.replaceMaterialWithFallback(object, material, index);
                     }
                 });
             }
         });
+    }
+    
+    /**
+     * Check if a material is problematic and might cause WebGL errors
+     * @param {THREE.Material} material - The material to check
+     * @returns {boolean} - True if the material is problematic
+     */
+    isMaterialProblematic(material) {
+        try {
+            // Check for common problematic properties
+            if (material.type === 'MeshBasicMaterial' && 
+                (material.emissive || material.emissiveIntensity !== undefined)) {
+                return true;
+            }
+            
+            if (material.type === 'MeshLambertMaterial' && 
+                (material.roughness !== undefined || material.metalness !== undefined)) {
+                return true;
+            }
+            
+            // Check if material has been disposed
+            if (material.uuid === undefined || material.uuid === null) {
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            return true; // If we can't check, assume it's problematic
+        }
+    }
+    
+    /**
+     * Replace a problematic material with a safe fallback
+     * @param {THREE.Object3D} object - The object with the material
+     * @param {THREE.Material} material - The problematic material
+     * @param {number} index - The material index if it's an array
+     */
+    replaceMaterialWithFallback(object, material, index) {
+        try {
+            // Create a safe fallback material
+            const fallbackMaterial = new THREE.MeshBasicMaterial({ 
+                color: material.color || 0x808080,
+                transparent: material.transparent || false,
+                opacity: material.opacity || 1,
+                side: material.side || THREE.FrontSide
+            });
+            
+            // Dispose of the old material safely
+            if (material && typeof material.dispose === 'function') {
+                try {
+                    material.dispose();
+                } catch (disposeError) {
+                    console.warn('Error disposing material:', disposeError.message);
+                }
+            }
+            
+            // Replace the material
+            if (Array.isArray(object.material)) {
+                object.material[index] = fallbackMaterial;
+            } else {
+                object.material = fallbackMaterial;
+            }
+            
+            console.warn(`Replaced problematic material with fallback for object ${object.name || 'unnamed'}`);
+        } catch (error) {
+            console.error('Failed to replace material with fallback:', error.message);
+        }
+    }
+    
+    /**
+     * Notify the game that an item has been dropped (for more frequent material validation)
+     */
+    notifyItemDropped() {
+        this.lastItemDropTime = Date.now();
     }
     
     /**
@@ -1512,7 +1584,14 @@ export class Game {
             
             // Validate scene materials periodically or when forced
             const now = Date.now();
-            if (now - this.lastMaterialValidation > this.materialValidationInterval) {
+            let shouldValidate = now - this.lastMaterialValidation > this.materialValidationInterval;
+            
+            // More frequent validation after item drops
+            if (now - this.lastItemDropTime < this.itemDropValidationWindow) {
+                shouldValidate = shouldValidate || (now - this.lastMaterialValidation > 500); // Every 500ms after item drop
+            }
+            
+            if (shouldValidate) {
                 this.validateSceneMaterials(scene);
                 this.lastMaterialValidation = now;
             }

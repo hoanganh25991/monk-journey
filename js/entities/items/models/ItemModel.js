@@ -86,9 +86,45 @@ export class ItemModel {
     addGlowEffect(color, intensity = 0.5) {
         this.modelGroup.traverse(child => {
             if (child.isMesh && child.material) {
-                child.material.emissive = new THREE.Color(color);
-                child.material.emissiveIntensity = intensity;
+                // Only apply emissive properties to materials that support them
+                if (child.material.type === 'MeshStandardMaterial' || 
+                    child.material.type === 'MeshPhysicalMaterial' ||
+                    child.material.type === 'MeshLambertMaterial') {
+                    child.material.emissive = new THREE.Color(color);
+                    if (child.material.type === 'MeshStandardMaterial' || 
+                        child.material.type === 'MeshPhysicalMaterial') {
+                        child.material.emissiveIntensity = intensity;
+                    }
+                }
             }
         });
+    }
+    
+    /**
+     * Dispose of the item model and clean up resources
+     */
+    dispose() {
+        if (this.modelGroup) {
+            // Dispose of all geometries and materials in the group
+            this.modelGroup.traverse(child => {
+                if (child.geometry) {
+                    child.geometry.dispose();
+                }
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(mat => {
+                            if (mat.dispose) mat.dispose();
+                        });
+                    } else {
+                        if (child.material.dispose) {
+                            child.material.dispose();
+                        }
+                    }
+                }
+            });
+            
+            // Clear the group
+            this.modelGroup.clear();
+        }
     }
 }

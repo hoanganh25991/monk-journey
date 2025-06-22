@@ -114,9 +114,17 @@ export class StaffModel extends ItemModel {
                     1 + Math.sin(time * 2) * 0.1
                 );
                 
-                // Adjust emissive intensity
-                if (orb.material) {
-                    orb.material.emissiveIntensity = 0.5 + Math.sin(time * 2) * 0.2;
+                // Safely adjust emissive intensity only if material supports it
+                if (orb.material && orb.material.type === 'MeshStandardMaterial') {
+                    try {
+                        const newIntensity = 0.5 + Math.sin(time * 2) * 0.2;
+                        if (orb.material.emissiveIntensity !== newIntensity) {
+                            orb.material.emissiveIntensity = newIntensity;
+                        }
+                    } catch (error) {
+                        // Silently ignore material update errors to prevent WebGL issues
+                        console.warn('Material update error in StaffModel:', error.message);
+                    }
                 }
             }
             
