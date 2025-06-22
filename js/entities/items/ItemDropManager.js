@@ -60,6 +60,9 @@ export class ItemDropManager {
         const itemModel = ItemModelFactory.createModel(item, itemGroup);
         itemModel.createModel();
         
+        // Scale the item to make it more visible (3x larger)
+        itemGroup.scale.set(3, 3, 3);
+        
         // Apply rarity effects
         ItemModelFactory.applyRarityEffects(itemModel, item.rarity);
         
@@ -108,6 +111,16 @@ export class ItemDropManager {
             // Always update rotation for smooth animation
             if (itemData.group) {
                 itemData.group.rotation.y += delta * this.rotationSpeed;
+            }
+            
+            // Update item model animations safely
+            if (itemData.model && typeof itemData.model.updateAnimations === 'function') {
+                try {
+                    itemData.model.updateAnimations(delta);
+                } catch (error) {
+                    // Silently handle animation errors to prevent WebGL issues
+                    console.warn(`Animation update error for item ${itemData.item.name}:`, error.message);
+                }
             }
             
             // Only check distances periodically to reduce computation
