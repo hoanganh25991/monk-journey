@@ -39,6 +39,8 @@ export class EnvironmentObject {
      * @param {THREE.Object3D} object - The object to add
      */
     addToScene(object) {
+        // TODO: clean source better
+        return;
         if (object) {
             this.scene.add(object);
             this.object = object;
