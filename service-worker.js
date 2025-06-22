@@ -4,13 +4,13 @@
  */
 
 const CACHE_NAME = 'monk-journey-cache';
-const CACHE_VERSION = '47';
+const CACHE_VERSION = '48';
 const CACHE_KEY = CACHE_NAME + '-v' + CACHE_VERSION;
 
 
 // Total cache size in bytes and MB
-const TOTAL_CACHE_SIZE_BYTES = 8304367;
-const TOTAL_CACHE_SIZE_MB = 7.92;
+const TOTAL_CACHE_SIZE_BYTES = 9064939;
+const TOTAL_CACHE_SIZE_MB = 8.64;
 
 // Assets to cache
 const ASSETS_TO_CACHE = [
@@ -89,6 +89,7 @@ const ASSETS_TO_CACHE = [
   'js/entities/enemies/models/FrostTitanModel.js',
   'js/entities/enemies/models/InfernalGolemModel.js',
   'js/entities/enemies/models/InfernoLordModel.js',
+  'js/entities/enemies/models/MoltenBehemothModel.js',
   'js/entities/enemies/models/MountainTrollModel.js',
   'js/entities/enemies/models/NecromancerModel.js',
   'js/entities/enemies/models/ShadowBeastModel.js',
@@ -116,6 +117,7 @@ const ASSETS_TO_CACHE = [
   'js/entities/items/models/armor/RobeModel.js',
   'js/entities/items/models/consumable/FoodModel.js',
   'js/entities/items/models/consumable/PotionModel.js',
+  'js/entities/items/models/consumable/ScrollModel.js',
   'js/entities/items/models/weapons/DaggerModel.js',
   'js/entities/items/models/weapons/FistModel.js',
   'js/entities/items/models/weapons/StaffModel.js',
@@ -236,6 +238,7 @@ const ASSETS_TO_CACHE = [
   'js/hud-manager/HomeUI.js',
   'js/hud-manager/InventoryButton.js',
   'js/hud-manager/InventoryUI.js',
+  'js/hud-manager/MapSelectionUI.js',
   'js/hud-manager/MiniMapButton.js',
   'js/hud-manager/MiniMapUI.js',
   'js/hud-manager/NotificationsUI.js',
@@ -292,6 +295,7 @@ const ASSETS_TO_CACHE = [
   'js/world/LODManager.js',
   'js/world/WorldManager.js',
   'js/world/environment/AlpineFlower.js',
+  'js/world/environment/AncientAltar.js',
   'js/world/environment/AncientArtifact.js',
   'js/world/environment/AncientStone.js',
   'js/world/environment/AncientTree.js',
@@ -316,6 +320,7 @@ const ASSETS_TO_CACHE = [
   'js/world/environment/ForestDebris.js',
   'js/world/environment/ForestFlower.js',
   'js/world/environment/ForestShrine.js',
+  'js/world/environment/ForgottenStatue.js',
   'js/world/environment/Fountain.js',
   'js/world/environment/Foutain.js',
   'js/world/environment/GiantMushroom.js',
@@ -361,6 +366,7 @@ const ASSETS_TO_CACHE = [
   'js/world/environment/StoneCircle.js',
   'js/world/environment/Stump.js',
   'js/world/environment/SwampDebris.js',
+  'js/world/environment/SwampLight.js',
   'js/world/environment/SwampPlant.js',
   'js/world/environment/SwampTree.js',
   'js/world/environment/TallGrass.js',
@@ -400,6 +406,7 @@ const ASSETS_TO_CACHE = [
   'js/world/structures/Village.js',
   'js/world/teleport/PortalModelFactory.js',
   'js/world/teleport/TeleportManager.js',
+  'js/world/terrain/ChunkPersistenceManager.js',
   'js/world/terrain/TerrainChunkManager.js',
   'js/world/terrain/TerrainCleanupManager.js',
   'js/world/terrain/TerrainColoringManager.js',
@@ -411,11 +418,13 @@ const ASSETS_TO_CACHE = [
   'js/world/utils/SpatialGrid.js',
   'js/world/utils/TerrainChunkPool.js',
   'js/world/zones/ZoneManager.js',
+  'images/apple-touch-icon.png',
+  'images/favicon-16x16.png',
+  'images/favicon-32x32.png',
+  'images/favicon.ico',
   'images/home.jpg',
   'images/logo-192.png',
-  'images/logo-192.svg',
   'images/logo-512.png',
-  'images/logo-512.svg',
   'assets/audio/ally_dismiss.mp3',
   'assets/audio/ally_summon.mp3',
   'assets/audio/attack.mp3',
