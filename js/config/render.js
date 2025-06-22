@@ -74,7 +74,10 @@ export const FOG_CONFIG = {
     maxVisibleDistance: 16 * 2, // Maximum distance at which objects are still visible
     darkeningFactor: 0.7, // How much darker distant objects become (0-1)
     
-    // Quality level adjustments - adjusted to maintain consistent brightness
+    // PERFORMANCE FIX: Add frustum culling distance
+    frustumCullingDistance: 16 * 4, // Objects beyond this distance are not rendered at all
+    
+    // Quality level adjustments - PERFORMANCE FIX: More aggressive fog for performance
     qualityMultipliers: {
         high: 0.9, // Slightly reduced fog density for high quality (better visibility)
         medium: 1.4, // Increased from 1.2 to help cull distant objects and improve performance
