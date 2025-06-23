@@ -1,0 +1,126 @@
+/* 
+ * buttons.css - Button styles for settings menu
+ * Part of the Diablo Immortal CSS optimization
+ */
+
+/* Settings Menu Specific Buttons */
+/* Compact button style for settings menu */
+.settings-button {
+    background-color: rgba(255, 204, 0, 0.7);
+    color: #4a3000;
+    border: 2px solid rgba(255, 230, 150, 0.8);
+    padding: 8px 15px;
+    margin: 0;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    -webkit-appearance: none;
+    appearance: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+    position: relative;
+    overflow: hidden;
+    min-width: 120px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.settings-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: all 0.5s ease;
+}
+
+.settings-button:hover {
+    background-color: rgba(255, 215, 0, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+}
+
+.settings-button:hover::before {
+    left: 100%;
+}
+
+.settings-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 -1px 2px rgba(139, 101, 0, 0.2);
+}
+
+.settings-button:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.5), 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.settings-button:disabled {
+    border-color: #3D3D3D;
+    color: #666;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.settings-button:disabled::before {
+    display: none;
+}
+
+/* Existing test sound button - now using settings-button class */
+#test-sound-button {
+    width: auto;
+    min-width: 120px;
+}
+
+/* Navigation buttons for selects - Monk Style */
+#prev-model-button, #next-model-button,
+#prev-size-button, #next-size-button,
+#prev-anim-button, #next-anim-button,
+#prev-model-preview-button, #next-model-preview-button,
+#prev-anim-preview-button, #next-anim-preview-button,
+#prev-skill-button, #next-skill-button,
+#prev-enemy-button, #next-enemy-button,
+#prev-enemy-anim-button, #next-enemy-anim-button,
+#prev-variant-button, #next-variant-button {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 -1px 3px rgba(139, 101, 0, 0.2);
+    padding: 0; /* Override settings-button padding */
+    min-width: unset; /* Override settings-button min-width */
+}
+
+#prev-model-button:hover, #next-model-button:hover,
+#prev-size-button:hover, #next-size-button:hover,
+#prev-anim-button:hover, #next-anim-button:hover,
+#prev-model-preview-button:hover, #next-model-preview-button:hover,
+#prev-anim-preview-button:hover, #next-anim-preview-button:hover,
+#prev-skill-button:hover, #next-skill-button:hover,
+#prev-enemy-button:hover, #next-enemy-button:hover,
+#prev-enemy-anim-button:hover, #next-enemy-anim-button:hover,
+#prev-variant-button:hover, #next-variant-button:hover {
+    background-color: rgba(255, 215, 0, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+#prev-model-button:active, #next-model-button:active,
+#prev-size-button:active, #next-size-button:active,
+#prev-anim-button:active, #next-anim-button:active,
+#prev-model-preview-button:active, #next-model-preview-button:active,
+#prev-anim-preview-button:active, #next-anim-preview-button:active,
+#prev-skill-button:active, #next-skill-button:active,
+#prev-enemy-button:active, #next-enemy-button:active,
+#prev-enemy-anim-button:active, #next-enemy-anim-button:active,
+#prev-variant-button:active, #next-variant-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}

@@ -1,0 +1,40 @@
+/* Custom icon definitions to replace Font Awesome */
+
+.fa-map:before {
+  content: "\1F5FA"; /* Unicode for map emoji */
+  font-style: normal;
+  display: inline-block;
+}
+
+/* Alternative map icon using CSS */
+.icon-map {
+  position: relative;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-color: currentColor;
+  border-radius: 0.15em;
+  margin: 0.1em;
+}
+
+.icon-map:before {
+  content: "";
+  position: absolute;
+  top: 0.2em;
+  left: 0.2em;
+  right: 0.2em;
+  bottom: 0.2em;
+  border: 0.1em solid white;
+  border-radius: 0.1em;
+}
+
+.icon-map:after {
+  content: "";
+  position: absolute;
+  top: 0.35em;
+  left: 0.35em;
+  width: 0.3em;
+  height: 0.3em;
+  background-color: white;
+  border-radius: 50%;
+}

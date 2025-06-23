@@ -1,0 +1,54 @@
+/* 
+ * hud-enemy-health.css - Enemy health display
+ * Part of the Diablo Immortal CSS optimization
+ * This file contains styles for enemy health display
+ */
+
+/* Enemy Health */
+#enemy-health-container {
+    position: absolute;
+    top: 1.2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    z-index: 50;
+}
+
+#enemy-health-bar-container {
+    position: relative;
+    width: 100%;
+    height: 1rem;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 2px solid #333;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#enemy-health-bar {
+    height: 100%;
+    width: 100%;
+    background-color: #f00;
+    border-radius: 3px;
+}
+
+#enemy-health-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    text-shadow: 1px 1px 2px black;
+    white-space: nowrap;
+}
+
+#enemy-name {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 14px;
+    text-shadow: 1px 1px 2px black;
+}

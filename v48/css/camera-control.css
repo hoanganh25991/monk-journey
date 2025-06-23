@@ -1,0 +1,77 @@
+/* 
+ * camera-control.css - Camera control UI styles
+ * Part of the Diablo Immortal CSS optimization
+ * This file contains styles for the camera control interface
+ */
+
+/* Camera Control Indicator */
+#camera-control-indicator {
+    position: absolute;
+    pointer-events: auto;
+    z-index: 200;
+    display: none; /* Initially hidden */
+}
+
+/* Base Circle */
+#camera-control-base {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+}
+
+/* Handle/Indicator */
+#camera-control-handle {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.8);
+    transform: translate(-50%, -50%);
+}
+
+/* Direction Arrows Container */
+#camera-control-arrows {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+/* Direction Arrow Styles */
+.camera-control-arrow {
+    position: absolute;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Up Arrow */
+.camera-control-arrow.up {
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Right Arrow */
+.camera-control-arrow.right {
+    top: 50%;
+    left: calc(100% - 15px);
+    transform: translateY(-50%);
+}
+
+/* Down Arrow */
+.camera-control-arrow.down {
+    top: calc(100% - 15px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Left Arrow */
+.camera-control-arrow.left {
+    top: 50%;
+    left: 5px;
+    transform: translateY(-50%);
+}

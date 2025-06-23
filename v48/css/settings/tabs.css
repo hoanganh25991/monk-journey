@@ -1,0 +1,44 @@
+/* 
+ * tabs.css - Tab styles for settings menu
+ * Part of the Diablo Immortal CSS optimization
+ */
+
+.settings-tabs {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.tab-button {
+    padding: var(--padding-medium);
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tab-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-button.active {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-left: 4px solid #ff6600;
+    padding-left: 11px; /* 15px - 4px border */
+}
+
+/* Override overflow for specific tabs */
+#model-preview-tab.tab-content,
+#skills-preview-tab.tab-content,
+#enemy-preview-tab.tab-content,
+#item-preview-tab.tab-content {
+    overflow: hidden;
+}

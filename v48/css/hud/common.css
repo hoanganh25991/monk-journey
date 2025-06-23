@@ -1,0 +1,37 @@
+/* 
+ * hud-common.css - Common HUD UI components
+ * Part of the Diablo Immortal CSS optimization
+ * This file contains common UI components used across the HUD
+ */
+
+/* Common UI Components - Circle Buttons */
+.circle-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(255, 204, 0, 0.7);
+    border: 2px solid rgba(255, 230, 150, 0.8);
+    color: #4a3000;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto; /* Enable click events */
+    transition: all 0.3s ease;
+}
+
+.circle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.circle-btn:active {
+    transform: scale(0.95);
+}
+
+/* Fade out animation for HUD elements */
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0.6; }
+}

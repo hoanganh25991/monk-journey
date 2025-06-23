@@ -1,0 +1,88 @@
+/* 
+ * main.css - Main CSS file that imports all modular CSS files
+ * Part of the Diablo Immortal CSS optimization
+ */
+
+/* Import CSS variables first */
+@import 'variables.css';
+
+/* Import reset styles */
+@import 'reset.css';
+
+/* Import layout styles */
+@import 'orientation-message.css';
+
+/* Import initial loading styles */
+@import 'initial-loading.css';
+
+/* Import loading screen styles */
+@import 'loading-screen.css';
+
+/* Import inventory styles */
+@import 'inventory.css';
+
+/* Import item popup styles */
+@import 'item-popup.css';
+
+/* Import Game styles */
+@import 'game.css';
+
+/* Import Game Menu styles */
+@import 'game-menu.css';
+
+/* Import Settings Menu styles */
+@import 'settings-menu.css';
+
+/* Import HUD Manager styles */
+@import 'hud-manager.css';
+
+/* Import HUD > Dialog styles */
+@import 'dialog.css';
+
+/* Import inventory styles */
+@import 'inventory.css';
+
+/* Import performance manager styles */
+@import 'performance-manager.css';
+
+/* Import notifications styles */
+@import 'notifications.css';
+
+/* Import login modal styles */
+@import 'login-modal.css';
+
+/* Import camera info panel styles */
+@import 'skill-preview.css';
+
+/* Import skill tree styles */
+@import 'skill-tree.css';
+
+/* Import skill selection styles */
+@import 'skill-selection.css';
+
+/* Import animation styles */
+@import 'animations.css';
+
+/* Import utility classes */
+@import 'utilities.css';
+
+/* Import icons classes */
+@import 'icons.css';
+
+/* Import save operation progress styles */
+@import 'save-operation-progress.css';
+
+/* Import teleport manager styles */
+@import 'teleport-manager.css';
+
+/* Import death screen styles */
+@import 'death-screen.css';
+
+/* Import camera control styles */
+@import 'camera-control.css';
+
+/* Import multiplayer styles */
+@import 'multiplayer.css';
+
+/* Import difficulty menu styles */
+@import 'difficulty-menu.css';
