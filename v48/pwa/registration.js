@@ -16,6 +16,11 @@
             return;
         }
 
+        if (window.location.hostname === 'localhost') {
+            console.warn('Service workers are not supported when running locally from localhost');
+            return;
+        }
+        
         if (localStorage.getItem('monk_journey_debug_mode') === 'true') {
             console.warn('Service workers are disabled in debug mode');
             return;

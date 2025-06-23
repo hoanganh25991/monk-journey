@@ -16,9 +16,15 @@ export class ItemDropManager {
         this.scene = scene;
         this.game = game;
         this.droppedItems = new Map(); // Map of item ID to dropped item data
-        this.lightBeams = new Map(); // Map of item ID to light beam effect
-        this.autoPickupDelay = 1; // Delay in seconds before auto-pickup (was instant before)
-        this.autoRemoveDelay = 7; // Delay in seconds before auto-removing items if not picked up
+        this.autoRemoveDelay = 10; // Delay in seconds before auto-removing items if not picked up
+        this.autoRemoveDistance = 16 * 16;
+        
+        // Optimization: Only check pickup distances every few frames
+        this.pickupCheckInterval = 0.3; // Check every 100ms instead of every frame
+        this.timeSinceLastPickupCheck = 0;
+        
+        // Rotation optimization
+        this.rotationSpeed = 2.0; // Radians per second for smoother rotation
     }
 
     /**
@@ -54,8 +60,39 @@ export class ItemDropManager {
         const itemModel = ItemModelFactory.createModel(item, itemGroup);
         itemModel.createModel();
         
-        // Apply rarity effects
-        ItemModelFactory.applyRarityEffects(itemModel, item.rarity);
+        // Create a flat ring around the item for better visibility
+        const ringGeometry = new THREE.RingGeometry(0.4, 0.6, 16); // Smaller ring, just slightly larger than item
+        const ringMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.6,
+            side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        
+        // Position the ring flat and parallel to the ground, always horizontal
+        ring.rotation.x = -Math.PI / 2; // Rotate to lay flat and parallel to ground
+        ring.position.copy(itemGroup.position); // Copy the item group's position
+        ring.position.y += 0.05; // Slightly above ground level
+        
+        // Add the ring directly to the scene (not to itemGroup) to keep it always horizontal
+        this.scene.add(ring);
+        
+        // Scale the item to make it more visible (3x larger)
+        // itemGroup.scale.set(3, 3, 3);
+        
+        // Apply rarity effects safely
+        try {
+            ItemModelFactory.applyRarityEffects(itemModel, item.rarity);
+        } catch (error) {
+            console.warn(`Failed to apply rarity effects for item ${item.name}:`, error.message);
+        }
+        
+        // Ensure all materials in the item are properly initialized
+        this.validateItemMaterials(itemGroup);
+        
+        // Validate ring material separately
+        this.validateRingMaterial(ring);
         
         // Add to scene
         this.scene.add(itemGroup);
@@ -65,191 +102,120 @@ export class ItemDropManager {
             item: item,
             group: itemGroup,
             model: itemModel,
+            ring: ring,
             dropTime: Date.now()
         });
-        
-        // Add light beam for all items to make them more visible
-        // Different colors/intensities based on rarity
-        this.addLightBeamEffect(item, itemGroup);
         
         // Show notification
         if (this.game && this.game.hudManager) {
             this.game.hudManager.showNotification(`${item.name} dropped!`);
         }
         
+        // Notify game of item drop for more frequent material validation
+        if (this.game && typeof this.game.notifyItemDropped === 'function') {
+            this.game.notifyItemDropped();
+        }
+        
         return item.id;
     }
     
-    /**
-     * Add a light beam effect for items
-     * @param {Item} item - The item
-     * @param {THREE.Group} itemGroup - The item's group
-     */
-    addLightBeamEffect(item, itemGroup) {
-        // Get color based on rarity
-        const rarityColors = {
-            common: 0xFFFFFF,    // White for common
-            uncommon: 0x1EFF00,  // Green for uncommon
-            magic: 0x0070DD,     // Blue for magic
-            rare: 0x0070DD,      // Blue for rare
-            epic: 0xA335EE,      // Purple for epic
-            legendary: 0xFF8000, // Orange for legendary
-            mythic: 0xFF0000     // Red for mythic
-        };
-        
-        const color = rarityColors[item.rarity] || 0xFFFFFF;
-        
-        // Create light source
-        const light = new THREE.PointLight(color, 1, 10);
-        light.position.set(0, 2, 0); // Position above the item
-        itemGroup.add(light);
-        
-        // Create light beam cylinder - straight beam (same radius top and bottom) and 3x longer (12 units)
-        const beamGeometry = new THREE.CylinderGeometry(0.2, 0.2, 12 * 3, 8, 1, true);
-        const beamMaterial = new THREE.MeshBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: 0.3,
-            side: THREE.DoubleSide
-        });
-        
-        // Create a separate group for the beam to keep it independent of item rotation
-        const beamGroup = new THREE.Group();
-        this.scene.add(beamGroup);
-        
-        // Set beam group position to match item position
-        beamGroup.position.copy(itemGroup.position);
-        
-        // Create the beam and add it to the beam group
-        const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-        beam.position.set(0, 6, 0); // Position higher above the item to accommodate the 3x longer beam (36 units)
-        beamGroup.add(beam);
-        
-        // Store reference to light beam and its group
-        this.lightBeams.set(item.id, {
-            light: light,
-            beam: beam,
-            beamGroup: beamGroup,
-            intensity: 1.0,
-            itemPosition: itemGroup.position.clone() // Store initial position
-        });
-    }
+
     
     /**
      * Update all dropped items
      * @param {number} delta - Time since last update in seconds
      */
     update(delta) {
+        // Skip processing if player is not available
+        if (!this.game || !this.game.player) return;
+        
+        // Update pickup check timer
+        this.timeSinceLastPickupCheck += delta;
+        const shouldCheckPickup = this.timeSinceLastPickupCheck >= this.pickupCheckInterval;
+        
+        // Get player position once if we're checking pickup
+        let playerPosition = null;
+        if (shouldCheckPickup) {
+            playerPosition = this.game.player.getPosition();
+            this.timeSinceLastPickupCheck = 0; // Reset timer
+        }
+        
         // Update each dropped item
         for (const [id, itemData] of this.droppedItems.entries()) {
-            // Skip processing if player is not available
-            if (!this.game || !this.game.player) continue;
-            
-            const playerPosition = this.game.player.getPosition();
-            const itemPosition = itemData.group.position;
-            const distance = playerPosition.distanceTo(itemPosition);
-            
-            if (distance > 100) {
-                // Remove item group from scene
-                if (itemData.group) {
-                    this.scene.remove(itemData.group);
-                }
-                
-                // Remove beam group from scene
-                const lightBeam = this.lightBeams.get(id);
-                if (lightBeam && lightBeam.beamGroup) {
-                    this.scene.remove(lightBeam.beamGroup);
-                }
-                
-                // Remove from maps
-                this.droppedItems.delete(id);
-                this.lightBeams.delete(id);
-                
-                // Skip to next item
-                continue;
+            // Always update rotation for smooth animation
+            if (itemData.group) {
+                itemData.group.rotation.y += delta * this.rotationSpeed;
             }
             
-            // Update item model animations
-            if (itemData.model) {
-                itemData.model.updateAnimations(delta);
+            // Only check distances periodically to reduce computation
+            if (shouldCheckPickup && playerPosition) {
+                const itemPosition = itemData.group.position;
+                const distance = playerPosition.distanceTo(itemPosition);
                 
-                // Make items float and rotate for better visibility
-                const time = Date.now() * 0.001; // Convert to seconds
-                const floatHeight = Math.sin(time * 2) * 0.1; // Gentle floating effect
+                // Remove items that are too far away
+                if (distance > this.autoRemoveDistance) {
+                    this.removeDroppedItem(id, itemData);
+                    continue;
+                }
                 
-                // Apply floating effect
-                if (itemData.group) {
-                    // Store the base height if not already stored
-                    if (!itemData.baseHeight) {
-                        itemData.baseHeight = itemData.group.position.y;
-                    }
-                    
-                    // Apply floating effect
-                    itemData.group.position.y = itemData.baseHeight + floatHeight;
-                    
-                    // Apply rotation effect
-                    itemData.group.rotation.y += delta * 1.0; // Rotate items slowly
+                // Auto-pickup if player is close enough (instant pickup)
+                if (distance < 1.5) {
+                    this.pickupItem(id);
+                    continue; // Skip to next item since this one was picked up
                 }
             }
             
-            // Update light beam effect
-            if (this.lightBeams.has(id)) {
-                const lightBeam = this.lightBeams.get(id);
-                
-                // Pulse the light
-                const time = Date.now() * 0.001; // Convert to seconds
-                const pulseIntensity = 0.7 + Math.sin(time * 2) * 0.3;
-                
-                lightBeam.light.intensity = pulseIntensity;
-                
-                // Update beam group position to follow the item's position (only y-axis for floating)
-                if (lightBeam.beamGroup && itemData.group) {
-                    // Keep x and z coordinates the same as the original position
-                    lightBeam.beamGroup.position.x = lightBeam.itemPosition.x;
-                    lightBeam.beamGroup.position.z = lightBeam.itemPosition.z;
-                    
-                    // Only update y position to match the floating item
-                    lightBeam.beamGroup.position.y = itemData.group.position.y;
-                    
-                    // Ensure beam stays perfectly vertical (no rotation)
-                    lightBeam.beamGroup.rotation.set(0, 0, 0);
-                }
-            }
-            
-            // Auto-pickup if player is close enough and item has been on the ground for the delay period
+            // Auto-remove item if it's been on the ground for too long
             const currentTime = Date.now();
             const itemDropTime = itemData.dropTime || 0;
             const timeOnGround = (currentTime - itemDropTime) / 1000; // Convert to seconds
             
-            if (distance < 1.5 && timeOnGround >= this.autoPickupDelay) {
-                this.pickupItem(id);
-            }
-            
-            // Auto-remove item if it's been on the ground for too long
             if (timeOnGround >= this.autoRemoveDelay) {
-                // Remove item group from scene
-                if (itemData.group) {
-                    this.scene.remove(itemData.group);
-                }
-                
-                // Remove beam group from scene
-                const lightBeam = this.lightBeams.get(id);
-                if (lightBeam && lightBeam.beamGroup) {
-                    this.scene.remove(lightBeam.beamGroup);
-                }
-                
-                // Remove from maps
-                this.droppedItems.delete(id);
-                this.lightBeams.delete(id);
-                
-                // Show notification if HUD is available
-                if (this.game && this.game.hudManager) {
-                    this.game.hudManager.showNotification(`${itemData.item.name} disappeared!`);
-                }
-                
-                // Skip to next item since this one was removed
+                this.removeDroppedItem(id, itemData, true); // true = show notification
                 continue;
             }
+        }
+    }
+    
+    /**
+     * Helper method to remove a dropped item from the scene and cleanup resources
+     * @param {string} itemId - The ID of the item to remove
+     * @param {Object} itemData - The item data object
+     * @param {boolean} showNotification - Whether to show a disappear notification
+     */
+    removeDroppedItem(itemId, itemData, showNotification = false) {
+        // Dispose of model resources if available
+        if (itemData.model && typeof itemData.model.dispose === 'function') {
+            itemData.model.dispose();
+        }
+        
+        // Dispose of ring resources if available
+        if (itemData.ring) {
+            try {
+                if (itemData.ring.geometry) {
+                    itemData.ring.geometry.dispose();
+                }
+                if (itemData.ring.material) {
+                    itemData.ring.material.dispose();
+                }
+                // Remove ring from scene since it's added directly to scene
+                this.scene.remove(itemData.ring);
+            } catch (error) {
+                console.warn('Error disposing ring resources:', error.message);
+            }
+        }
+        
+        // Remove item group from scene
+        if (itemData.group) {
+            this.scene.remove(itemData.group);
+        }
+        
+        // Remove from map
+        this.droppedItems.delete(itemId);
+        
+        // Show notification if requested and HUD is available
+        if (showNotification && this.game && this.game.hudManager) {
+            this.game.hudManager.showNotification(`${itemData.item.name} disappeared!`);
         }
     }
     
@@ -272,59 +238,144 @@ export class ItemDropManager {
             }
         }
         
+        // Dispose of model resources if available
+        if (itemData.model && typeof itemData.model.dispose === 'function') {
+            itemData.model.dispose();
+        }
+        
+        // Dispose of ring resources if available
+        if (itemData.ring) {
+            try {
+                if (itemData.ring.geometry) {
+                    itemData.ring.geometry.dispose();
+                }
+                if (itemData.ring.material) {
+                    itemData.ring.material.dispose();
+                }
+                // Remove ring from scene since it's added directly to scene
+                this.scene.remove(itemData.ring);
+            } catch (error) {
+                console.warn('Error disposing ring resources during pickup:', error.message);
+            }
+        }
+        
         // Remove item group from scene
         if (itemData.group) {
             this.scene.remove(itemData.group);
         }
         
-        // Remove beam group from scene
-        const lightBeam = this.lightBeams.get(itemId);
-        if (lightBeam && lightBeam.beamGroup) {
-            this.scene.remove(lightBeam.beamGroup);
-        }
-        
-        // Remove from maps
+        // Remove from map
         this.droppedItems.delete(itemId);
-        this.lightBeams.delete(itemId);
+    }
+    
+    /**
+     * Validate and fix materials in an item group to prevent WebGL errors
+     * @param {THREE.Group} itemGroup - The item group to validate
+     */
+    validateItemMaterials(itemGroup) {
+        if (!itemGroup) return;
+        
+        itemGroup.traverse((child) => {
+            if (child.isMesh && child.material) {
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                
+                materials.forEach((material, index) => {
+                    if (!material) return;
+                    
+                    try {
+                        // Ensure material properties are compatible with material type
+                        if (material.type === 'MeshBasicMaterial') {
+                            // Remove properties that MeshBasicMaterial doesn't support
+                            if (material.roughness !== undefined) delete material.roughness;
+                            if (material.metalness !== undefined) delete material.metalness;
+                            if (material.emissiveIntensity !== undefined) delete material.emissiveIntensity;
+                        } else if (material.type === 'MeshLambertMaterial') {
+                            // Remove properties that MeshLambertMaterial doesn't support
+                            if (material.roughness !== undefined) delete material.roughness;
+                            if (material.metalness !== undefined) delete material.metalness;
+                            if (material.emissiveIntensity !== undefined) delete material.emissiveIntensity;
+                        }
+                        
+                        // Mark material for update to ensure proper compilation
+                        material.needsUpdate = true;
+                        
+                        // Set a unique name for debugging
+                        if (!material.name) {
+                            material.name = `ItemMaterial_${child.name || 'unnamed'}_${index}`;
+                        }
+                        
+                    } catch (error) {
+                        console.warn(`Material validation error for ${child.name || 'unnamed'}:`, error.message);
+                        
+                        // Replace with a safe fallback material
+                        const fallbackMaterial = new THREE.MeshBasicMaterial({
+                            color: 0x808080,
+                            transparent: material.transparent || false,
+                            opacity: material.opacity || 1
+                        });
+                        
+                        if (Array.isArray(child.material)) {
+                            child.material[index] = fallbackMaterial;
+                        } else {
+                            child.material = fallbackMaterial;
+                        }
+                    }
+                });
+            }
+        });
+    }
+    
+    /**
+     * Validate ring material to prevent WebGL errors
+     * @param {THREE.Mesh} ring - The ring mesh to validate
+     */
+    validateRingMaterial(ring) {
+        if (!ring || !ring.material) return;
+        
+        try {
+            // Ensure the ring material is properly configured
+            const material = ring.material;
+            
+            // MeshBasicMaterial should be safe, but let's ensure proper properties
+            if (material.type === 'MeshBasicMaterial') {
+                // Ensure transparency is properly set
+                if (material.transparent && (material.opacity === undefined || material.opacity === null)) {
+                    material.opacity = 0.6;
+                }
+                
+                // Mark for update to ensure proper compilation
+                material.needsUpdate = true;
+                
+                // Set a unique name for debugging
+                if (!material.name) {
+                    material.name = 'ItemDropRingMaterial';
+                }
+            }
+        } catch (error) {
+            console.warn('Ring material validation error:', error.message);
+            
+            // Replace with a safe fallback material
+            try {
+                const fallbackMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.6,
+                    side: THREE.DoubleSide
+                });
+                ring.material = fallbackMaterial;
+            } catch (fallbackError) {
+                console.error('Failed to create fallback ring material:', fallbackError.message);
+            }
+        }
     }
     
     /**
      * Remove all dropped items
      */
     clear() {
-        // Remove all items and beam groups from scene
+        // Remove all items from scene using helper method
         for (const [id, itemData] of this.droppedItems.entries()) {
-            if (itemData.group) {
-                this.scene.remove(itemData.group);
-            }
-            
-            // Remove beam group
-            const lightBeam = this.lightBeams.get(id);
-            if (lightBeam && lightBeam.beamGroup) {
-                this.scene.remove(lightBeam.beamGroup);
-            }
+            this.removeDroppedItem(id, itemData);
         }
-        
-        // Clear maps
-        this.droppedItems.clear();
-        this.lightBeams.clear();
-    }
-    
-    /**
-     * Set the auto-remove delay for dropped items
-     * @param {number} seconds - The delay in seconds before items are automatically removed
-     */
-    setAutoRemoveDelay(seconds) {
-        if (typeof seconds === 'number' && seconds >= 0) {
-            this.autoRemoveDelay = seconds;
-        }
-    }
-    
-    /**
-     * Get the current auto-remove delay for dropped items
-     * @returns {number} The delay in seconds
-     */
-    getAutoRemoveDelay() {
-        return this.autoRemoveDelay;
     }
 }
