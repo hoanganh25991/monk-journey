@@ -15,13 +15,52 @@ export class GameMenu extends IMenu {
         this.loadGameButton = document.getElementById('load-game-button');
         this.settingsMenuButton = document.getElementById('settings-menu-button');
         this.googleSignInButton = document.getElementById('google-signin-button');
+        this.multiplayerButton = document.getElementById('multiplayer-button');
+        this.versionSelect = document.getElementById('version-select');
         this.setupEventListeners();
+        this.loadVersions();
         
         // Listen for Google sign-in/sign-out events
         window.addEventListener('google-signin-success', () => this.updateGoogleSignInButton(true));
         window.addEventListener('google-signout', () => this.updateGoogleSignInButton(false));
     }
     
+    /**
+     * Load available versions from versions.json
+     * @private
+     */
+    async loadVersions() {
+        try {
+            const response = await fetch('./versions.json');
+            const data = await response.json();
+            
+            if (this.versionSelect && data.versions) {
+                // Clear loading option
+                this.versionSelect.innerHTML = '';
+                
+                // Add version options
+                data.versions.forEach(version => {
+                    const option = document.createElement('option');
+                    option.value = version.path;
+                    option.textContent = version.label;
+                    option.title = version.description;
+                    
+                    // Mark current version as selected
+                    if (version.path === '/' || version.version === 'v61') {
+                        option.selected = true;
+                    }
+                    
+                    this.versionSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load versions:', error);
+            if (this.versionSelect) {
+                this.versionSelect.innerHTML = '<option value="">Version info unavailable</option>';
+            }
+        }
+    }
+
     /**
      * Update the Google Sign-In button text based on sign-in state
      * @param {boolean} isSignedIn - Whether the user is signed in
@@ -196,6 +235,29 @@ export class GameMenu extends IMenu {
             if (this.game.saveManager && this.game.saveManager.isSignedInToGoogle()) {
                 this.googleSignInButton.textContent = "Sign out from Google";
             }
+        }
+        
+        // Version select dropdown
+        if (this.versionSelect) {
+            this.versionSelect.addEventListener('change', (event) => {
+                const selectedPath = event.target.value;
+                
+                if (selectedPath && selectedPath !== window.location.pathname) {
+                    console.debug(`Version selected: ${selectedPath}`);
+                    
+                    // Create a temporary anchor element to handle the navigation
+                    const link = document.createElement('a');
+                    link.href = selectedPath;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    
+                    // Trigger the navigation
+                    link.click();
+                    
+                    // Clean up
+                    document.body.removeChild(link);
+                }
+            });
         }
     }
 
