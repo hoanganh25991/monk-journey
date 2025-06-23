@@ -1,0 +1,484 @@
+/**
+ * inventory.css - Inventory UI Styles
+ * Styling for the Diablo-inspired inventory interface
+ */
+
+/* Main Inventory Container */
+#inventory {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0);
+    border: 2px solid #8a6d3b;
+    border-radius: 8px;
+    color: white; /* Will be toggled by JavaScript */
+    pointer-events: auto;
+    z-index: 150; /* Dialogs and Menus */
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+}
+
+/* Inventory Header - Consistent with skill-tree-header */
+#inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--padding-medium) var(--padding-large);
+    background-color: rgba(138, 109, 59, 0.3);
+    border-bottom: 1px solid #8a6d3b;
+}
+
+#inventory-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffcc00;
+    text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
+}
+
+#inventory-gold {
+    font-size: 18px;
+    color: #ffcc00;
+    text-align: center;
+    flex: 1;
+}
+
+/* Inventory Container */
+#inventory-container {
+    display: flex;
+    flex: 1;
+    height: calc(100% - 60px); /* Adjust based on header height */
+    overflow: hidden;
+}
+
+/* Character Equipment Section (Left Side) */
+#character-equipment {
+    width: 300px;
+    padding: 5px;
+    border-right: 1px solid rgba(138, 109, 59, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+    height: 100%; /* Make it take full height */
+    position: relative; /* For absolute positioning of children */
+}
+
+#character-model-container {
+    position: absolute;
+    width: 100%; /* Full width of parent */
+    height: 100%; /* Full height of parent */
+    top: 0;
+    left: 0;
+    z-index: 10; /* Behind equipment slots which have z-index: 2 */
+    overflow: hidden;
+    border-radius: 8px;
+    background-color: rgba(20, 20, 20, 0.5);
+}
+
+#character-model-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+#equipment-slots {
+    position: absolute;
+    display: grid;
+    height: 100%;
+    grid-template-areas:
+        "head       .        accessory"
+        "shoulders  .        weapon"
+        "chest      .        legs"
+        "hands      .        feet";
+    grid-template-columns: 1fr 2.5fr 1fr;
+    grid-template-rows: repeat(4, 1fr); /* Equal height rows */
+    pointer-events: none; /* Allow clicks to pass through to slots */
+    z-index: 50;
+}
+
+.equipment-slot {
+    background-color: rgba(20, 20, 20, 0.7);
+    border: 1px solid rgba(138, 109, 59, 0.5);
+    border-radius: 8px;
+    padding: var(--padding-small);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 60px;
+    height: 60px;
+    margin: 2px;
+    pointer-events: auto; /* Ensure slots can be clicked */
+    z-index: 2; /* Above the character model */
+}
+
+.equipment-slot[data-slot="head"] {
+    grid-area: head;
+    justify-self: end; /* Align to right side (closer to character) */
+    align-self: center;
+}
+
+.equipment-slot[data-slot="shoulders"] {
+    grid-area: shoulders;
+    justify-self: end; /* Align to right side (closer to character) */
+    align-self: center;
+}
+
+.equipment-slot[data-slot="chest"] {
+    grid-area: chest;
+    justify-self: end; /* Align to right side (closer to character) */
+    align-self: center;
+}
+
+.equipment-slot[data-slot="hands"] {
+    grid-area: hands;
+    justify-self: end; /* Align to right side (closer to character) */
+    align-self: center;
+}
+
+.equipment-slot[data-slot="weapon"] {
+    grid-area: weapon;
+    justify-self: start; /* Align to left side (closer to character) */
+    align-self: center;
+}
+
+.equipment-slot[data-slot="legs"] {
+    grid-area: legs;
+    justify-self: start; /* Align to left side (closer to character) */
+    align-self: center;
+}
+
+.equipment-slot[data-slot="feet"] {
+    grid-area: feet;
+    justify-self: start; /* Align to left side (closer to character) */
+    align-self: center;
+}
+
+.equipment-slot[data-slot="accessory"] {
+    grid-area: accessory;
+    justify-self: start; /* Align to left side (closer to character) */
+    align-self: center;
+}
+
+.equipment-slot:hover {
+    background-color: rgba(30, 30, 30, 0.8);
+    border-color: #ffcc00;
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+}
+
+.slot-icon {
+    font-size: 24px;
+    margin-bottom: 5px;
+}
+
+.slot-name {
+    font-size: 12px;
+    color: #ccc;
+}
+
+/* Inventory Items Section (Right Side) */
+#inventory-items {
+    flex: 1;
+    padding: var(--padding-medium);
+    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+#inventory-items h3 {
+    font-size: 18px;
+    color: #ffcc00;
+    margin-bottom: 10px;
+    border-bottom: 1px dashed rgba(255, 204, 0, 0.3);
+    padding-bottom: var(--padding-small);
+}
+
+/* Inventory Grid */
+#inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+}
+
+/* Inventory Items */
+.inventory-item {
+    background-color: rgba(20, 20, 20, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: var(--padding-small);
+    aspect-ratio: 1/1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.inventory-item:hover {
+    background-color: rgba(30, 30, 30, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+    border-color: #ffcc00;
+}
+
+.inventory-item:active {
+    transform: scale(0.98);
+}
+
+.item-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.item-icon {
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.item-count {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 12px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    padding: 2px 5px;
+    color: #ffcc00;
+}
+
+.item-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-level {
+    font-size: 12px;
+    color: #ffcc00;
+}
+
+.item-description {
+    font-size: 12px;
+    color: #ccc;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.item-stats {
+    font-size: 12px;
+    color: #8a6d3b;
+}
+
+/* Empty inventory slots */
+.inventory-item.empty {
+    background-color: rgba(20, 20, 20, 0.3);
+    border: 1px dashed rgba(138, 109, 59, 0.3);
+    cursor: default;
+    position: relative;
+}
+
+.inventory-item.empty::after {
+    content: "";
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    border: 1px dashed rgba(138, 109, 59, 0.5);
+    border-radius: 4px;
+}
+
+.inventory-item.empty:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: rgba(138, 109, 59, 0.3);
+}
+
+/* Save Button */
+#inventory-save {
+    width: 40px;
+    height: 40px;
+    background-color: rgba(255, 204, 0, 0.7);
+    border: 2px solid rgba(255, 230, 150, 0.8);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+#inventory-save:hover {
+    background-color: rgba(255, 204, 0, 0.8);
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+#inventory-save:active {
+    transform: scale(0.95);
+}
+
+/* Inventory Button (in the top right UI) */
+#inventory-button {
+    position: relative;
+}
+
+/* Item Rarity Colors */
+.item-common {
+    color: #ffffff;
+}
+
+.item-uncommon {
+    color: #1eff00;
+}
+
+.item-rare {
+    color: #0070dd;
+}
+
+.item-epic {
+    color: #a335ee;
+}
+
+.item-legendary {
+    color: #ff8000;
+}
+
+/* Player Stats Overlay */
+#player-stats-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 200;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+}
+
+#player-stats-container-inventory {
+    background-color: rgba(20, 20, 20, 0.9);
+    border: 2px solid #8a6d3b;
+    border-radius: 8px;
+    padding: 20px;
+    width: 80%;
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 0 20px rgba(255, 204, 0, 0.3);
+}
+
+#player-stats-container-inventory h3 {
+    font-size: 22px;
+    color: #ffcc00;
+    margin-bottom: 15px;
+    text-align: center;
+    border-bottom: 1px solid rgba(138, 109, 59, 0.5);
+    padding-bottom: 10px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid rgba(138, 109, 59, 0.3);
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #ccc;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 18px;
+    color: #ffcc00;
+    font-weight: bold;
+}
+
+#close-stats-overlay {
+    position: absolute;
+    top: -1rem;
+    right: -1rem;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+#close-stats-overlay:hover {
+    background-color: rgba(255, 0, 0, 0.9);
+    transform: scale(1.1);
+}
+
+/* Inventory Footer */
+#inventory-footer {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    bottom: 0px;
+    width: 100%;
+    z-index: 50;
+    margin: auto;
+}
+
+.inventory-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(138, 109, 59, 0.5);
+    border: 1px solid #8a6d3b;
+    border-radius: var(--padding-small);
+    padding: var(--padding-small);
+    color: #ffcc00;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.inventory-action-btn:hover {
+    background-color: rgba(138, 109, 59, 0.7);
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+}
+
+.btn-icon {
+    margin-right: 8px;
+    font-size: 18px;
+}
+
+.btn-text {
+    font-weight: bold;
+}

@@ -1,0 +1,31 @@
+/* 
+ * hud-manager.css - In-game HUD elements
+ * Part of the Diablo Immortal CSS optimization
+ * This file imports all modular HUD CSS files
+ */
+
+/* Import common HUD components */
+@import 'hud/common.css';
+
+/* Import HUD layout */
+@import 'hud/layout.css';
+
+/* Import player stats */
+@import 'hud/player-stats.css';
+
+/* Import enemy health */
+@import 'hud/enemy-health.css';
+
+/* Import skills */
+@import 'hud/skills.css';
+
+/* Import joystick */
+@import 'hud/joystick.css';
+
+/* Import mini map */
+@import 'hud/minimap.css';
+
+/* Import quest log */
+@import 'hud/quest-log.css';
+
+

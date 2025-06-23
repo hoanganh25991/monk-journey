@@ -1,0 +1,97 @@
+/* 
+ * controls.css - Controls tab styles for settings menu
+ * Part of the Diablo Immortal CSS optimization
+ */
+
+/* Controls Info Styling */
+.controls-info {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: var(--padding-medium);
+    margin-top: 10px;
+}
+
+/* Vertical scroll layout for controls */
+.controls-info-vertical-scroll {
+    max-height: 500px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.2);
+}
+
+/* Webkit scrollbar styling */
+.controls-info-vertical-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.controls-info-vertical-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.controls-info-vertical-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+/* Two-column layout for controls (legacy) */
+.controls-info-two-columns {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.controls-column {
+    flex: 1;
+    min-width: 250px;
+}
+
+/* Full width column for vertical layout */
+.controls-column-full {
+    width: 100%;
+}
+
+.control-row {
+    display: flex;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.control-key {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: var(--padding-small) var(--padding-medium);
+    border-radius: 4px;
+    margin-right: 15px;
+    min-width: 100px;
+    text-align: center;
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.control-description {
+    flex: 1;
+    color: white;
+}
+
+/* Mobile UI Button Controls */
+.mobile-ui-button {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.mobile-ui-button .button-icon {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: var(--padding-small) var(--padding-medium);
+    border-radius: 4px;
+    margin-right: 15px;
+    min-width: 100px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.mobile-ui-button .button-description {
+    flex: 1;
+    color: white;
+}

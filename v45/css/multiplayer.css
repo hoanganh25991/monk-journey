@@ -1,0 +1,552 @@
+/* 
+ * multiplayer.css - Styles for multiplayer functionality
+ * Redesigned to match settings-menu.css style and optimize for landscape view
+ */
+
+#multiplayer-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    z-index: 200; /* Multiplayer Modal */
+    overflow: hidden;
+    padding: 0;
+    box-sizing: border-box;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    color: white;
+    background-image: url('../assets/images/background.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.multiplayer-menu-content {
+    border-radius: 10px;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center content vertically */
+}
+
+/* Fullscreen layout for host and join screens */
+.multiplayer-menu-content.fullscreen-layout {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Container itself shouldn't scroll */
+}
+
+/* Modal header with close button - similar to settings menu */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--padding-small) var(--padding-medium);
+    background: rgba(0, 0, 0, 0.5);
+    height: 50px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Initial screen options - vertical buttons in center */
+.multiplayer-options {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex: 1; /* Take up available space in the flex container */
+}
+
+/* Host game layout - optimized for landscape */
+.host-game-layout {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Container shouldn't scroll */
+    box-sizing: border-box;
+}
+
+/* QR section - centered QR code */
+.qr-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--padding-medium);
+    border-radius: 10px;
+    overflow-y: auto; /* This section can scroll */
+    -webkit-overflow-scrolling: touch;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Centered QR code */
+.centered-qr {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    overflow: hidden;
+    box-sizing: border-box;
+    border: var(--padding-medium) solid #fff;
+}
+
+/* Connection code row - single line with copy button */
+.connection-code-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin: var(--margin-medium) auto 0;
+    width: 100%;
+    max-width: 300px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    padding: var(--padding-small);
+}
+
+/* Players section - more attractive list */
+.players-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: var(--padding-medium);
+    border-radius: 10px;
+    overflow-y: auto; /* This section can scroll */
+    -webkit-overflow-scrolling: touch;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Connected players list - more attractive styling */
+.connected-players-list {
+    margin-top: var(--margin-small);
+    text-align: left;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    padding: var(--padding-small);
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.multiplayer-action {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Player item - more attractive styling */
+.player-item {
+    padding: var(--padding-small);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    transition: background-color 0.3s ease;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.player-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.player-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+/* Host player styling */
+.host-player {
+    font-weight: bold;
+    background-color: rgba(255, 204, 0, 0.1);
+}
+
+/* Join game layout - optimized for landscape */
+.join-game-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Container shouldn't scroll */
+    box-sizing: border-box;
+    padding: var(--padding-small);
+}
+
+/* Join options container */
+.join-options-container {
+    display: flex;
+    flex-direction: column;
+    width: 500px;
+    flex: 1;
+}
+
+/* Join initial options */
+.join-initial-options {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 100%;
+}
+
+/* QR Scanner View */
+.scan-qr-view {
+    flex: 1;
+    height: 100%;
+    width: 100%;
+    padding: var(--padding-small);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Manual Code View */
+.manual-code-view {
+    flex: 1;
+    height: 100%;
+    padding: var(--padding-medium);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Scanner section - full width and height */
+.scanner-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    height: 100%;
+    width: 100%;
+}
+
+/* QR scanner - square container for better scanning */
+#qr-scanner-view {
+    height: 80vh;
+    /* max-height: 500px;
+    margin: 0 auto;
+    background-color: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    position: relative; */
+    aspect-ratio: 1 / 1; /* Force 1:1 aspect ratio */
+}
+
+/* QR scanner container */
+.qr-scanner-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Enter code overlay */
+.enter-code-overlay {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.enter-code-overlay button {
+    width: 344px;
+}
+
+.enter-code-overlay:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 204, 0, 0.8);
+    transform: translateX(-50%) translateY(-2px);
+}
+
+/* Manual input section */
+.manual-input-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Input with buttons container */
+.input-with-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    max-width: 400px;
+    background-color: rgba(50, 50, 50, 0.8);
+    border-radius: 5px;
+    padding: 5px;
+}
+
+#manual-connection-input {
+    flex: 1;
+    padding: var(--padding-small);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    font-family: monospace;
+    background-color: rgba(50, 50, 50, 0.8);
+}
+
+/* Connect button container */
+.connect-button-container {
+    margin-top: var(--margin-medium);
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+/* Camera select dropdown */
+.camera-select {
+    padding: 5px;
+    border-radius: 5px;
+    background-color: #333;
+    color: white;
+    border: 1px solid #555;
+    cursor: pointer;
+    font-size: 12px;
+    max-width: 150px;
+    margin-top: 10px;
+}
+
+/* Waiting screen */
+.waiting-screen-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 30px;
+    overflow-y: auto; /* Allow scrolling */
+    -webkit-overflow-scrolling: touch;
+    padding: var(--padding-medium);
+}
+
+.waiting-message {
+    font-size: 1.2em;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: var(--padding-medium);
+    margin-top: 10px;
+    max-width: 500px;
+}
+
+.player-color-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: var(--padding-medium);
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Connection status for different screens */
+.connection-status {
+    margin-top: var(--margin-medium);
+    padding: var(--padding-small);
+    border-radius: 5px;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border-left: 3px solid rgba(255, 204, 0, 0.7);
+    border-right: 3px solid rgba(255, 204, 0, 0.7);
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* Connection code */
+.connection-code {
+    flex: 1;
+    padding: var(--padding-small);
+    border-radius: 5px;
+    word-break: break-all;
+    font-family: monospace;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.connection-code:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 204, 0, 0.5);
+}
+
+/* Small button style */
+.small-btn {
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.small-btn:hover {
+    background-color: rgba(255, 204, 0, 0.3);
+}
+
+.small-btn:active {
+    transform: translateY(1px);
+}
+
+/* Copied animation */
+.connection-code.copied {
+    background-color: rgba(76, 175, 80, 0.3);
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+    border-color: rgba(76, 175, 80, 0.5);
+}
+
+/* Player color indicator */
+.player-color-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: var(--margin-small);
+    display: inline-block;
+}
+
+/* Kick player button */
+.kick-player-btn {
+    margin-left: auto;
+    background-color: rgba(255, 59, 48, 0.2);
+    color: rgba(255, 59, 48, 0.8);
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+}
+
+.kick-player-btn:hover {
+    background-color: rgba(255, 59, 48, 0.4);
+    color: rgba(255, 255, 255, 1);
+    opacity: 1;
+}
+
+.kick-player-btn:active {
+    transform: scale(0.95);
+}
+
+/* Large player color indicator */
+.player-color-indicator.large {
+    width: 50px;
+    height: 50px;
+    margin: 0;
+}
+
+/* Connection info screen */
+#connection-info-screen {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Connection status box - now in the QR section */
+.connection-status-box {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: var(--padding-medium);
+    text-align: center;
+    margin-top: var(--margin-medium);
+}
+
+/* Host controls section */
+#host-controls {
+    margin-top: var(--margin-medium);
+    margin-bottom: var(--margin-medium);
+}
+
+/* Button container in players section */
+.players-section .button-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--margin-medium);
+}
+
+.status-connected {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.status-disconnected {
+    color: #FF5733;
+    font-weight: bold;
+}
+
+.no-connection-message {
+    text-align: center;
+    padding: var(--padding-medium);
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.you-indicator {
+    margin-left: 8px;
+    font-size: 0.9em;
+    color: #FFD700;
+    font-style: italic;
+}
+
+.danger-button {
+    background-color: rgba(255, 59, 48, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 59, 48, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.danger-button:hover {
+    background-color: rgba(255, 59, 48, 0.4);
+}
+
+.secondary-button {
+    background-color: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.secondary-button:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 204, 0, 0.5);
+}

@@ -1,0 +1,17 @@
+/* 
+ * settings-menu.css - Settings menu styles and layouts
+ * Part of the Diablo Immortal CSS optimization
+ * This file contains all styles for the settings menu, including base styles and space-optimized layouts
+ */
+
+/* Import all settings-related CSS files */
+@import 'settings/base.css';
+@import 'settings/mobile.css';
+@import 'settings/buttons.css';
+@import 'settings/forms.css';
+@import 'settings/tabs.css';
+@import 'settings/model-preview.css';
+@import 'settings/skills-preview.css';
+@import 'settings/enemy-preview.css';
+@import 'settings/item-preview.css';
+@import 'settings/controls.css';

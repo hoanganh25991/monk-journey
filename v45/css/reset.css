@@ -1,0 +1,61 @@
+/* 
+ * reset.css - Basic reset and global styles
+ * Part of the Diablo Immortal CSS optimization
+ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: none !important;
+}
+
+
+body {
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background-color: transparent; /* Changed from #000 to transparent */
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+html {
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+h1 {
+    margin-bottom: 2.5rem;
+}
+
+/* Remove default focus styles for all interactive elements */
+button, a, div, input, select, textarea, [role="button"], [tabindex] {
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+div, span, p {
+    font-size: 1rem;
+}
+
+/* Force landscape orientation */
+@media screen and (orientation: portrait) {
+    html {
+        transform: rotate(-90deg);
+        transform-origin: left top;
+        width: 100vh;
+        height: 100vw;
+        overflow-x: hidden;
+        position: absolute;
+        top: 100%;
+        left: 0;
+    }
+    
+    #orientation-message {
+        display: flex !important;
+    }
+}

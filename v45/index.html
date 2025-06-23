@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
+    <title>Monk Journey</title>
+    <link rel="stylesheet" href="css/main.css">
+    <!-- Font Awesome removed and replaced with custom icon.css -->
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ffcc66">
+    <meta name="description" content="A Diablo Immortal inspired game featuring a monk character">
+    <meta name="orientation" content="landscape">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="images/logo-192.png">
+    <link rel="apple-touch-icon" href="images/logo-192.png">
+    
+    
+	<!-- Facebook Meta Tags -->
+    <meta property="og:url" content="https://hoanganh25991.github.io/threejs-monk-journey">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Monk Journey">
+    <meta property="og:description" content="A Diablo Immortal inspired game featuring a monk character">
+    <meta property="og:image" content="https://hoanganh25991.github.io/threejs-monk-journey/images/home.jpg">
+    <meta property="og:image:width" content="1920">
+    <meta property="og:image:height" content="968">
+
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="twitter:domain" content="hoanganh25991.github.io">
+    <meta property="twitter:url" content="https://hoanganh25991.github.io/threejs-monk-journey">
+    <meta name="twitter:title" content="Monk Journey">
+    <meta name="twitter:description" content="A Diablo Immortal inspired game featuring a monk character">
+    <meta name="twitter:image" content="https://hoanganh25991.github.io/threejs-monk-journey/images/home.jpg">
+    <meta property="twitter:image:width" content="1920">
+    <meta property="twitter:image:height" content="968">
+</head>
+
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" style="display: none;">
+        <h2>Loading Monk Journey...</h2>
+        <div id="loading-bar-container">
+            <div id="loading-bar"></div>
+        </div>
+        <p id="loading-text">Loading resources...</p>
+        <p id="loading-info">Downloading game assets...</p>
+    </div>
+    
+    <!-- Orientation Message -->
+    <div id="orientation-message" style="display: none;">
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+            <path d="M12 18h.01" />
+        </svg>
+        <p>Please rotate your device to landscape mode for the best experience</p>
+    </div>
+
+    <!-- Main Background -->
+    <div id="main-background"></div>
+
+    <!-- Game Container -->
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+    </div>
+    
+    <!-- Performance Indicators -->
+    <div id="performance-indicators" style="display: none;">
+        <!-- Stats.js will be appended here by the PerformanceManager -->
+        <div id="memory-display">MEM: 0 MB</div>
+        <div id="gpu-enabled-indicator">GPU Enabled</div>
+        <div id="quality-indicator">
+            <div class="quality-value">QUALITY: ULTRA</div>
+            <div class="target-fps">Target FPS: 60</div>
+        </div>
+        <div id="gpu-info-panel"></div>
+    </div>
+
+    <!-- HUD Container Elements -->
+    <div id="hud-container" style="display: none;">
+        <!-- Left Side UI (Player Stats, Quest Log) -->
+        <div id="left-side-ui">
+            <!-- Player UI -->
+            <div id="player-stats-container">
+                <div id="player-header">
+                    <div class="player-header-row">
+                        <div id="player-portrait">🧘</div>
+                        <div class="player-bars">
+                            <div id="health-bar-container">
+                                <div id="health-icon">❤️</div>
+                                <div id="health-bar"></div>
+                                <div id="health-text"></div>
+                            </div>
+                            
+                            <div id="mana-bar-container">
+                                <div id="mana-icon">🔷</div>
+                                <div id="mana-bar"></div>
+                                <div id="mana-text"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="player-header-row">
+                        <div id="player-info">
+                            <div id="level-indicator">Level: 1</div>
+                        </div>
+                        <div id="experience-bar-container">
+                            <div id="experience-icon">✨</div>
+                            <div id="experience-bar"></div>
+                            <div id="experience-text"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quest Log -->
+            <div id="quest-log">
+                <div class="quest-title">Active Quests</div>
+                <div id="quest-list"></div>
+            </div>
+        </div>
+        
+        <!-- Virtual Joystick Container (moved outside left-side-ui) -->
+        <div id="virtual-joystick-container"></div>
+
+        <!-- Right Side UI (Skills) -->
+        <div id="right-side-ui">
+            <!-- Skills UI -->
+            <div id="skills-container"></div>
+        </div>
+        
+        <!-- Skill Tree UI Container -->
+        <div id="skill-tree">
+            <div id="skill-tree-header">
+                <div id="skill-tree-title">Monk Skill Tree</div>
+                <div id="skill-tree-points">Available Points: <span id="skill-points-value">0</span></div>
+                <button id="skill-tree-save-btn" class="circle-btn" title="Save Skill Tree">💾</button>
+            </div>
+            <div id="skill-tree-container">
+                <div id="skill-tree-view">
+                    <div id="skill-tree-skills"></div>
+                </div>
+                <div id="skill-tree-details">
+                    <div id="skill-detail-header">
+                        <div id="skill-detail-name">Select a skill</div>
+                        <div id="skill-detail-description">Click on a skill to view its details and customize it.</div>
+                    </div>
+                    <div id="skill-detail-content">
+                        <div id="skill-customization-container">
+                            <div id="skill-variants-container">
+                                <h3>Variants</h3>
+                                <div id="skill-variants"></div>
+                            </div>
+                            <div id="skill-buffs-container">
+                                <h3>Buffs</h3>
+                                <div id="skill-buffs"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory -->
+        <div id="inventory" style="display: none;">
+            <div id="inventory-header">
+                <div id="inventory-title">Character Inventory</div>
+                <div id="inventory-gold">Gold: <span id="gold-value">0</span></div>
+                <button id="inventory-save" class="circle-btn" title="Save Inventory">💾</button>
+            </div>
+            <div id="inventory-container">
+                <div id="character-equipment">
+                    <div id="character-model-container">👤</div>
+                    <div id="equipment-slots">
+                        <div class="equipment-slot" data-slot="head">
+                            <div class="slot-icon">🧢</div>
+                        </div>
+                        <div class="equipment-slot" data-slot="shoulders">
+                            <div class="slot-icon">👔</div>
+                        </div>
+                        <div class="equipment-slot" data-slot="chest">
+                            <div class="slot-icon">👕</div>
+                        </div>
+                        <div class="equipment-slot" data-slot="hands">
+                            <div class="slot-icon">🧤</div>
+                        </div>
+                        <div class="equipment-slot" data-slot="weapon">
+                            <div class="slot-icon">⚔️</div>
+                        </div>
+                        <div class="equipment-slot" data-slot="legs">
+                            <div class="slot-icon">👖</div>
+                        </div>
+                        <div class="equipment-slot" data-slot="feet">
+                            <div class="slot-icon">👟</div>
+                        </div>
+                        <div class="equipment-slot" data-slot="accessory">
+                            <div class="slot-icon">💍</div>
+                        </div>
+                    </div>
+                    <!-- Stats button at the bottom of inventory -->
+                    <div id="inventory-footer">
+                        <button id="show-stats-button" class="inventory-action-btn">
+                            <span class="btn-icon">📊</span>
+                            <span class="btn-text">Show Stats</span>
+                        </button>
+                    </div>
+                    <!-- Player stats container moved to overlay -->
+                    <div id="player-stats-overlay" style="display: none;">
+                        <div id="player-stats-container-inventory">
+                            <h3>Player Stats</h3>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-label">Health</div>
+                                    <div class="stat-value" id="stat-health">0/0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Mana</div>
+                                    <div class="stat-value" id="stat-mana">0/0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Attack</div>
+                                    <div class="stat-value" id="stat-attack">0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Defense</div>
+                                    <div class="stat-value" id="stat-defense">0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Speed</div>
+                                    <div class="stat-value" id="stat-speed">0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Level</div>
+                                    <div class="stat-value" id="stat-level">1</div>
+                                </div>
+                            </div>
+                            <button id="close-stats-overlay" class="circle-btn">💾</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="inventory-items">
+                    <h3>Items</h3>
+                    <div id="inventory-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skill Selection -->
+        <div id="skill-selection" style="display: none;">
+            <div id="skill-selection-container">
+                <div id="skill-selection-header">
+                    <h2>Select Your Skills</h2>
+                    <div id="skill-selection-counter">
+                        <span id="normal-skills-counter">0/7</span> Normal Skills Selected
+                    </div>
+                    <button id="skill-selection-save" class="circle-btn" disabled>💾</button>
+                </div>
+                
+                <div id="skill-selection-layout">
+                    <div id="skill-selection-content">
+                        <div id="primary-attack-section">
+                            <h3>Primary Attack (Select 1)</h3>
+                            <div id="primary-attack-list" class="skill-list single-column"></div>
+                        </div>
+                        
+                        <div id="normal-skills-section">
+                            <h3>Normal Skills (Select up to 7)</h3>
+                            <div id="normal-skills-list" class="skill-list"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="skill-selection-preview">
+                        <h3>Battle Skills Layout</h3>
+                        <div id="selected-skills-preview" class="battle-layout"></div>
+                        <div class="preview-description">
+                            <p>This is how your skills will appear in battle</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dialog Box -->
+        <div id="dialog-box" style="display: none;">
+            <div id="dialog-text"></div>
+            <div id="dialog-continue">Click to continue...</div>
+        </div>
+
+        <!-- Top Right UI (Home Button, Full Screen Button and Mini Map) -->
+        <div id="top-right-container">
+            <button id="inventory-button" class="circle-btn" title="Inventory">🎒</button>
+            <button id="skill-tree-button" class="circle-btn" title="Skill Tree">🌲</button>
+            <button id="skill-selection-button" class="circle-btn" title="Skill Selection">✨</button>
+            <button id="mini-map-button" class="circle-btn" title="Mini Map"><i class="fa-map"></i></button>
+            <button id="home-button" class="circle-btn" title="Game Menu">⛩️</button>
+        </div>
+
+        <!-- Mini Map -->
+        <div id="mini-map"></div>
+
+        <!-- Enemy UI -->
+        <div id="enemy-health-container"></div>
+
+        <!-- Notifications Container -->
+        <div id="notifications-container"></div>
+        
+        <!-- Level Up Container -->
+        <div id="level-up-container" style="display: none;">
+            <div class="level-up-content">
+                <div class="level-up-text">Level</div>
+                <div class="level-up-level"></div>
+            </div>
+        </div>
+
+        <!-- Effects Container -->
+        <div id="effects-container"></div>
+        
+        <!-- Camera Control UI -->
+        <div id="camera-control-indicator">
+            <div id="camera-control-base">
+                <div id="camera-control-arrows">
+                    <div class="camera-control-arrow up">↑</div>
+                    <div class="camera-control-arrow right">→</div>
+                    <div class="camera-control-arrow down">↓</div>
+                    <div class="camera-control-arrow left">←</div>
+                </div>
+            </div>
+            <div id="camera-control-handle"></div>
+        </div>
+    </div>
+
+    <!-- Save Operation Progress -->
+    <div id="save-operation-progress" class="save-operation-progress" style="display: none;">
+        <h3 id="save-operation-title">Saving Game</h3>
+        <div id="save-operation-text" class="progress-text">Initializing...</div>
+        <div class="progress-bar-container">
+            <div id="save-operation-bar" class="progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- Game Menu -->
+    <div id="game-menu" class="game-menu" style="display: none;">
+        <h1>Monk Journey</h1>
+        <div class="menu-button-container">
+            <button id="load-game-button" class="menu-button">Play Game</button>
+            <button id="multiplayer-button" class="menu-button">Multiplayer</button>
+            <button id="settings-menu-button" class="menu-button">Settings</button>
+        </div>
+    </div>
+
+    <!-- Multiplayer Menu -->
+    <div id="multiplayer-menu" class="game-menu">
+        <!-- Initial Options Screen -->
+        <div class="multiplayer-menu-content" id="multiplayer-initial-screen">
+            <div class="modal-header">
+                <h2>Multiplayer</h2>
+                <button id="close-multiplayer-btn" class="circle-btn" title="Close">↩️</button>
+            </div>
+            <div class="multiplayer-options">
+                <button id="host-game-btn" class="menu-button">Host Game</button>
+                <button id="join-game-btn" class="menu-button">Join Game</button>
+            </div>
+        </div>
+        
+        <!-- Host Game Screen -->
+        <!-- Host Game Screen has been removed as it's no longer needed -->
+        
+        <!-- Join Game Screen -->
+        <div class="multiplayer-menu-content fullscreen-layout" id="join-game-screen" style="display: none;">
+            <div class="modal-header">
+                <h2>Join Game</h2>
+                <button id="back-from-join-btn" class="circle-btn" title="Close">↩️</button>
+            </div>
+            <div class="join-game-layout">
+                <div class="join-options-container">
+                    
+                    <!-- QR Scanner View (hidden initially) -->
+                    <div id="scan-qr-view" class="scan-qr-view" style="display: none;">
+                        <div class="scanner-section">
+                            <div id="qr-scanner-view"></div>
+                            <select id="camera-select" class="camera-select" style="display: none;">
+                                <option value="">Loading cameras...</option>
+                            </select>
+                            <!-- Enter Code button overlay -->
+                            <div id="enter-code-overlay" class="enter-code-overlay" style="display: none;">
+                                <button id="overlay-enter-code-btn" class="settings-button">Enter Code</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Manual Code Entry (hidden initially) -->
+                    <div id="manual-code-view" class="manual-code-view" style="display: none;">
+                        <div class="manual-input-section">
+                            <div class="input-with-buttons">
+                                <input type="text" id="manual-connection-input" placeholder="Enter connection code">
+                                <button id="paste-code-btn" class="small-btn" title="Paste from clipboard">📋</button>
+                            </div>
+                            <div class="connect-button-container">
+                                <button id="manual-connect-btn" class="settings-button">Connect</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="join-connection-status" class="connection-status"></div>
+        </div>
+        
+        <!-- Player Waiting Screen has been removed and functionality merged into connection-info-screen -->
+        
+        <!-- Connection Info Screen -->
+        <div class="multiplayer-menu-content fullscreen-layout" id="connection-info-screen" style="display: none;">
+            <div class="modal-header">
+                <h2>Multiplayer Connection</h2>
+                <button id="close-connection-info-btn" class="circle-btn" title="Close">↩️</button>
+            </div>
+            <div class="host-game-layout">
+                <div class="qr-section">
+                    <div id="connection-info-qr" class="centered-qr"></div>
+                    <div class="connection-code-row">
+                        <div id="connection-info-code" class="connection-code" title="Click to copy"></div>
+                        <button id="connection-copy-code-btn" class="small-btn" title="Copy to clipboard">📋</button>
+                    </div>
+                    <div class="connection-status-box">
+                        <p id="connection-info-status">Connected</p>
+                        <p id="connection-role-info"></p>
+                    </div>
+                </div>
+                <div class="players-section">
+                    <h3>Connected Players</h3>
+                    <div id="connection-info-players" class="connected-players-list">
+                        <!-- Players will be added here dynamically -->
+                    </div>
+                    <div class="multiplayer-action" id="host-controls">
+                        <!-- Host-specific controls will be shown here when user is host -->
+                        <button id="start-game-btn" class="settings-button">Start Game</button>
+                        <button id="disconnect-btn" class="settings-button danger-button">Disconnect</button>
+                    </div>
+                </div>
+            </div>
+            <div id="connection-info-status-bar" class="connection-status"></div>
+        </div>
+    </div>
+
+    <!-- Settings Menu -->
+    <div id="main-options-menu" class="game-menu top-tabs-layout" style="display: none;">
+        <!-- Settings Icon in Top-Right -->
+        <!-- <div class="settings-header-icon">⚙️</div> -->
+        <div class="settings-header-icon">
+            <button id="settings-save-button" class="circle-btn" title="Save Settings">💾</button>
+        </div>
+
+        <!-- Top Tabs with Right Actions Layout -->
+        <div class="top-tabs-container">
+            <!-- Top Row with Tabs -->
+            <div class="top-tabs-row">
+                <div class="top-tabs">
+                    <button id="tab-game" class="tab-icon" title="Game">🎮</button>
+                    <button id="tab-controls" class="tab-icon" title="Controls">🎛️</button>
+                    <button id="tab-audio" class="tab-icon" title="Audio">🔊</button>
+                    <button id="tab-model-preview" class="tab-icon" title="Model Preview">👤</button>
+                    <button id="tab-skills-preview" class="tab-icon" title="Skills Preview">✨</button>
+                    <button id="tab-enemy-preview" class="tab-icon" title="Enemy Preview">👹</button>
+                    <button id="tab-item-preview" class="tab-icon" title="Item Preview">🎁</button>
+                    <button id="tab-performance" class="tab-icon active" title="Performance">⚡</button>
+                </div>
+            </div>
+            
+            <!-- Right Column with Action Buttons -->
+            <div class="right-actions-column">
+            </div>
+
+            <div class="settings-content">
+                <!-- Game Settings Tab -->
+                <div id="game-tab" class="tab-content active">
+                    <h2 id="game-title">Game Settings</h2>
+                    <div class="settings-section">
+                        <!-- Google Login Section -->
+                        <div id="google-login-section" class="setting-item">
+                            <h3>Account Sync</h3>
+                            <div class="setting-row">
+                                <div class="settings-label">Google Account</div>
+                                <div class="settings-google-login">
+                                    <button id="google-login-button" class="settings-button google-login-button" title="Sign in with Google">
+                                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTcuNiA5LjJsLS4xLTEuOEg5djMuNGg0LjhDMTMuNiAxMiAxMyAxMyAxMiAxMy42djIuMmgzYTguOCA4LjggMCAwIDAgMi42LTYuNnoiIGZpbGw9IiM0Mjg1RjQiIGZpbGwtcnVsZT0ibm9uemVybyIvPjxwYXRoIGQ9Ik05IDE4YzIuNCAwIDQuNS0uOCA2LTIuMmwtMy0yLjJhNS40IDUuNCAwIDAgMS04LTIuOUgxVjEzYTkgOSAwIDAgMCA4IDV6IiBmaWxsPSIjMzRBODUzIiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48cGF0aCBkPSJNNCAxMC43YTUuNCA1LjQgMCAwIDEgMC0zLjRWNUgxYTkgOSAwIDAgMCAwIDhsMy0yLjN6IiBmaWxsPSIjRkJCQzA1IiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48cGF0aCBkPSJNOSAzLjZjMS4zIDAgMi41LjQgMy40IDEuM0wxNSAyLjNBOSA5IDAgMCAwIDEgNWwzIDIuNGE1LjQgNS40IDAgMCAxIDUtMy43eiIgZmlsbD0iI0VBNDMzNSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PHBhdGggZD0iTTAgMGgxOHYxOEgweiIvPjwvZz48L3N2Zz4=" alt="Google">
+                                    </button>
+                                    <div class="google-login-status signed-out" style="display: none;"></div>
+                                </div>
+                            </div>
+                            <div class="setting-row" id="auto-login-container" style="display: none;">
+                                <div class="settings-label">Auto Login</div>
+                                <div class="settings-control">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="auto-login-checkbox">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="settings-description">Sync your game progress across devices</div>
+                        </div>
+                        
+                        <!-- Game Difficulty Setting -->
+                        <div id="difficulty-container" class="setting-item">
+                            <h3>Game Difficulty</h3>
+                            <div class="setting-row">
+                                <label for="difficulty-select" class="settings-label">Difficulty Level</label>
+                                <select id="difficulty-select" class="settings-select"></select>
+                            </div>
+                            <div class="settings-description">Choose the difficulty level for your game experience</div>
+                        </div>
+                        
+                        <!-- Custom Skills Setting -->
+                        <div id="custom-skills-container" class="setting-item">
+                            <h3>Skill Options</h3>
+                            <div class="setting-row">
+                                <label for="custom-skills-checkbox" class="settings-label">Enable Custom Skills</label>
+                                <input type="checkbox" id="custom-skills-checkbox" class="settings-checkbox">
+                            </div>
+                            <div class="settings-description">Include custom skills in the Skill Selection menu</div>
+                        </div>
+                        
+                        <!-- Camera Settings -->
+                        <div id="camera-settings-container" class="setting-item">
+                            <h3>Camera Settings</h3>
+                            <div class="setting-row">
+                                <label for="camera-zoom-slider" class="settings-label">Camera Zoom</label>
+                                <div style="display: flex; align-items: center;">
+                                    <input type="range" id="camera-zoom-slider" class="settings-slider" min="10" max="100" step="1" value="20">
+                                    <span id="camera-zoom-value" class="settings-value">20</span>
+                                </div>
+                            </div>
+                            <div class="settings-description">Adjust camera distance (higher values = further away)</div>
+                        </div>
+                        
+                        <!-- Game Control -->
+                        <div id="new-game-container" class="setting-item">
+                            <h3>Game Control</h3>
+                            <div class="setting-row">
+                                <div class="settings-label">Reset Game Progress</div>
+                                <button id="new-game-button" class="settings-button">New Game</button>
+                            </div>
+                            <div class="settings-description">Start a new game (current progress will be lost)</div>
+                        </div>
+                        
+                        <!-- Version Control -->
+                        <div id="version-container" class="setting-item">
+                            <h3>Version Control</h3>
+                            <div class="setting-row">
+                                <div class="settings-label">Current Version</div>
+                                <span id="current-version" class="settings-value">Current Version</span>
+                            </div>
+                            <div class="setting-row">
+                                <div class="settings-label">Update Game</div>
+                                <button id="update-to-latest-button" class="settings-button">Update to Latest</button>
+                            </div>
+                            <div class="settings-description">Clear cache and reload the latest version</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls Settings Tab -->
+                <div id="controls-tab" class="tab-content">
+                    <h2 id="controls-title">Controls Settings</h2>
+                    <div class="settings-section">
+                        <div id="mobile-controls-container" class="setting-item">
+                            <h3>Mobile Controls</h3>
+                            <!-- Controls will be dynamically generated here -->
+                        </div>
+                        <div id="keyboard-controls-container" class="setting-item">
+                            <h3>Keyboard Controls</h3>
+                            <!-- Controls will be dynamically generated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audio Settings Tab -->
+                <div id="audio-tab" class="tab-content">
+                    <h2 id="audio-title">Audio Settings</h2>
+                    <div id="audio-controls-container" class="settings-section">
+                        <!-- Main Audio Controls -->
+                        <div id="main-audio-container" class="setting-item">
+                            <h3>Main Audio Controls</h3>
+                            <div class="setting-row">
+                                <label for="mute-checkbox" class="settings-label">Mute All Audio</label>
+                                <input type="checkbox" id="mute-checkbox" class="settings-checkbox">
+                            </div>
+                            <div class="settings-description">Toggle all game audio on or off</div>
+                        </div>
+                        
+                        <!-- Volume Controls -->
+                        <div id="volume-controls-container" class="setting-item">
+                            <h3>Volume Controls</h3>
+                            <div class="setting-row">
+                                <label for="music-volume-slider" class="settings-label">Music Volume</label>
+                                <div style="display: flex; align-items: center;">
+                                    <input type="range" id="music-volume-slider" class="settings-slider" min="0" max="100" value="80">
+                                    <span id="music-volume-value" class="settings-value">80%</span>
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <label for="sfx-volume-slider" class="settings-label">SFX Volume</label>
+                                <div style="display: flex; align-items: center;">
+                                    <input type="range" id="sfx-volume-slider" class="settings-slider" min="0" max="100" value="80">
+                                    <span id="sfx-volume-value" class="settings-value">80%</span>
+                                </div>
+                            </div>
+                            <div class="settings-description">Adjust volume levels for music and sound effects separately</div>
+                        </div>
+                        
+                        <!-- Test Sound -->
+                        <div id="test-sound-container" class="setting-item">
+                            <h3>Sound Test</h3>
+                            <div class="setting-row">
+                                <div class="settings-label">Play Test Sound</div>
+                                <button id="test-sound-button" class="settings-button">Test Sound</button>
+                            </div>
+                            <div class="settings-description">Play a test sound to check your current volume settings</div>
+                        </div>
+
+                        <div id="audio-disabled-message" style="display: none;" class="setting-item">
+                            <h3>Audio Unavailable</h3>
+                            <div class="settings-description">Audio is currently disabled. Audio files need to be added to the assets/audio directory.</div>
+                        </div>
+                    </div>
+
+                        <div id="simulated-audio-note" style="display: none;">
+                            Using simulated audio. For better audio experience, add audio files to the assets/audio
+                            directory.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Preview Tab (Dedicated) -->
+                <div id="model-preview-tab" class="tab-content">
+                    <!-- <h2 id="model-preview-title">Model Preview</h2> -->
+                    <div class="model-preview-fullscreen-layout">
+                        <div class="model-preview-fullscreen-section">
+                            <!-- Regular model preview container -->
+                            <div id="model-preview-container">
+                                <div id="model-preview-wrapper"></div>
+                            </div>
+                            
+                            <!-- Fullscreen model preview container -->
+                            <div id="model-preview-fullscreen-container">
+                                <div id="model-preview-fullscreen-wrapper"></div>
+                            </div>
+                        </div>
+                        <div class="model-preview-controls-section">
+                            <!-- Regular model selection (for CharacterModelTab.js) -->
+                            <div id="model-selection" class="setting-item">
+                                <label for="model-select" class="settings-label">Model: </label>
+                                <button id="prev-model-button" class="settings-button">◀</button>
+                                <select id="model-select" class="settings-select"></select>
+                                <button id="next-model-button" class="settings-button">▶</button>
+                            </div>
+                            
+                            <!-- Animation selection -->
+                            <div id="animation-selection" class="setting-item">
+                                <label for="animation-select" class="settings-label">Animation: </label>
+                                <button id="prev-anim-button" class="settings-button">◀</button>
+                                <select id="animation-select" class="settings-select"></select>
+                                <button id="next-anim-button" class="settings-button">▶</button>
+                            </div>
+
+                            <div id="camera-controls-container" class="setting-item">
+                                <h3>Camera Controls</h3>
+                                <div class="camera-controls">
+                                    <button id="reset-camera-button" class="settings-button">Reset Camera</button>
+                                    <!-- Auto-rotate and rotation speed controls have been removed -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Skills Preview Tab -->
+                <div id="skills-preview-tab" class="tab-content">
+                    <div class="skills-preview-layout">
+                        <div class="skills-preview-section">
+                            <div id="skills-preview-container">
+                                <div id="skills-preview-wrapper" style="width: 100%; height: 100%;">
+                                    <!-- Camera Info Panel Template -->
+                                    <template id="camera-info-template">
+                                        <div class="camera-info-panel">
+                                            <div id="camera-info-content" class="camera-info-content" style="display: none;">
+                                                <div class="camera-info-section">
+                                                    <div class="camera-info-row"><span class="camera-info-label">Camera Position:</span></div>
+                                                    <div class="camera-info-row">X: <span class="camera-pos-x camera-info-value">0.00</span></div>
+                                                    <div class="camera-info-row">Y: <span class="camera-pos-y camera-info-value">0.00</span></div>
+                                                    <div class="camera-info-row">Z: <span class="camera-pos-z camera-info-value">0.00</span></div>
+                                                </div>
+                                                <div class="camera-info-section">
+                                                    <div class="camera-info-row"><span class="camera-info-label">Distance:</span> <span class="camera-distance camera-info-value">0.00</span></div>
+                                                    <div class="camera-info-row"><span class="camera-info-label">Zoom:</span> <span class="camera-zoom camera-info-value">0%</span></div>
+                                                </div>
+                                                <div class="camera-info-section">
+                                                    <div class="camera-info-row"><span class="camera-info-label">Target:</span></div>
+                                                    <div class="camera-info-row">X: <span class="camera-target-x camera-info-value">0.00</span>, 
+                                                       Y: <span class="camera-target-y camera-info-value">0.00</span>, 
+                                                       Z: <span class="camera-target-z camera-info-value">0.00</span></div>
+                                                </div>
+                                                <div class="camera-info-section">
+                                                    <div class="camera-info-row"><span class="camera-info-label">Controls:</span></div>
+                                                    <div class="camera-info-row">Min Distance: <span class="camera-min-distance camera-info-value">0.00</span></div>
+                                                    <div class="camera-info-row">Max Distance: <span class="camera-max-distance camera-info-value">0.00</span></div>
+                                                </div>
+                                            </div>
+                                            <button id="reset-camera-button" class="camera-info-button">Reset Camera</button>
+                                            <button id="toggle-info-button" class="camera-info-toggle">Hide Info</button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skills-preview-controls-section">
+                            <h2 id="skills-preview-title">Skills Preview</h2>
+                            <div id="skills-selection" class="setting-item">
+                                <label for="skills-preview-select" class="settings-label">Skill: </label>
+                                <div id="skills-preview-selection-container">
+                                    <button id="prev-skill-button" class="settings-button">◀</button>
+                                    <select id="skills-preview-select" class="settings-select"></select>
+                                    <button id="next-skill-button" class="settings-button">▶</button>
+                                </div>
+                            </div>
+                            <div id="skill-details-container" class="setting-item">
+                                <div id="skill-details" class="skill-details-info">
+                                    <!-- Skill details will be populated dynamically -->
+                                </div>
+                            </div>
+                            <div id="skill-variants-container" class="setting-item">
+                                <label for="skill-variants-select" class="settings-label">Variant: </label>
+                                <button id="prev-variant-button" class="settings-button">◀</button>
+                                <select id="skill-variants-select" class="settings-select"></select>
+                                <button id="next-variant-button" class="settings-button">▶</button>
+                                <div id="variant-info"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Item Preview Tab -->
+                <div id="item-preview-tab" class="tab-content">
+                    <h2 id="item-preview-title">Item Preview</h2>
+                    <div class="item-preview-layout">
+                        <div class="item-preview-section">
+                            <div id="item-preview-container">
+                                <!-- Item preview will be rendered here -->
+                            </div>
+                            <div class="item-preview-controls">
+                                <button id="reset-item-camera-button" class="settings-button">Reset Camera</button>
+                                <button id="generate-random-item-button" class="settings-button">Generate Random Item</button>
+                            </div>
+                        </div>
+                        <div class="item-preview-options">
+                            <div class="item-filter-controls">
+                                <div class="setting-item">
+                                    <label for="item-type-select" class="settings-label">Item Type:</label>
+                                    <select id="item-type-select" class="settings-select">
+                                        <option value="all">All Types</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <label for="item-sub-type-select" class="settings-label">Item Subtype:</label>
+                                    <select id="item-sub-type-select" class="settings-select">
+                                        <option value="all">All Subtypes</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <label for="item-rarity-select" class="settings-label">Item Rarity:</label>
+                                    <select id="item-rarity-select" class="settings-select">
+                                        <option value="all">All Rarities</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="item-navigation">
+                                <button id="prev-item-button" class="nav-button">◀ Previous</button>
+                                <button id="next-item-button" class="nav-button">Next ▶</button>
+                            </div>
+                            <div id="item-details" class="item-details">
+                                <!-- Item details will be displayed here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enemy Preview Tab -->
+                <div id="enemy-preview-tab" class="tab-content">
+                    <h2 id="enemy-preview-title">Enemy Preview</h2>
+                    <div class="enemy-preview-layout">
+                        <div class="enemy-preview-section">
+                            <div id="enemy-preview-container">
+                                <div id="enemy-preview-wrapper" style="width: 100%; height: 100%;">
+                                    <!-- Camera Info Panel Template -->
+                                    <template id="enemy-camera-info-template">
+                                        <div class="camera-info-panel">
+                                            <div id="enemy-camera-info-content" class="camera-info-content">
+                                                <div class="camera-info-section">
+                                                    <div class="camera-info-row"><span class="camera-info-label">Camera Position:</span></div>
+                                                    <div class="camera-info-row">X: <span class="camera-pos-x camera-info-value">0.00</span></div>
+                                                    <div class="camera-info-row">Y: <span class="camera-pos-y camera-info-value">0.00</span></div>
+                                                    <div class="camera-info-row">Z: <span class="camera-pos-z camera-info-value">0.00</span></div>
+                                                </div>
+                                                <div class="camera-info-section">
+                                                    <div class="camera-info-row"><span class="camera-info-label">Distance:</span> <span class="camera-distance camera-info-value">0.00</span></div>
+                                                    <div class="camera-info-row"><span class="camera-info-label">Zoom:</span> <span class="camera-zoom camera-info-value">0%</span></div>
+                                                </div>
+                                                <div class="camera-info-section">
+                                                    <div class="camera-info-row"><span class="camera-info-label">Target:</span></div>
+                                                    <div class="camera-info-row">X: <span class="camera-target-x camera-info-value">0.00</span>, 
+                                                       Y: <span class="camera-target-y camera-info-value">0.00</span>, 
+                                                       Z: <span class="camera-target-z camera-info-value">0.00</span></div>
+                                                </div>
+                                                <div class="camera-info-section">
+                                                    <div class="camera-info-row"><span class="camera-info-label">Controls:</span></div>
+                                                    <div class="camera-info-row">Min Distance: <span class="camera-min-distance camera-info-value">0.00</span></div>
+                                                    <div class="camera-info-row">Max Distance: <span class="camera-max-distance camera-info-value">0.00</span></div>
+                                                </div>
+                                            </div>
+                                            <button id="reset-enemy-camera-button" class="camera-info-button">Reset Camera</button>
+                                            <button id="toggle-enemy-info-button" class="camera-info-toggle">Hide Info</button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="enemy-preview-controls-section">
+                            <div id="enemy-selection" class="setting-item">
+                                <label for="enemy-preview-select" class="settings-label">Enemy: </label>
+                                <div id="enemy-preview-selection-container">
+                                    <button id="prev-enemy-button" class="settings-button">◀</button>
+                                    <select id="enemy-preview-select" class="settings-select"></select>
+                                    <button id="next-enemy-button" class="settings-button">▶</button>
+                                </div>
+                            </div>
+                            <div id="animation-selection" class="setting-item">
+                                <label for="enemy-animation-select" class="settings-label">Animation: </label>
+                                <div id="enemy-animation-selection-container">
+                                    <button id="prev-enemy-anim-button" class="settings-button">◀</button>
+                                    <select id="enemy-animation-select" class="settings-select"></select>
+                                    <button id="next-enemy-anim-button" class="settings-button">▶</button>
+                                </div>
+                            </div>
+                            <div id="enemy-details-container" class="setting-item">
+                                <!-- <h3>Enemy Details</h3> -->
+                                <div id="enemy-details" class="enemy-details-info">
+                                    <!-- Enemy details will be populated dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Settings Tab -->
+                <div id="performance-tab" class="tab-content">
+                    <h2 id="performance-title">Performance Settings</h2>
+                    <div id="performance-container" class="settings-section">
+                        <div id="quality-container" class="setting-item">
+                            <label for="quality-select" class="settings-label">Quality Preset: </label>
+                            <select id="quality-select" class="settings-select"></select>
+                        </div>
+                        <div id="fps-container" class="setting-item">
+                            <label for="fps-slider" class="settings-label">Target FPS: </label>
+                            <input type="range" id="fps-slider" class="settings-slider" min="30" max="120" step="5" value="60">
+                            <span id="fps-value" class="settings-value">60 FPS</span>
+                        </div>
+                        <div id="show-performance-info-container" class="setting-item">
+                            <label for="show-performance-info-checkbox" class="settings-label">Show Performance Info (FPS, GPU, Quality): </label>
+                            <input type="checkbox" id="show-performance-info-checkbox" class="settings-checkbox" checked>
+                        </div>
+                        <div id="log-enabled-container" class="setting-item">
+                            <label for="log-enabled-checkbox" class="settings-label">Enable Console Logs: </label>
+                            <input type="checkbox" id="log-enabled-checkbox" class="settings-checkbox">
+                            <span class="settings-description">Disable for better performance (requires page reload)</span>
+                        </div>
+                        <div id="debug-mode-container" class="setting-item">
+                            <label for="debug-mode-checkbox" class="settings-label">Debug Mode: </label>
+                            <input type="checkbox" id="debug-mode-checkbox" class="settings-checkbox">
+                            <span class="settings-description">Enable for local development and testing</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Settings Tab removed -->
+            </div>
+        </div>
+
+        <!-- Settings Footer Buttons removed - now in sidebar -->
+    </div>
+
+    <!-- Death Screen -->
+    <div id="death-screen" class="game-menu" style="display: none;"></div>
+
+    <!-- Orientation Lock -->
+    <script src="pwa/orientation-lock.js"></script>
+
+    <!-- Initial loading progress -->
+    <script src="pwa/initial-loading-progress.js"></script>
+
+    <!-- Import Three.js from CDN -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.176.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.176.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script src="pwa/registration.js"></script>
+
+    <!-- Simple Peer Library - Removed external dependency and using our own implementation -->
+    <!-- The SimplePeer implementation is now included directly in SimplePeerConnection.js -->
+
+    <!-- MessagePack Library for Binary Serialization -->
+    <script src="https://unpkg.com/@msgpack/msgpack@3.1.1/dist.umd/msgpack.min.js"></script>
+
+    <!-- PeerJS Library for WebRTC connections -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+
+    <!-- Google API -->
+    <script src="https://accounts.google.com/gsi/client"></script>
+
+    <!-- Main script module -->
+    <script type="module" src="js/Main.js"></script>
+</body>
+
+</html>

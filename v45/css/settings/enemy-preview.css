@@ -1,0 +1,84 @@
+/* 
+ * enemy-preview.css - Enemy preview tab styles for settings menu
+ * Part of the Diablo Immortal CSS optimization
+ */
+
+/* Enemy Preview Layout */
+.enemy-preview-layout {
+    display: flex;
+    height: calc(100% - 50px);
+}
+
+.enemy-preview-section {
+    flex: 2;
+    padding-right: var(--padding-medium);
+}
+
+#enemy-preview-container {
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    position: relative;
+}
+
+#enemy-preview-wrapper {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.enemy-preview-controls-section {
+    flex: 1;
+    padding-left: var(--padding-medium);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+}
+
+#enemy-preview-selection-container,
+#enemy-animation-selection-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#enemy-preview-selection-container .settings-select,
+#enemy-animation-selection-container .settings-select {
+    flex: 1;
+}
+
+/* Enemy Details Styling */
+.enemy-details-info {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: var(--padding-medium);
+    margin-top: 10px;
+}
+
+.enemy-detail {
+    display: flex;
+    margin-bottom: 10px;
+    align-items: flex-start;
+}
+
+.enemy-detail-label {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: var(--padding-small) var(--padding-medium);
+    border-radius: 4px;
+    margin-right: 15px;
+    min-width: 100px;
+    text-align: right;
+    font-weight: bold;
+}
+
+.enemy-detail-value {
+    flex: 1;
+    color: white;
+    padding: var(--padding-small) 0;
+}
