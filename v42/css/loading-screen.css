@@ -1,0 +1,24 @@
+/* 
+ * loading-screen.css - Loading screen styles
+ * Part of the Diablo Immortal CSS optimization
+ */
+
+/* Loading Screen */
+#loading-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent; /* Changed from #000 to transparent */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100; /* Loading Screens and Overlays */
+}
+
+#loading-screen h2 {
+    color: white;
+    margin-bottom: 20px;
+}

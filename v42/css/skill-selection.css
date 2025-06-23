@@ -1,0 +1,334 @@
+/**
+ * Skill Selection UI Styles
+ * Styling for the skill selection interface
+ */
+
+#skill-selection {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0);
+    opacity: 1;
+    border: 2px solid #8a6d3b;
+    border-radius: 8px;
+    color: #fff;
+    z-index: 150; /* Same z-index as skill tree */ /* Hidden by default */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+    overflow: auto; /* Changed from hidden to auto to allow scrolling */
+    pointer-events: auto; /* Ensure clicks and scrolling work */
+}
+
+#skill-selection-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+}
+
+/* Layout container for content and preview */
+#skill-selection-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Header */
+#skill-selection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--padding-medium) var(--padding-large);
+    background-color: rgba(138, 109, 59, 0.3);
+    border-bottom: 1px solid #8a6d3b;
+}
+
+#skill-selection-header h2 {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffcc00;
+    text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
+}
+
+#skill-selection-counter {
+    font-size: 16px;
+    color: #ccc;
+}
+
+#normal-skills-counter {
+    font-weight: bold;
+    color: #ffcc00;
+}
+
+/* Content */
+#skill-selection-content {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+    overflow-y: auto;
+    padding: 0 var(--padding-large);
+}
+
+#primary-attack-section,
+#normal-skills-section {
+    padding: var(--padding-medium) 0;
+}
+
+#primary-attack-section {
+    border-bottom: 1px solid rgba(138, 109, 59, 0.3);
+    margin-bottom: 10px;
+}
+
+#primary-attack-section h3,
+#normal-skills-section h3 {
+    font-size: 18px;
+    color: #ffcc00;
+    margin-bottom: 15px;
+    border-bottom: 1px dashed rgba(255, 204, 0, 0.3);
+    padding-bottom: 5px;
+}
+
+/* Skill Lists */
+.skill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.skill-list.single-column {
+    flex-direction: column;
+}
+
+.skill-selection-item {
+    display: flex;
+    align-items: center;
+    padding: var(--padding-medium);
+    background-color: rgba(20, 20, 20, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.skill-description {
+    line-clamp: 1;
+    -webkit-line-clamp: 1;
+}
+
+.skill-selection-item:hover {
+    background-color: rgba(30, 30, 30, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+.skill-selection-item.selected {
+    border: 1px solid #ffcc00;
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+    background-color: rgba(50, 40, 0, 0.3);
+}
+
+.skill-icon-container {
+    width: 50px;
+    height: 50px;
+    margin-right: 15px;
+    /* Using the styling from skill-icons.css instead of duplicating it here */
+}
+
+.skill-info {
+    flex: 1;
+}
+
+.skill-info .skill-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffcc00;
+    margin-bottom: 5px;
+    /* Override any absolute positioning from hud-manager.css */
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+    opacity: 1;
+}
+
+.skill-description {
+    font-size: 14px;
+    color: #ccc;
+    line-height: 1.4;
+}
+
+/* Preview Section */
+#skill-selection-preview {
+    flex: 1; /* Takes up 1/3 of the layout space */
+    padding: var(--padding-large);
+    background-color: rgba(0, 0, 0, 0.5);
+    border-left: 1px solid rgba(138, 109, 59, 0.3);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+#skill-selection-preview h3 {
+    font-size: 18px;
+    color: #ffcc00;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.battle-layout {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+    width: 100%;
+    max-width: 280px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Empty slot styling */
+.empty-slot {
+    opacity: 0.6;
+    cursor: pointer;
+    background-color: rgba(50, 50, 50, 0.5) !important;
+}
+
+.empty-slot:hover {
+    opacity: 0.8;
+    border-color: #777 !important;
+}
+
+.empty-slot-pulse {
+    animation: emptySlotPulse 2s infinite;
+}
+
+@keyframes emptySlotPulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.6; }
+}
+
+.preview-description {
+    text-align: center;
+    color: #ccc;
+    font-style: italic;
+    padding: var(--padding-medium);
+    border-top: 1px dashed rgba(138, 109, 59, 0.3);
+}
+
+/* Style for skill buttons in preview (exactly like SkillsUI) */
+.skill-button {
+    position: relative;
+    width: 55px;
+    height: 55px;
+    background-color: rgba(20, 20, 20, 0.3);
+    border: 2px solid #6b4c2a;
+    border-radius: 50%;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+    justify-self: center;
+    /* Ensure proper spacing for the key at bottom */
+    padding-bottom: 12px;
+}
+
+.skill-button:hover {
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+}
+
+.skill-button .skill-name {
+    position: absolute;
+    top: 2px;
+    font-size: 10px;
+    color: #ffcc00;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 calc(var(--padding-small) - 1px);
+}
+
+.skill-button .skill-icon {
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* Adjust to account for the key at bottom */
+    margin-bottom: 6px;
+}
+
+.skill-button .skill-key {
+    position: absolute;
+    bottom: 4px;
+    right: 2px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid #6b4c2a;
+    border-radius: 3px;
+    font-size: 10px;
+    color: white;
+    font-weight: bold;
+    z-index: 10; /* Ensure it appears above other elements */
+}
+
+.skill-button .skill-cooldown {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+}
+
+.skill-button.empty-slot {
+    border: 2px dashed #6b4c2a;
+    background-color: rgba(20, 20, 20, 0.2);
+    opacity: 0.5;
+}
+
+.skill-button.more-skills {
+    border: 2px solid #888888;
+    background-color: rgba(40, 40, 40, 0.4);
+    font-weight: bold;
+}
+
+.preview-skill-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Using the styling from skill-icons.css instead of duplicating it here */
+}
+
+.preview-skill.empty .preview-skill-icon {
+    border: 2px dashed #6b4c2a;
+    background-color: rgba(0, 0, 0, 0.3);
+    box-shadow: none;
+}
+
+.preview-skill-key {
+    position: absolute;
+    bottom: 3px;
+    right: 2px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid #6b4c2a;
+    border-radius: 3px;
+    padding: calc(var(--padding-small) - 3px) calc(var(--padding-small) - 1px);
+    font-size: 10px;
+    color: white;
+    font-weight: bold;
+    z-index: 10; /* Ensure it appears above other elements */
+}

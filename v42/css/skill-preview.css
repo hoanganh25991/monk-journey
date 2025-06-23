@@ -1,0 +1,92 @@
+/**
+ * Camera Info Panel Styles
+ */
+
+.camera-info-panel {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: var(--padding-medium);
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: monospace;
+    z-index: 100;
+    max-width: 280px;
+    transition: opacity 0.3s;
+    pointer-events: none; /* Don't interfere with mouse events by default */
+    opacity: 0.6;
+}
+
+.camera-info-content {
+    margin-bottom: 10px;
+}
+
+.camera-info-row {
+    margin: 2px 0;
+}
+
+.camera-info-label {
+    font-weight: bold;
+}
+
+.camera-info-value {
+    margin-left: 5px;
+}
+
+.camera-info-section {
+    margin-top: 8px;
+}
+
+.camera-info-button {
+    padding: var(--padding-small) var(--padding-medium);
+    background-color: #4a6fa5;
+    border: none;
+    border-radius: 3px;
+    color: white;
+    cursor: pointer;
+    pointer-events: auto; /* Enable mouse events for buttons */
+}
+
+.camera-info-button:hover {
+    background-color: #5a7fb5;
+}
+
+.camera-info-toggle {
+    margin-left: 5px;
+    padding: var(--padding-small) var(--padding-medium);
+    background-color: #333;
+    border: none;
+    border-radius: 3px;
+    color: white;
+    cursor: pointer;
+    pointer-events: auto; /* Enable mouse events for buttons */
+}
+
+.camera-info-toggle:hover {
+    background-color: #444;
+}
+
+/* Skill Details Styling */
+#skills-preview-selection-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#skills-preview-selection-container .settings-select {
+    flex: 1;
+}
+
+#skill-details {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: var(--padding-medium);
+}
+
+#variant-info {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: var(--padding-medium);
+}

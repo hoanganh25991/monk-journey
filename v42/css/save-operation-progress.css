@@ -1,0 +1,65 @@
+/* 
+ * save-operation-progress.css - Styles for save/load operation progress indicator
+ */
+
+.save-operation-progress {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 8px;
+    padding: 20px;
+    width: 300px;
+    z-index: 200;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.save-operation-progress.error {
+    /* Error state styling */
+    border: 2px solid #ff3333;
+}
+
+.save-operation-progress h3 {
+    color: #ffffff;
+    margin: 0 0 15px 0;
+    font-family: Arial, sans-serif;
+}
+
+.save-operation-progress .progress-text {
+    color: #ffffff;
+    margin-bottom: 10px;
+    width: 100%;
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+.save-operation-progress .progress-bar-container {
+    width: 100%;
+    height: 20px;
+    background-color: #333333;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.save-operation-progress .progress-bar {
+    width: 0%;
+    height: 100%;
+    transition: width 0.3s ease-in-out;
+}
+
+/* Different colors for save and load operations */
+.save-operation-progress.save-type .progress-bar {
+    background-color: #4CAF50; /* Green for save */
+}
+
+.save-operation-progress.load-type .progress-bar {
+    background-color: #2196F3; /* Blue for load */
+}
+
+.save-operation-progress .progress-bar.error {
+    background-color: #ff3333; /* Red for error */
+}
