@@ -1,28 +1,28 @@
 {
   "versions": [
     {
-      "version": "v61",
+      "version": "v62",
       "path": "/",
-      "label": "v61 (Latest)",
+      "label": "v62 (Latest)",
       "description": "Latest version with all features"
     },
     {
       "version": "v48",
       "path": "./v48",
       "label": "v48",
-      "description": "Previous stable version"
+      "description": "Map v3 - Portals"
     },
     {
       "version": "v45",
       "path": "./v45",
       "label": "v45",
-      "description": "Earlier version"
+      "description": "Map v2 - Structures"
     },
     {
       "version": "v42",
       "path": "./v42",
       "label": "v42",
-      "description": "Legacy version"
+      "description": "Map v1 - Basic"
     }
   ]
 }

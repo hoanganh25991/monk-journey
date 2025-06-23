@@ -4,13 +4,13 @@
  */
 
 const CACHE_NAME = 'monk-journey-cache';
-const CACHE_VERSION = '48';
+const CACHE_VERSION = '62';
 const CACHE_KEY = CACHE_NAME + '-v' + CACHE_VERSION;
 
 
 // Total cache size in bytes and MB
-const TOTAL_CACHE_SIZE_BYTES = 9064939;
-const TOTAL_CACHE_SIZE_MB = 8.64;
+const TOTAL_CACHE_SIZE_BYTES = 9027868;
+const TOTAL_CACHE_SIZE_MB = 8.61;
 
 // Assets to cache
 const ASSETS_TO_CACHE = [
@@ -406,7 +406,6 @@ const ASSETS_TO_CACHE = [
   'js/world/structures/Village.js',
   'js/world/teleport/PortalModelFactory.js',
   'js/world/teleport/TeleportManager.js',
-  'js/world/terrain/ChunkPersistenceManager.js',
   'js/world/terrain/TerrainChunkManager.js',
   'js/world/terrain/TerrainCleanupManager.js',
   'js/world/terrain/TerrainColoringManager.js',
