@@ -127,9 +127,13 @@ export class UIComponent {
     }
 
     get mobile() {
-        return window.innerHeight <= 640;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        // Check for typical smartphone dimensions
+        return (width <= 768 && height <= 1024);
     }
-    
+
     /**
      * Clean up the component and remove it from the DOM
      * @param {boolean} removeFromDOM - Whether to remove the container element from the DOM (default: true)

@@ -2,6 +2,7 @@ import { UIComponent } from '../UIComponent.js';
 import * as THREE from 'three';
 import { STRUCTURE_OBJECTS, STRUCTURE_PROPERTIES } from '../config/structure.js';
 import { STORAGE_KEYS } from '../config/storage-keys.js';
+import { ENEMY_CATEGORIES } from '../config/enemy.js';
 
 /**
  * Mini Map UI component
@@ -704,6 +705,8 @@ export class MiniMapUI extends UIComponent {
     
     /**
      * Draw enemies on the mini map
+     * Boss enemies are displayed as larger red circles with pulsing effects and white outlines
+     * Normal enemies are displayed as smaller orange circles with orange outlines
      * @param {number} playerX - Player's X position in the world
      * @param {number} playerY - Player's Y position in the world (Z in 3D space)
      * @param {number} centerX - Center X of the mini map
@@ -717,8 +720,6 @@ export class MiniMapUI extends UIComponent {
         const enemiesMap = this.game.enemyManager.enemies;
         
         if (enemiesMap.size > 0) {
-            this.ctx.fillStyle = 'rgba(255, 0, 0, 0.8)'; // Red color for enemies
-            
             // Iterate through the Map entries
             for (const [id, enemy] of enemiesMap.entries()) {
                 // Skip entities without position
@@ -740,17 +741,43 @@ export class MiniMapUI extends UIComponent {
                 
                 // Only draw if within circular mini map bounds
                 if (distFromCenter <= (this.mapSize / 2 - 2)) {
-                    // Draw enemy marker
-                    this.ctx.beginPath();
-                    this.ctx.arc(screenX, screenY, 3, 0, Math.PI * 2);
-                    this.ctx.fill();
+                    // Determine if this is a boss enemy (check both isBoss property and enemy type)
+                    const isBoss = enemy.isBoss || ENEMY_CATEGORIES.BOSSES.includes(enemy.type);
                     
-                    // Add outline
-                    this.ctx.strokeStyle = 'rgba(255, 50, 50, 0.9)';
-                    this.ctx.lineWidth = 1;
-                    this.ctx.beginPath();
-                    this.ctx.arc(screenX, screenY, 3, 0, Math.PI * 2);
-                    this.ctx.stroke();
+                    if (isBoss) {
+                        // Draw boss enemies as larger red circles
+                        this.ctx.fillStyle = 'rgba(255, 0, 0, 0.9)'; // Bright red for bosses
+                        this.ctx.beginPath();
+                        this.ctx.arc(screenX, screenY, 5, 0, Math.PI * 2); // Larger radius (5 instead of 3)
+                        this.ctx.fill();
+                        
+                        // Add pulsing effect for bosses
+                        const pulseIntensity = 0.3 + 0.3 * Math.sin(Date.now() * 0.005);
+                        this.ctx.fillStyle = `rgba(255, 100, 100, ${pulseIntensity})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(screenX, screenY, 7, 0, Math.PI * 2); // Larger pulsing circle
+                        this.ctx.fill();
+                        
+                        // Add bright outline for bosses
+                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'; // White outline
+                        this.ctx.lineWidth = 2;
+                        this.ctx.beginPath();
+                        this.ctx.arc(screenX, screenY, 5, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                    } else {
+                        // Draw normal enemies as smaller orange/red circles
+                        this.ctx.fillStyle = 'rgba(255, 120, 0, 0.8)'; // Orange-red for normal enemies
+                        this.ctx.beginPath();
+                        this.ctx.arc(screenX, screenY, 3, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        // Add outline for normal enemies
+                        this.ctx.strokeStyle = 'rgba(255, 80, 0, 0.9)'; // Orange outline
+                        this.ctx.lineWidth = 1;
+                        this.ctx.beginPath();
+                        this.ctx.arc(screenX, screenY, 3, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                    }
                 }
             }
         }
