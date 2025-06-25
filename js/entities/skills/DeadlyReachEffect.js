@@ -27,7 +27,7 @@ export class DeadlyReachEffect extends SkillEffect {
      */
     create(position, direction) {
         position = position.clone();
-        position.y -= 0.5;
+        position.y += 1; // Increased height by 1 unit
         
         // Adjust for terrain height to ensure effect is visible
         const adjustedPosition = this.adjustPositionForTerrain(position);
@@ -58,17 +58,19 @@ export class DeadlyReachEffect extends SkillEffect {
     
     /**
      * Find the nearest enemy and set the direction toward it
+     * If no enemy is found, the skill will cast in the player's direction
      * @param {THREE.Vector3} position - Starting position
-     * @param {THREE.Vector3} defaultDirection - Default direction if no enemy is found
+     * @param {THREE.Vector3} defaultDirection - Default direction (player's direction) if no enemy is found
      * @private
      */
     findAndTargetNearestEnemy(position, defaultDirection) {
-        // Default to the provided direction
+        // Default to the provided direction (player's facing direction)
+        // This ensures the skill can always be cast even when no enemies are around
         this.direction.copy(defaultDirection);
         
         // Try to get the game instance and enemy manager
         if (!this.skill.game || !this.skill.game.enemyManager) {
-            console.debug("No game or enemy manager available for auto-targeting");
+            console.debug("No game or enemy manager available for auto-targeting, using player direction");
             return;
         }
         
@@ -93,7 +95,7 @@ export class DeadlyReachEffect extends SkillEffect {
             
             console.debug(`Auto-targeted enemy: ${nearestEnemy.type} at distance: ${position.distanceTo(enemyPosition)}`);
         } else {
-            console.debug("No enemy found within range for auto-targeting");
+            console.debug("No enemy found within range for auto-targeting, casting in player direction");
         }
     }
 
