@@ -153,3 +153,65 @@ if (this.world && this.allowTerrainHeightUpdates) {
 3. Check that knockback effects work correctly on uneven terrain
 4. Ensure boss enemies maintain their fixed positions
 5. Test in multiplayer scenarios to ensure position synchronization works correctly
+
+---
+
+## Additional Fix - Animation Y Position Override Issue
+
+### Issue Description (NEW)
+After the initial terrain positioning fix, some enemies were still appearing "in the sky" due to enemy model classes directly modifying the `modelGroup.position.y` property in their animation methods, which conflicts with the Enemy class's terrain positioning system.
+
+### Affected Models (FIXED)
+- **SimpleEnemyModel.js**: Applied base height offsets and bobbing animations directly to modelGroup.position.y ✅ FIXED
+- **ZombieModel.js**: Used Math.max to ensure minimum height on modelGroup.position.y ✅ FIXED
+- **MountainTrollModel.js**: Applied breathing motion directly to modelGroup.position.y ✅ FIXED
+- **ZombieBruteModel.js**: Applied breathing motion with minimum height to modelGroup.position.y ✅ FIXED
+- **SwampWitchModel.js**: Applied hovering motion directly to modelGroup.position.y ✅ FIXED
+- **VoidWraithModel.js**: Applied hovering motion directly to modelGroup.position.y ✅ FIXED
+
+### Solution Applied
+Modified all affected enemy models to:
+
+1. **Remove direct modifications** to `this.modelGroup.position.y`
+2. **Apply animations to individual child objects** instead of the entire model group
+3. **Store original Y positions** in child userData for proper animation restoration
+4. **Add documentation comments** explaining the positioning system
+
+### Key Changes Made
+
+#### For SimpleEnemyModel.js:
+- Replaced modelGroup Y positioning with individual child positioning
+- Applied bobbing animation to all children while preserving their original positions
+- Added proper state management for original Y positions
+- Enhanced animation with state-aware bobbing (only when not moving/attacking)
+
+#### For Other Models:
+- Applied breathing/hovering motions to the torso (first child) instead of the entire model
+- Preserved original child positions using userData.originalY
+- Maintained all visual effects while respecting the Enemy class positioning system
+- Removed minimum height constraints (now handled by Enemy class)
+
+### Animation Guidelines for Future Development
+Enemy models should follow these rules:
+1. **Never modify** `this.modelGroup.position.y` in updateAnimations
+2. **Apply vertical animations** to individual children
+3. **Use userData.originalY** to store and restore original positions
+4. **Only modify** modelGroup rotations (X and Z axes, Y rotation is managed by Enemy class)
+5. **Test with different terrain heights** to ensure proper positioning
+
+### Files Modified in This Additional Fix
+- `/js/entities/enemies/models/SimpleEnemyModel.js` - Complete rewrite of updateAnimations method
+- `/js/entities/enemies/models/ZombieModel.js` - Removed Y position modification
+- `/js/entities/enemies/models/MountainTrollModel.js` - Applied breathing to torso child
+- `/js/entities/enemies/models/ZombieBruteModel.js` - Applied breathing to torso child
+- `/js/entities/enemies/models/SwampWitchModel.js` - Applied hovering to torso child
+- `/js/entities/enemies/models/VoidWraithModel.js` - Applied hovering to torso child
+
+### Results
+- ✅ Enemies spawn at proper terrain height
+- ✅ Animation effects are preserved (bobbing, breathing, hovering)
+- ✅ No enemies appear floating in the sky
+- ✅ Boss positioning remains stable
+- ✅ Animations work correctly for moving and stationary states
+
+This completes the comprehensive fix for enemy positioning issues.

@@ -128,6 +128,15 @@ export class NecromancerModel extends EnemyModel {
         const time = Date.now() * 0.001; // Convert to seconds
         
         if (this.modelGroup) {
+            // Fix head orientation after base class animations
+            const head = this.modelGroup.children[1]; // Head is the 2nd child
+            if (head) {
+                // Ensure head stays upright and doesn't flip
+                head.rotation.x = 0;
+                head.rotation.y = 0;
+                head.rotation.z = 0;
+            }
+            
             // Get the staff and orb
             const staff = this.modelGroup.children[3]; // Staff is the 4th child
             const orb = this.modelGroup.children[4]; // Orb is the 5th child
@@ -151,10 +160,10 @@ export class NecromancerModel extends EnemyModel {
                 const attackPulse = 1.0 + Math.sin(time * 15.0) * 0.5;
                 orb.scale.set(attackPulse, attackPulse, attackPulse);
                 
-                // Create a slight movement of the arm holding the staff
-                const rightArm = this.modelGroup.children[2]; // Assuming right arm is the 3rd child
-                if (rightArm) {
-                    rightArm.rotation.x = Math.sin(time * 8.0) * 0.3;
+                // Create a slight movement of the hood during attack
+                const hood = this.modelGroup.children[2]; // Hood is the 3rd child
+                if (hood) {
+                    hood.rotation.x = Math.PI + Math.sin(time * 8.0) * 0.1; // Keep inverted but add slight movement
                 }
             }
             
