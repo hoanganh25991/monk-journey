@@ -973,8 +973,9 @@ export class Enemy {
                 
                 // Set initial Y position only once
                 if (!this.initialPositionSet && this.world) {
-                    const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
-                    if (terrainHeight !== null) {
+                    try {
+                        const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
+                        if (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) {
                         // Store the initial Y position for bosses
                         this.initialYPosition = terrainHeight + this.heightOffset;
                         this.position.y = this.initialYPosition;
@@ -983,9 +984,12 @@ export class Enemy {
                         this.modelGroup.position.copy(this.position);
                         this.modelGroup.rotation.copy(this.rotation);
                         
-                        // Mark as initialized
-                        this.initialPositionSet = true;
-                        console.debug(`Boss ${this.name} initial Y position set to ${this.initialYPosition}`);
+                            // Mark as initialized
+                            this.initialPositionSet = true;
+                            console.debug(`Boss ${this.name} initial Y position set to ${this.initialYPosition}`);
+                        }
+                    } catch (error) {
+                        console.debug(`Error getting terrain height for boss initialization: ${error.message}`);
                     }
                 } else if (this.initialPositionSet && this.initialYPosition !== null) {
                     // Always restore the Y position to the initial value for bosses
@@ -1007,16 +1011,20 @@ export class Enemy {
                 Math.abs(this.position.x - this.lastTerrainCheckPosition.x) > 0.5 ||
                 Math.abs(this.position.z - this.lastTerrainCheckPosition.z) > 0.5) {
                 
-                const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
-                if (terrainHeight !== null) {
-                    this.position.y = terrainHeight + this.heightOffset;
-                    
-                    // Cache the position where we last checked terrain height
-                    if (!this.lastTerrainCheckPosition) {
-                        this.lastTerrainCheckPosition = new THREE.Vector3();
+                try {
+                    const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
+                    if (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) {
+                        this.position.y = terrainHeight + this.heightOffset;
                     }
-                    this.lastTerrainCheckPosition.set(this.position.x, this.position.y, this.position.z);
+                } catch (error) {
+                    console.debug(`Error getting terrain height for enemy movement: ${error.message}`);
                 }
+                
+                // Cache the position where we last checked terrain height
+                if (!this.lastTerrainCheckPosition) {
+                    this.lastTerrainCheckPosition = new THREE.Vector3();
+                }
+                this.lastTerrainCheckPosition.set(this.position.x, this.position.y, this.position.z);
             }
             
             // Always update model position and rotation
@@ -1119,8 +1127,9 @@ export class Enemy {
      */
     forceTerrainHeightUpdate() {
         if (this.world && !this.isBoss) {
-            const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
-            if (terrainHeight !== null) {
+            try {
+                const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
+                if (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) {
                 const oldY = this.position.y;
                 this.position.y = terrainHeight + this.heightOffset;
                 
@@ -1128,7 +1137,10 @@ export class Enemy {
                     this.modelGroup.position.copy(this.position);
                 }
                 
-                console.debug(`Enemy ${this.id} terrain height updated: ${oldY.toFixed(2)} -> ${this.position.y.toFixed(2)}`);
+                    console.debug(`Enemy ${this.id} terrain height updated: ${oldY.toFixed(2)} -> ${this.position.y.toFixed(2)}`);
+                }
+            } catch (error) {
+                console.debug(`Error forcing terrain height update for enemy: ${error.message}`);
             }
         }
     }
@@ -1158,8 +1170,9 @@ export class Enemy {
         
         // Check if enemy is too far underground or floating too high
         if (this.world && !this.isBoss) {
-            const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
-            if (terrainHeight !== null) {
+            try {
+                const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
+                if (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) {
                 const expectedY = terrainHeight + this.heightOffset;
                 const yDifference = Math.abs(this.position.y - expectedY);
                 
@@ -1175,6 +1188,9 @@ export class Enemy {
                     console.debug(`Enemy ${this.id} Y position corrected`);
                     return false;
                 }
+                }
+            } catch (error) {
+                console.debug(`Error validating enemy position terrain height: ${error.message}`);
             }
         }
         

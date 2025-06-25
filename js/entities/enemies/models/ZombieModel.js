@@ -86,9 +86,8 @@ export class ZombieModel extends EnemyModel {
         if (this.modelGroup) {
             const time = Date.now() * 0.001; // Convert to seconds
             
-            // Ensure the zombie model stays above ground
-            // Set a minimum height to prevent it from going below ground
-            this.modelGroup.position.y = Math.max(0.05, this.modelGroup.position.y);
+            // IMPORTANT: Do not modify this.modelGroup.position.y!
+            // The Y position is managed by the Enemy class for proper terrain positioning.
             
             // Add a shambling effect when moving
             if (this.enemy.state.isMoving) {

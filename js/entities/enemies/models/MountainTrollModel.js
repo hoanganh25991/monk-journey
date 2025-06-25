@@ -330,8 +330,18 @@ export class MountainTrollModel extends EnemyModel {
         const time = Date.now() * 0.001; // Convert to seconds
         
         if (this.modelGroup) {
-            // Slow, heavy breathing
-            this.modelGroup.position.y = Math.sin(time * 0.5) * 0.05;
+            // IMPORTANT: Do not modify this.modelGroup.position.y!
+            // The Y position is managed by the Enemy class for proper terrain positioning.
+            // Instead, apply vertical movement to individual children or use rotations.
+            
+            // Apply slow breathing motion to the torso instead of the whole model
+            const torso = this.modelGroup.children[0]; // Torso is first child
+            if (torso && torso.userData.originalY === undefined) {
+                torso.userData.originalY = torso.position.y;
+            }
+            if (torso) {
+                torso.position.y = torso.userData.originalY + Math.sin(time * 0.5) * 0.05;
+            }
             
             // Slight swaying (only X and Z rotation, Y rotation handled by Enemy class)
             this.modelGroup.rotation.x = Math.sin(time * 0.3) * 0.02;

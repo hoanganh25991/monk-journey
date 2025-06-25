@@ -210,10 +210,16 @@ export class CollisionManager {
         }
         
         // Get terrain height at player position
-        const terrainHeight = this.world.getTerrainHeight(playerPosition.x, playerPosition.z);
+        let terrainHeight;
+        try {
+            terrainHeight = this.world.getTerrainHeight(playerPosition.x, playerPosition.z);
+        } catch (error) {
+            console.debug(`Error getting terrain height in collision manager: ${error.message}`);
+            terrainHeight = null;
+        }
         
         // Validate terrain height
-        if (isNaN(terrainHeight)) {
+        if (terrainHeight === null || terrainHeight === undefined || isNaN(terrainHeight) || !isFinite(terrainHeight)) {
             console.warn("Invalid terrain height calculated:", terrainHeight);
             // Use a safe default height
             const safeHeight = 2;

@@ -1013,7 +1013,14 @@ export class TeleportManager {
                 const distance = 15 + Math.random() * 10; // 15-25 units from center
                 const x = position.x + Math.cos(angle) * distance;
                 const z = position.z + Math.sin(angle) * distance;
-                const y = this.game.world.getTerrainHeight(x, z);
+                let y = 0;
+                try {
+                    const terrainHeight = this.game.world.getTerrainHeight(x, z);
+                    y = (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) ? terrainHeight : 0;
+                } catch (error) {
+                    console.debug(`Error getting terrain height for elite spawn: ${error.message}`);
+                    y = 0;
+                }
                 
                 // Spawn elite enemy
                 const elitePosition = new THREE.Vector3(x, y, z);
@@ -1112,7 +1119,14 @@ export class TeleportManager {
                 const z = position.z + Math.sin(angle) * jitter;
                 
                 // Get terrain height at position
-                const y = this.game.world.getTerrainHeight(x, z);
+                let y = 0;
+                try {
+                    const terrainHeight = this.game.world.getTerrainHeight(x, z);
+                    y = (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) ? terrainHeight : 0;
+                } catch (error) {
+                    console.debug(`Error getting terrain height for enemy spawn: ${error.message}`);
+                    y = 0;
+                }
                 
                 // Spawn enemy
                 const enemyPosition = new THREE.Vector3(x, y, z);

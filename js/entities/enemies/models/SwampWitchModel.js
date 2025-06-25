@@ -241,8 +241,17 @@ export class SwampWitchModel extends EnemyModel {
         const time = Date.now() * 0.001; // Convert to seconds
         
         if (this.modelGroup) {
-            // Slight hovering motion
-            this.modelGroup.position.y = Math.sin(time * 1.5) * 0.05;
+            // IMPORTANT: Do not modify this.modelGroup.position.y!
+            // The Y position is managed by the Enemy class for proper terrain positioning.
+            // Apply hovering motion to the torso instead of the whole model
+            const hoveringMotion = Math.sin(time * 1.5) * 0.05;
+            const torso = this.modelGroup.children[0]; // Torso is first child
+            if (torso && torso.userData.originalY === undefined) {
+                torso.userData.originalY = torso.position.y;
+            }
+            if (torso) {
+                torso.position.y = torso.userData.originalY + hoveringMotion;
+            }
             
             // Get references to important parts
             const staff = this.modelGroup.children[6]; // Staff is the 7th child

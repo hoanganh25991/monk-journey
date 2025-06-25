@@ -279,8 +279,17 @@ export class VoidWraithModel extends EnemyModel {
         const time = Date.now() * 0.001; // Convert to seconds
         
         if (this.modelGroup) {
-            // Hovering motion
-            this.modelGroup.position.y = Math.sin(time * 0.8) * 0.1;
+            // IMPORTANT: Do not modify this.modelGroup.position.y!
+            // The Y position is managed by the Enemy class for proper terrain positioning.
+            // Apply hovering motion to the torso instead of the whole model
+            const hoveringMotion = Math.sin(time * 0.8) * 0.1;
+            const torso = this.modelGroup.children[0]; // Torso is first child
+            if (torso && torso.userData.originalY === undefined) {
+                torso.userData.originalY = torso.position.y;
+            }
+            if (torso) {
+                torso.position.y = torso.userData.originalY + hoveringMotion;
+            }
             
             // Slight floating motion (only X and Z rotation, Y rotation handled by Enemy class)
             this.modelGroup.rotation.x = Math.sin(time * 0.4) * 0.05;

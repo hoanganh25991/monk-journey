@@ -134,10 +134,16 @@ export class PlayerMovement {
     updateTerrainHeight() {
         // Ensure player is always at the correct terrain height
         if (this.game && this.game.world) {
-            const terrainHeight = this.game.world.getTerrainHeight(this.position.x, this.position.z);
-            
-            // Always maintain a fixed height above terrain to prevent vibration
-            const targetHeight = terrainHeight + this.heightOffset;
+            try {
+                const terrainHeight = this.game.world.getTerrainHeight(this.position.x, this.position.z);
+                
+                // Check if terrain height is valid
+                if (terrainHeight === null || terrainHeight === undefined || !isFinite(terrainHeight)) {
+                    return; // Skip this frame if terrain height is not available
+                }
+                
+                // Always maintain a fixed height above terrain to prevent vibration
+                const targetHeight = terrainHeight + this.heightOffset;
             
             // Check if the world's initial terrain has been created
             if (this.game.world.initialTerrainCreated) {
@@ -149,9 +155,12 @@ export class PlayerMovement {
                 this.position.y = targetHeight;
             }
             
-            // Update model position - use the full position vector to ensure proper update
-            if (this.modelGroup) {
-                this.modelGroup.position.set(this.position.x, this.position.y, this.position.z);
+                // Update model position - use the full position vector to ensure proper update
+                if (this.modelGroup) {
+                    this.modelGroup.position.set(this.position.x, this.position.y, this.position.z);
+                }
+            } catch (error) {
+                console.debug(`Error updating terrain height for player: ${error.message}`);
             }
         }
     }

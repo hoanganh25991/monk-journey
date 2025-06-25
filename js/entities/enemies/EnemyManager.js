@@ -303,8 +303,14 @@ export class EnemyManager {
         enemy.world = this.game.world;
 
         // Get terrain height and calculate proper Y position
-        const terrainHeight = this.game.world.getTerrainHeight(spawnPosition.x, spawnPosition.z);
-        if (terrainHeight !== null) {
+        let terrainHeight = null;
+        try {
+            terrainHeight = this.game.world.getTerrainHeight(spawnPosition.x, spawnPosition.z);
+        } catch (error) {
+            console.debug(`Error getting terrain height for enemy spawn: ${error.message}`);
+        }
+        
+        if (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) {
             // Set Y position to terrain height + enemy height offset
             spawnPosition.y = terrainHeight + enemy.heightOffset;
         } else {
@@ -397,9 +403,13 @@ export class EnemyManager {
                 // For multiplayer sync, ensure proper terrain height calculation
                 let newY = enemyData.position.y;
                 if (enemy.world && enemy.allowTerrainHeightUpdates && !enemy.isBoss) {
-                    const terrainHeight = enemy.world.getTerrainHeight(enemyData.position.x, enemyData.position.z);
-                    if (terrainHeight !== null) {
-                        newY = terrainHeight + enemy.heightOffset;
+                    try {
+                        const terrainHeight = enemy.world.getTerrainHeight(enemyData.position.x, enemyData.position.z);
+                        if (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) {
+                            newY = terrainHeight + enemy.heightOffset;
+                        }
+                    } catch (error) {
+                        console.debug(`Error getting terrain height for enemy update: ${error.message}`);
                     }
                 }
                 

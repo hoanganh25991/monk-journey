@@ -54,8 +54,8 @@ export class TerrainManager {
     async init() {
         console.log('🌍 Initializing Terrain Manager...');
         
-        // Create base terrain
-        await this.createBaseTerrain();
+        // Skip base terrain creation to prevent z-fighting
+        // The chunked system will handle all terrain rendering
         
         // Generate initial chunks around origin
         this.updateTerrain(new THREE.Vector3(0, 0, 0));
@@ -68,18 +68,12 @@ export class TerrainManager {
     }
     
     /**
-     * Create base flat terrain
+     * Create base flat terrain (DISABLED - causes z-fighting with chunks)
      */
     async createBaseTerrain() {
-        const geometry = this.createTerrainGeometry(0, 0, this.config.size, this.config.resolution);
-        const material = this.createTerrainMaterial('Terrant');
-        
-        this.baseTerrain = new THREE.Mesh(geometry, material);
-        this.baseTerrain.position.set(0, 0, 0);
-        this.baseTerrain.receiveShadow = true;
-        
-        this.scene.add(this.baseTerrain);
-        console.log('🌱 Base terrain created');
+        // DISABLED: Base terrain causes z-fighting with chunks
+        // The chunked terrain system handles all terrain rendering
+        console.log('🌱 Base terrain creation skipped (chunked system active)');
     }
     
     /**
@@ -263,7 +257,8 @@ export class TerrainManager {
         
         // Create mesh
         const chunk = new THREE.Mesh(geometry, material);
-        chunk.position.set(worldX, 0, worldZ);
+        // Add tiny height offset to prevent z-fighting
+        chunk.position.set(worldX, 0.001, worldZ);
         chunk.receiveShadow = true;
         chunk.castShadow = false; // Terrain doesn't cast shadows for performance
         
@@ -370,6 +365,7 @@ export class TerrainManager {
      * Get terrain height at position using simple noise
      */
     getTerrainHeight(x, z) {
+        // return 0;
         // Handle case where a Vector3 object is passed instead of x, z
         if (typeof x === 'object' && x !== null && 'x' in x && 'z' in x) {
             console.warn('TerrainManager: Vector3 object passed to getTerrainHeight instead of x, z coordinates:', x);
@@ -567,6 +563,13 @@ export class TerrainManager {
      * Clear all terrain data
      */
     clear() {
+        // Remove base terrain if it exists (legacy cleanup)
+        if (this.baseTerrain) {
+            this.scene.remove(this.baseTerrain);
+            this.baseTerrain.geometry.dispose();
+            this.baseTerrain = null;
+        }
+        
         // Remove all chunks from scene
         for (const chunk of this.chunks.values()) {
             this.scene.remove(chunk);

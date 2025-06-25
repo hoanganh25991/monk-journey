@@ -169,11 +169,17 @@ export class ZombieBruteModel extends ZombieModel {
             this.modelGroup.rotation.x = Math.sin(time * 0.3) * 0.08;
             this.modelGroup.rotation.z = Math.cos(time * 0.25) * 0.12;
             
-            // Breathing-like motion with minimum height to stay above ground
-            // Calculate breathing motion
+            // IMPORTANT: Do not modify this.modelGroup.position.y!
+            // The Y position is managed by the Enemy class for proper terrain positioning.
+            // Apply breathing motion to the torso instead of the whole model
             const breathingMotion = Math.sin(time * 0.7) * 0.05;
-            // Apply breathing motion but ensure minimum height of 0.1 (slightly higher than regular zombies)
-            this.modelGroup.position.y = Math.max(0.1, breathingMotion + 0.1);
+            const torso = this.modelGroup.children[0]; // Torso is first child
+            if (torso && torso.userData.originalY === undefined) {
+                torso.userData.originalY = torso.position.y;
+            }
+            if (torso) {
+                torso.position.y = torso.userData.originalY + breathingMotion;
+            }
             
             // Arms swinging
             if (this.modelGroup.children.length > 3) {

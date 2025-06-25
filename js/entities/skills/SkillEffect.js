@@ -47,17 +47,28 @@ export class SkillEffect {
         
         // Try to get terrain height from the game world
         if (this.skill && this.skill.game && this.skill.game.world) {
-            const terrainHeight = this.skill.game.world.getTerrainHeight(position.x, position.z);
-            if (terrainHeight !== null) {
-                // ALWAYS place effects well above the terrain to ensure visibility
-                // Use a generous offset to make sure effects are never underground
-                adjustedPosition.y = terrainHeight + 1.0; // 1 unit above terrain
-                console.debug(`Effect positioned at terrain height ${terrainHeight} + 1.0 = ${adjustedPosition.y}`);
-            } else {
-                console.warn(`Failed to get terrain height for position (${position.x}, ${position.z})`);
+            try {
+                const terrainHeight = this.skill.game.world.getTerrainHeight(position.x, position.z);
+                if (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) {
+                    // ALWAYS place effects well above the terrain to ensure visibility
+                    // Use a generous offset to make sure effects are never underground
+                    adjustedPosition.y = terrainHeight + 1.0; // 1 unit above terrain
+                    console.debug(`Effect positioned at terrain height ${terrainHeight} + 1.0 = ${adjustedPosition.y}`);
+                } else {
+                    console.debug(`Failed to get valid terrain height for position (${position.x}, ${position.z}), using default height`);
+                    // Use a reasonable default height when terrain height is not available
+                    adjustedPosition.y = Math.max(adjustedPosition.y, 1.0);
+                }
+            } catch (error) {
+                console.debug(`Error getting terrain height: ${error.message}, using default height`);
+                // Use a reasonable default height when terrain height calculation fails
+                adjustedPosition.y = Math.max(adjustedPosition.y, 1.0);
             }
         } else {
-            console.warn('No world reference available for terrain height adjustment');
+            // This can happen during initialization, in preview modes, or before world is ready
+            // Instead of showing warnings, silently use a default height
+            // Use a reasonable default height
+            adjustedPosition.y = Math.max(adjustedPosition.y, 1.0);
         }
         
         return adjustedPosition;

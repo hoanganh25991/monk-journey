@@ -207,7 +207,14 @@ export class ImprisonedFistsEffect extends SkillEffect {
         // Get terrain height at midpoint if available
         let terrainHeight = 0.1; // Default slight offset from ground
         if (this.skill.game && this.skill.game.world) {
-            terrainHeight = this.skill.game.world.getTerrainHeight(midpoint.x, midpoint.z) + 0.1;
+            try {
+                const worldHeight = this.skill.game.world.getTerrainHeight(midpoint.x, midpoint.z);
+                if (worldHeight !== null && worldHeight !== undefined && isFinite(worldHeight)) {
+                    terrainHeight = worldHeight + 0.1;
+                }
+            } catch (error) {
+                console.debug(`Error getting terrain height for ImprisonedFists effect: ${error.message}`);
+            }
         }
         
         // Update the ground indicator's position to be at the midpoint
@@ -216,12 +223,19 @@ export class ImprisonedFistsEffect extends SkillEffect {
         
         // Get terrain height at the current position for better ground alignment
         if (this.skill.game && this.skill.game.world) {
-            // Update the terrain height at the current position
-            const currentTerrainHeight = this.skill.game.world.getTerrainHeight(currentPosition.x, currentPosition.z) + 0.1;
-            
-            // This ensures the indicator follows the terrain height at the current position
-            if (Math.abs(terrainHeight - currentTerrainHeight) > 0.5) {
-                console.debug(`Terrain height change: ${terrainHeight.toFixed(2)} to ${currentTerrainHeight.toFixed(2)}`);
+            try {
+                // Update the terrain height at the current position
+                const worldHeight = this.skill.game.world.getTerrainHeight(currentPosition.x, currentPosition.z);
+                if (worldHeight !== null && worldHeight !== undefined && isFinite(worldHeight)) {
+                    const currentTerrainHeight = worldHeight + 0.1;
+                    
+                    // This ensures the indicator follows the terrain height at the current position
+                    if (Math.abs(terrainHeight - currentTerrainHeight) > 0.5) {
+                        console.debug(`Terrain height change: ${terrainHeight.toFixed(2)} to ${currentTerrainHeight.toFixed(2)}`);
+                    }
+                }
+            } catch (error) {
+                console.debug(`Error getting current terrain height for ImprisonedFists effect: ${error.message}`);
             }
         }
         

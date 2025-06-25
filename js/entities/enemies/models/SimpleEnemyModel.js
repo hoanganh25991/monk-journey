@@ -117,20 +117,41 @@ export class SimpleEnemyModel extends EnemyModel {
         // Use the base class animations for movement and attack
         super.updateAnimations(delta);
         
-        // Add simple bobbing animation for all states
+        // Add simple bobbing and head movement animations
         if (this.modelGroup) {
             const time = Date.now() * 0.001; // Convert to seconds
             
-            // Only apply bobbing if not moving (to avoid conflicting animations)
-            if (!this.enemy.state.isMoving) {
-                // Make the model bob up and down slightly, but ensure it doesn't go below ground
-                // Use a positive offset to keep it above ground level
-                const baseHeight = 0.1; // Base height to keep model above ground
-                const bobbingHeight = Math.sin(time * 1.5) * 0.1;
-                this.modelGroup.position.y = baseHeight + Math.max(0, bobbingHeight);
+            // IMPORTANT: Do not modify this.modelGroup.position.y!
+            // The Y position is managed by the Enemy class for proper terrain positioning.
+            // Only animate individual child elements or apply offsets to child positions.
+            
+            // Apply subtle whole-body bobbing by offsetting all children slightly
+            // Only apply bobbing if not moving or attacking (to avoid conflicting animations)
+            if (!this.enemy.state.isMoving && !this.enemy.state.isAttacking) {
+                const bobbingOffset = Math.sin(time * 1.5) * 0.05; // Small bobbing motion
+                
+                // Apply bobbing to all children by adjusting their Y positions slightly
+                for (let i = 0; i < this.modelGroup.children.length; i++) {
+                    const child = this.modelGroup.children[i];
+                    if (child && child.userData && child.userData.originalY !== undefined) {
+                        // Use stored original Y position
+                        child.position.y = child.userData.originalY + bobbingOffset;
+                    } else if (child && child.position) {
+                        // Store original Y position if not already stored
+                        if (child.userData.originalY === undefined) {
+                            child.userData.originalY = child.position.y;
+                        }
+                        child.position.y = child.userData.originalY + bobbingOffset;
+                    }
+                }
             } else {
-                // When moving, ensure the model stays above ground
-                this.modelGroup.position.y = 0.1;
+                // When moving or attacking, reset children to their original positions
+                for (let i = 0; i < this.modelGroup.children.length; i++) {
+                    const child = this.modelGroup.children[i];
+                    if (child && child.userData && child.userData.originalY !== undefined) {
+                        child.position.y = child.userData.originalY;
+                    }
+                }
             }
             
             // Apply subtle head movement without affecting the main facing direction
