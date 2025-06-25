@@ -346,6 +346,14 @@
             <button id="multiplayer-button" class="menu-button">Multiplayer</button>
             <button id="settings-menu-button" class="menu-button">Settings</button>
         </div>
+
+        <!-- Version Selector -->
+        <div id="version-selector" class="version-selector">
+            <label for="version-select">Version:</label>
+            <select id="version-select">
+                <option value="">Loading versions...</option>
+            </select>
+        </div>
     </div>
 
     <!-- Multiplayer Menu -->
@@ -844,6 +852,134 @@
 
     <!-- PeerJS Library for WebRTC connections -->
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+
+    <!-- Version Loader Script -->
+    <script>
+        // Load available versions from versions.json
+        async function loadVersions() {
+            try {
+                const response = await fetch('../versions.json');
+                const data = await response.json();
+                
+                const versionSelect = document.getElementById('version-select');
+                if (versionSelect && data.versions) {
+                    // Clear loading option
+                    versionSelect.innerHTML = '';
+                    
+                    // Get current path to determine selected version
+                    const currentPath = window.location.pathname;
+                    
+                    // Extract version from current path (e.g., "v42" from "/v42/" or "/threejs-monk-journey/v42/")
+                    const versionMatch = currentPath.match(/\/(v\d+)\/?/);
+                    const currentVersion = versionMatch ? versionMatch[1] : null;
+                    
+                    // Add version options
+                    data.versions.forEach(version => {
+                        const option = document.createElement('option');
+                        option.value = version.path;
+                        option.textContent = version.label;
+                        option.title = version.description;
+                        
+                        // Mark current version as selected based on current path
+                        if (currentVersion && version.version === currentVersion) {
+                            option.selected = true;
+                        } else if (!currentVersion && version.path === '/') {
+                            // Select root version if no version detected in path
+                            option.selected = true;
+                        }
+                        
+                        versionSelect.appendChild(option);
+                    });
+                    
+                    // Add change event listener
+                    versionSelect.addEventListener('change', (event) => {
+                        const selectedPath = event.target.value;
+                        
+                        if (selectedPath && selectedPath !== currentPath) {
+                            console.debug(`Version selected: ${selectedPath}`);
+                            
+                            // Handle navigation based on path type
+                            let targetUrl;
+                            if (selectedPath === '/') {
+                                // Root path
+                                targetUrl = '/';
+                            } else if (selectedPath.startsWith('./')) {
+                                // Relative path - convert to absolute
+                                targetUrl = selectedPath.substring(1); // Remove the '.'
+                            } else {
+                                targetUrl = selectedPath;
+                            }
+                            
+                            // Navigate to the selected version
+                            window.location.href = targetUrl;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load versions:', error);
+                const versionSelect = document.getElementById('version-select');
+                if (versionSelect) {
+                    versionSelect.innerHTML = '<option value="">Version info unavailable</option>';
+                }
+            }
+        }
+
+        // Load versions when DOM is ready
+        document.addEventListener('DOMContentLoaded', loadVersions);
+    </script>
+
+    <style>
+        /* Navigation buttons for selects - Moved to settings-menu.css */
+
+        /* Game Menu Headings */
+        #game-menu h1, .game-menu h1 {
+            color: #f5f5f5;
+            font-size: 48px;
+            text-shadow: 0 0 10px #ff6600;
+        }
+
+        /* Version Selector */
+        .version-selector {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .version-selector label {
+            color: #f5f5f5;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .version-selector select {
+            min-width: 120px;
+            font-size: 14px;
+            padding: 8px 12px;
+        }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .version-selector {
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            .version-selector label {
+                font-size: 12px;
+            }
+            
+            .version-selector select {
+                min-width: 100px;
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+        }
+    </style>
 
     <!-- Main script module -->
     <script type="module" src="js/Main.js"></script>
