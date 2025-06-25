@@ -21,6 +21,10 @@ export class FistOfThunderEffect extends SkillEffect {
     create(position, direction) {
         position = position.clone();
         position.y -= 0.45;
+        
+        // Adjust for terrain height to ensure effect is visible
+        const adjustedPosition = this.adjustPositionForTerrain(position);
+        
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         
@@ -28,7 +32,7 @@ export class FistOfThunderEffect extends SkillEffect {
         this._createFistOfThunderEffect(effectGroup);
         
         // Position effect
-        effectGroup.position.copy(position);
+        effectGroup.position.copy(adjustedPosition);
         
         // Store effect
         this.effect = effectGroup;

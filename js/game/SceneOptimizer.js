@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { MATERIAL_QUALITY_LEVELS } from '../config/render.js';
+import { RENDER_CONFIG } from '../config/render.js';
 
 /**
  * Utility class for optimizing Three.js scenes
@@ -12,7 +12,7 @@ export class SceneOptimizer {
      */
     static optimizeScene(scene, qualityLevel = 'high') {
         // Get quality settings
-        const qualitySettings = MATERIAL_QUALITY_LEVELS[qualityLevel] || MATERIAL_QUALITY_LEVELS.high;
+        const qualitySettings = RENDER_CONFIG[qualityLevel]?.materials || RENDER_CONFIG.high.materials;
         
         // Apply scene-wide optimizations
         scene.traverse(object => {
@@ -128,8 +128,9 @@ export class SceneOptimizer {
             // Optimize lights
             if (object.isLight) {
                 if (object.shadow) {
-                    // Set shadow map size based on quality level
-                    const shadowMapSize = qualitySettings.shadowMapSize || 0;
+                    // Set shadow map size based on quality level from renderer settings
+                    const renderSettings = RENDER_CONFIG[qualityLevel]?.settings || RENDER_CONFIG.high.settings;
+                    const shadowMapSize = renderSettings.shadowMapSize || 0;
                     
                     // Disable shadows for minimal quality
                     if (qualityLevel === 'minimal') {
@@ -230,11 +231,12 @@ export class SceneOptimizer {
      */
     static optimizeLight(light, qualityLevel = 'high') {
         // Get quality settings
-        const qualitySettings = MATERIAL_QUALITY_LEVELS[qualityLevel] || MATERIAL_QUALITY_LEVELS.high;
+        const qualitySettings = RENDER_CONFIG[qualityLevel]?.materials || RENDER_CONFIG.high.materials;
         
         if (light.shadow) {
-            // Set shadow map size based on quality level
-            const shadowMapSize = qualitySettings.shadowMapSize || 0;
+            // Set shadow map size based on quality level from renderer settings
+            const renderSettings = RENDER_CONFIG[qualityLevel]?.settings || RENDER_CONFIG.high.settings;
+            const shadowMapSize = renderSettings.shadowMapSize || 0;
             
             // Disable shadows for minimal quality
             if (qualityLevel === 'minimal') {

@@ -250,6 +250,11 @@ export class Enemy {
         // Update terrain height
         this.updateTerrainHeight();
         
+        // Periodically validate position (every ~2 seconds to avoid performance impact)
+        if (Math.random() < 0.01) { // ~1% chance per frame
+            this.validatePosition();
+        }
+        
         // Regenerate health based on enemy type
         this.regenerateHealth(delta);
         
@@ -361,14 +366,20 @@ export class Enemy {
                 // Apply 1.5x speed multiplier for faster movement
                 const speedMultiplier = 1.5;
                 const moveSpeed = this.speed * delta * speedMultiplier;
-                const newPosition = {
-                    x: this.position.x + normalizedDirectionX * moveSpeed,
-                    y: this.position.y,
-                    z: this.position.z + normalizedDirectionZ * moveSpeed
-                };
+                const newX = this.position.x + normalizedDirectionX * moveSpeed;
+                const newZ = this.position.z + normalizedDirectionZ * moveSpeed;
+                
+                // Calculate proper Y position based on terrain height
+                let newY = this.position.y;
+                if (this.world && this.allowTerrainHeightUpdates) {
+                    const terrainHeight = this.world.getTerrainHeight(newX, newZ);
+                    if (terrainHeight !== null) {
+                        newY = terrainHeight + this.heightOffset;
+                    }
+                }
                 
                 // Update position
-                this.setPosition(newPosition.x, newPosition.y, newPosition.z);
+                this.setPosition(newX, newY, newZ);
                 console.debug(`Enemy ${this.id} moving toward player, distance: ${distanceToPlayer.toFixed(2)}`);
                 
                 // If target is within detection range, refresh aggression timer
@@ -671,13 +682,19 @@ export class Enemy {
         // Apply knockback movement only for non-boss enemies
         if (direction && !this.isBoss) {
             const knockbackDistance = 1.0; // Knockback distance in units
-            const newPosition = {
-                x: this.position.x + direction.x * knockbackDistance,
-                y: this.position.y,
-                z: this.position.z + direction.z * knockbackDistance
-            };
+            const newX = this.position.x + direction.x * knockbackDistance;
+            const newZ = this.position.z + direction.z * knockbackDistance;
             
-            this.setPosition(newPosition.x, newPosition.y, newPosition.z);
+            // Calculate proper Y position based on terrain height
+            let newY = this.position.y;
+            if (this.world && this.allowTerrainHeightUpdates) {
+                const terrainHeight = this.world.getTerrainHeight(newX, newZ);
+                if (terrainHeight !== null) {
+                    newY = terrainHeight + this.heightOffset;
+                }
+            }
+            
+            this.setPosition(newX, newY, newZ);
         }
     }
     
@@ -942,6 +959,12 @@ export class Enemy {
     }
 
     updateTerrainHeight() {
+        // Ensure we have world reference - try to get it from game if not available
+        if (!this.world && this.player && this.player.game && this.player.game.world) {
+            this.world = this.player.game.world;
+            console.debug(`Enemy ${this.id} acquired world reference from game`);
+        }
+        
         // For bosses, we NEVER update Y position after initial setup
         if (this.isBoss) {
             if (this.modelGroup) {
@@ -964,13 +987,14 @@ export class Enemy {
                         this.initialPositionSet = true;
                         console.debug(`Boss ${this.name} initial Y position set to ${this.initialYPosition}`);
                     }
-                } else if (this.initialPositionSet) {
+                } else if (this.initialPositionSet && this.initialYPosition !== null) {
                     // Always restore the Y position to the initial value for bosses
                     // This ensures they never sink regardless of what other code might do
                     this.position.y = this.initialYPosition;
                     
                     // Force the model's Y position to match
-                    this.modelGroup.position.y = this.initialYPosition;
+                    this.modelGroup.position.copy(this.position);
+                    this.modelGroup.rotation.copy(this.rotation);
                 }
             }
             return;
@@ -978,14 +1002,27 @@ export class Enemy {
         
         // For non-boss enemies, update position based on terrain height if world is available and terrain updates are allowed
         if (this.world && this.allowTerrainHeightUpdates) {
-            const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
-            if (terrainHeight !== null) {
-                this.position.y = terrainHeight + this.heightOffset;
+            // Throttle terrain height calls for performance - only update if position changed significantly
+            if (!this.lastTerrainCheckPosition || 
+                Math.abs(this.position.x - this.lastTerrainCheckPosition.x) > 0.5 ||
+                Math.abs(this.position.z - this.lastTerrainCheckPosition.z) > 0.5) {
                 
-                if (this.modelGroup) {
-                    this.modelGroup.position.copy(this.position);
-                    this.modelGroup.rotation.copy(this.rotation);
+                const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
+                if (terrainHeight !== null) {
+                    this.position.y = terrainHeight + this.heightOffset;
+                    
+                    // Cache the position where we last checked terrain height
+                    if (!this.lastTerrainCheckPosition) {
+                        this.lastTerrainCheckPosition = new THREE.Vector3();
+                    }
+                    this.lastTerrainCheckPosition.set(this.position.x, this.position.y, this.position.z);
                 }
+            }
+            
+            // Always update model position and rotation
+            if (this.modelGroup) {
+                this.modelGroup.position.copy(this.position);
+                this.modelGroup.rotation.copy(this.rotation);
             }
         } else if (this.modelGroup) {
             // If no world or terrain updates disabled, just update model position and rotation
@@ -1074,6 +1111,74 @@ export class Enemy {
      */
     enableTerrainHeightUpdates() {
         this.allowTerrainHeightUpdates = true;
+    }
+    
+    /**
+     * Force recalculate terrain height at current position
+     * Useful for debugging or when enemies need to be repositioned
+     */
+    forceTerrainHeightUpdate() {
+        if (this.world && !this.isBoss) {
+            const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
+            if (terrainHeight !== null) {
+                const oldY = this.position.y;
+                this.position.y = terrainHeight + this.heightOffset;
+                
+                if (this.modelGroup) {
+                    this.modelGroup.position.copy(this.position);
+                }
+                
+                console.debug(`Enemy ${this.id} terrain height updated: ${oldY.toFixed(2)} -> ${this.position.y.toFixed(2)}`);
+            }
+        }
+    }
+    
+    /**
+     * Validate and fix enemy position if it's invalid
+     * @returns {boolean} True if position was valid or successfully fixed
+     */
+    validatePosition() {
+        // Check for invalid coordinates
+        if (!isFinite(this.position.x) || !isFinite(this.position.y) || !isFinite(this.position.z)) {
+            console.warn(`Enemy ${this.id} has invalid position:`, this.position);
+            
+            // Try to fix by resetting to a safe position
+            if (this.player) {
+                const playerPos = this.player.getPosition();
+                this.position.x = playerPos.x + (Math.random() - 0.5) * 10;
+                this.position.z = playerPos.z + (Math.random() - 0.5) * 10;
+                
+                // Recalculate terrain height
+                this.forceTerrainHeightUpdate();
+                
+                console.debug(`Enemy ${this.id} position reset near player`);
+                return false;
+            }
+        }
+        
+        // Check if enemy is too far underground or floating too high
+        if (this.world && !this.isBoss) {
+            const terrainHeight = this.world.getTerrainHeight(this.position.x, this.position.z);
+            if (terrainHeight !== null) {
+                const expectedY = terrainHeight + this.heightOffset;
+                const yDifference = Math.abs(this.position.y - expectedY);
+                
+                // If enemy is more than 5 units away from expected terrain height
+                if (yDifference > 5) {
+                    console.warn(`Enemy ${this.id} position Y mismatch: current=${this.position.y.toFixed(2)}, expected=${expectedY.toFixed(2)}`);
+                    this.position.y = expectedY;
+                    
+                    if (this.modelGroup) {
+                        this.modelGroup.position.copy(this.position);
+                    }
+                    
+                    console.debug(`Enemy ${this.id} Y position corrected`);
+                    return false;
+                }
+            }
+        }
+        
+        return true;
     }
 
     getPosition() {

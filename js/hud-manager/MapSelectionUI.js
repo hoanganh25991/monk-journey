@@ -1,5 +1,4 @@
 import { UIComponent } from '../UIComponent.js';
-import { touchManager } from './TouchManager.js';
 
 /**
  * Map Selection UI component
@@ -97,10 +96,10 @@ export class MapSelectionUI extends UIComponent {
         console.log('Showing map selection modal');
         
         // Clear any stuck touches before showing modal
-        if (touchManager.hasActiveTouches()) {
-            console.debug('MapSelectionUI: Clearing stuck touches before showing modal');
-            touchManager.clearAllTouches();
-        }
+        // if (touchManager.hasActiveTouches()) {
+        //     console.debug('MapSelectionUI: Clearing stuck touches before showing modal');
+        //     touchManager.clearAllTouches(); // Removed TouchManager dependency
+        // }
         
         this.show();
         
@@ -137,10 +136,10 @@ export class MapSelectionUI extends UIComponent {
             this.modal.style.pointerEvents = 'none';
             
             // Clear any stuck touches when hiding modal
-            if (touchManager.hasActiveTouches()) {
-                console.debug('MapSelectionUI: Clearing stuck touches after hiding modal');
-                touchManager.clearAllTouches();
-            }
+            // if (touchManager.hasActiveTouches()) {
+            //     console.debug('MapSelectionUI: Clearing stuck touches after hiding modal');
+            //     touchManager.clearAllTouches(); // Removed TouchManager dependency
+            // }
             
             // Wait for animation to complete before hiding
             setTimeout(() => {

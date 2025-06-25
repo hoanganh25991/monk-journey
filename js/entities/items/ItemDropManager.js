@@ -145,6 +145,28 @@ export class ItemDropManager {
             // Always update rotation for smooth animation
             if (itemData.group) {
                 itemData.group.rotation.y += delta * this.rotationSpeed;
+                
+                // Update terrain height for dropped items to keep them above ground
+                // Only check terrain height occasionally to avoid performance issues
+                if (Math.random() < 0.01 && this.game && this.game.world) { // ~1% chance per frame
+                    const terrainHeight = this.game.world.getTerrainHeight(
+                        itemData.group.position.x, 
+                        itemData.group.position.z
+                    );
+                    if (terrainHeight !== null) {
+                        const desiredY = terrainHeight + 0.5; // Keep items 0.5 units above ground
+                        
+                        // Only update if the difference is significant to avoid jittering
+                        if (Math.abs(itemData.group.position.y - desiredY) > 0.1) {
+                            itemData.group.position.y = desiredY;
+                            
+                            // Update ring position to match item position
+                            if (itemData.ring) {
+                                itemData.ring.position.y = desiredY + 0.05; // Slightly above item
+                            }
+                        }
+                    }
+                }
             }
             
             // Only check distances periodically to reduce computation

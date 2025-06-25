@@ -377,7 +377,6 @@ const ASSETS_TO_CACHE = [
   'js/world/environment/WaterFeature.js',
   'js/world/environment/Waterfall.js',
   'js/world/environment/Well.js',
-  'js/world/generation/GenerationManager.js',
   'js/world/interactive/BossSpawnPoint.js',
   'js/world/interactive/InteractiveObjectManager.js',
   'js/world/interactive/QuestMarker.js',

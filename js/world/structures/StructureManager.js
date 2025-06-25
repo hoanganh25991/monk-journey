@@ -458,6 +458,17 @@ export class StructureManager {
         // This happens when called from TerrainChunkManager
         const dataOnly = typeof zoneType === 'boolean' ? zoneType : false;
         
+        // Create a unique key for this chunk
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // CRITICAL FIX: Always check if structures already exist for this chunk
+        // This prevents duplicate structures when chunks are moved between active/buffer
+        if (this.structuresPlaced[chunkKey]) {
+            console.warn(`⚠️ DUPLICATE PREVENTION: Structures already exist for chunk ${chunkKey}, skipping generation`);
+            console.trace('Structure generation call stack:');
+            return;
+        }
+        
         // If zoneType is not provided or is a boolean, get it from the world manager
         if (!zoneType || typeof zoneType === 'boolean') {
             // Calculate world coordinates for this chunk
@@ -466,8 +477,8 @@ export class StructureManager {
             const worldZ = chunkZ * chunkSize;
             
             // Get zone type from the world manager
-            if (this.worldManager && this.worldManager.generationManager) {
-                zoneType = this.worldManager.generationManager.getZoneTypeAt(worldX, worldZ);
+            if (this.worldManager && this.worldManager.terrainManager && this.worldManager.terrainManager.chunkManager) {
+                zoneType = this.worldManager.terrainManager.chunkManager.getZoneTypeAt(worldX, worldZ);
             } else {
                 // Default to Forest if we can't determine zone type
                 zoneType = 'Forest';
@@ -479,10 +490,13 @@ export class StructureManager {
             }
         }
         
-        // Skip if no zone density is provided
+        // Use default zone density if none is provided
         if (!zoneDensity) {
-            console.warn(`No zone density provided for zone type: ${zoneType}`);
-            return;
+            zoneDensity = {
+                structures: 0.3,
+                structureTypes: ['house', 'tower', 'ruins']
+            };
+            console.debug(`Using default zone density for zone type: ${zoneType}`);
         }
         
         // Calculate world coordinates for this chunk
@@ -490,23 +504,17 @@ export class StructureManager {
         const worldX = chunkX * chunkSize;
         const worldZ = chunkZ * chunkSize;
         
-        // Create a unique key for this chunk
-        const chunkKey = `${chunkX},${chunkZ}`;
-        
-        // Skip if we've already generated structures for this chunk
-        if (this.structuresPlaced[chunkKey]) {
-            return;
-        }
-        
         // If this is a data-only call, just mark the chunk as processed and return
         if (dataOnly) {
             this.structuresPlaced[chunkKey] = true;
+            console.debug(`Marked chunk ${chunkKey} as processed (data-only)`);
             return;
         }
         
         console.debug(`Generating structures for chunk ${chunkKey} (${zoneType})`);
         
-        // Mark this chunk as having structures
+        // Mark this chunk as having structures BEFORE generating them
+        // This prevents race conditions where the same chunk is processed multiple times
         this.structuresPlaced[chunkKey] = true;
         
         // Get structure types for this zone
@@ -576,7 +584,7 @@ export class StructureManager {
                     chunkKey: chunkKey
                 });
                 
-                console.debug(`Created ${type} at (${x.toFixed(1)}, ${z.toFixed(1)}) in chunk ${chunkKey}`);
+                console.warn(`🏗️ CREATED STRUCTURE: ${type} at (${x.toFixed(1)}, ${z.toFixed(1)}) in chunk ${chunkKey}`);
             }
         }
     }
@@ -588,12 +596,16 @@ export class StructureManager {
      * @param {boolean} disposeResources - Whether to dispose resources
      */
     removeStructuresInChunk(chunkKey, disposeResources = false) {
-        // In our simplified system, we don't need to do anything here
-        // This method is kept for compatibility with TerrainManager
-        console.debug(`removeStructuresInChunk called for chunk ${chunkKey} (no action needed in simplified system)`);
+        console.debug(`removeStructuresInChunk called for chunk ${chunkKey}`);
         
-        // We'll add a check for structures that might be in this chunk area
-        // and remove them if they're too far from the player
+        // CRITICAL FIX: Clear the tracking flag when chunk is removed
+        // This ensures that structures can be regenerated when chunk is loaded again
+        if (this.structuresPlaced[chunkKey]) {
+            delete this.structuresPlaced[chunkKey];
+            console.debug(`Cleared structure tracking for chunk ${chunkKey}`);
+        }
+        
+        // Remove actual structures from the scene
         if (this.structures && this.structures.length > 0) {
             // Parse chunk coordinates
             const [chunkX, chunkZ] = chunkKey.split(',').map(Number);
@@ -621,6 +633,23 @@ export class StructureManager {
                 if (isInChunk && structureData.object) {
                     console.debug(`Removing structure at (${structureX.toFixed(1)}, ${structureZ.toFixed(1)}) in chunk ${chunkKey}`);
                     this.scene.remove(structureData.object);
+                    
+                    // Dispose resources if requested
+                    if (disposeResources && structureData.object.traverse) {
+                        structureData.object.traverse(obj => {
+                            if (obj.geometry) {
+                                obj.geometry.dispose();
+                            }
+                            if (obj.material) {
+                                if (Array.isArray(obj.material)) {
+                                    obj.material.forEach(mat => mat.dispose());
+                                } else {
+                                    obj.material.dispose();
+                                }
+                            }
+                        });
+                    }
+                    
                     return false;
                 }
                 
@@ -827,6 +856,200 @@ export class StructureManager {
         this.structures = [];
         this.structuresPlaced = {};
         this.specialStructures = {};
+    }
+    
+    /**
+     * Create a structure at a specific position
+     * @param {string} structureType - Type of structure to create
+     * @param {THREE.Vector3} position - Position to create structure at
+     * @returns {THREE.Object3D} - The created structure object
+     */
+    createStructure(structureType, position) {
+        try {
+            // Use the structure factory to create the structure
+            const structure = this.structureFactory.createStructure(structureType, {
+                x: position.x,
+                z: position.z,
+                width: 3 + Math.random() * 4,
+                depth: 3 + Math.random() * 4,
+                height: 2 + Math.random() * 3
+            });
+            
+            if (structure) {
+                // Create structure info
+                const structureInfo = {
+                    type: structureType,
+                    object: structure,
+                    position: position.clone(),
+                    id: `generated_${Date.now()}_${Math.random()}`
+                };
+                
+                // Add to structures array
+                this.structures.push(structureInfo);
+                
+                console.debug(`🏗️ StructureManager: Created ${structureType} at (${position.x.toFixed(1)}, ${position.z.toFixed(1)})`, structure);
+                return structure;
+            }
+        } catch (error) {
+            console.warn(`Failed to create structure ${structureType}:`, error);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Generate a structure at a specific position - ADDED FOR SAMPLE COMPATIBILITY
+     * @param {THREE.Vector3} position - Position to generate structure at
+     */
+    generateStructureAtPosition(position) {
+        // Simple structure generation for random world generation
+        const structureTypes = ['house', 'tower', 'ruins'];
+        const randomType = structureTypes[Math.floor(Math.random() * structureTypes.length)];
+        
+        // Use the structure factory to create the structure
+        const structure = this.structureFactory.createStructure(randomType, {
+            x: position.x,
+            z: position.z,
+            width: 3 + Math.random() * 4,
+            depth: 3 + Math.random() * 4,
+            height: 2 + Math.random() * 3
+        });
+        
+        if (structure) {
+            // Create structure info
+            const structureInfo = {
+                type: randomType,
+                object: structure,
+                position: position.clone(),
+                id: `random_${Date.now()}_${Math.random()}`
+            };
+            
+            // Add to structures array
+            this.structures.push(structureInfo);
+            
+            console.debug(`Generated random ${randomType} at (${position.x.toFixed(1)}, ${position.z.toFixed(1)})`);
+        }
+    }
+    
+    /**
+     * Clean up distant structures - ADDED FOR SAMPLE COMPATIBILITY
+     * @param {THREE.Vector3} playerPosition - Player position
+     * @param {number} maxDistance - Maximum distance to keep structures
+     */
+    cleanupDistantObjects(playerPosition, maxDistance) {
+        const structuresToRemove = [];
+        
+        // Find structures that are too far away
+        this.structures.forEach((structureInfo, index) => {
+            if (structureInfo.position && playerPosition) {
+                const distance = structureInfo.position.distanceTo(playerPosition);
+                if (distance > maxDistance) {
+                    structuresToRemove.push(index);
+                }
+            }
+        });
+        
+        // Remove distant structures
+        structuresToRemove.reverse().forEach(index => {
+            const structureInfo = this.structures[index];
+            
+            // Remove from scene
+            if (structureInfo.object && structureInfo.object.parent) {
+                this.scene.remove(structureInfo.object);
+            }
+            
+            // Dispose of resources
+            if (structureInfo.object) {
+                if (structureInfo.object.traverse) {
+                    structureInfo.object.traverse(obj => {
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(mat => mat.dispose());
+                            } else {
+                                obj.material.dispose();
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Remove from array
+            this.structures.splice(index, 1);
+        });
+        
+        if (structuresToRemove.length > 0) {
+            console.debug(`Cleaned up ${structuresToRemove.length} distant structures`);
+        }
+    }
+    
+    /**
+     * Clean up duplicate structures - ADDED FOR SAMPLE COMPATIBILITY
+     */
+    cleanupDuplicates() {
+        const positionMap = new Map();
+        const duplicatesToRemove = [];
+        
+        // Find duplicates by position
+        this.structures.forEach((structureInfo, index) => {
+            if (structureInfo.position) {
+                const posKey = `${Math.floor(structureInfo.position.x)}_${Math.floor(structureInfo.position.z)}`;
+                
+                if (positionMap.has(posKey)) {
+                    // This is a duplicate
+                    duplicatesToRemove.push(index);
+                } else {
+                    positionMap.set(posKey, index);
+                }
+            }
+        });
+        
+        // Remove duplicates
+        duplicatesToRemove.reverse().forEach(index => {
+            const structureInfo = this.structures[index];
+            
+            // Remove from scene
+            if (structureInfo.object && structureInfo.object.parent) {
+                this.scene.remove(structureInfo.object);
+            }
+            
+            // Dispose of resources
+            if (structureInfo.object) {
+                if (structureInfo.object.traverse) {
+                    structureInfo.object.traverse(obj => {
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(mat => mat.dispose());
+                            } else {
+                                obj.material.dispose();
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Remove from array
+            this.structures.splice(index, 1);
+        });
+        
+        if (duplicatesToRemove.length > 0) {
+            console.debug(`Cleaned up ${duplicatesToRemove.length} duplicate structures`);
+        }
+    }
+    
+    /**
+     * Update structures for player position - ADDED FOR SAMPLE COMPATIBILITY
+     * @param {THREE.Vector3} playerPosition - Player position
+     * @param {number} drawDistanceMultiplier - Draw distance multiplier
+     */
+    updateForPlayer(playerPosition, drawDistanceMultiplier = 1.0) {
+        // This method can be used for LOD updates or other player-based updates
+        // For now, it's a placeholder for compatibility
+        
+        // Could implement LOD switching based on distance
+        // Could implement structure visibility culling
+        // Could implement dynamic structure loading/unloading
     }
     
     /**

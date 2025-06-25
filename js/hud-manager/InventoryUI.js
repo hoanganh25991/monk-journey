@@ -3,7 +3,6 @@ import { UIComponent } from '../UIComponent.js';
 import { ModelPreview } from '../menu-system/ModelPreview.js';
 import { ItemPreview } from '../menu-system/ItemPreview.js';
 import { updateAnimation } from '../utils/AnimationUtils.js';
-import { touchManager } from './TouchManager.js';
 
 /**
  * Inventory UI component
@@ -363,7 +362,7 @@ export class InventoryUI extends UIComponent {
      */
     toggleInventory() {
         // Clear any stuck touches before toggling inventory
-        touchManager.forceReset();
+        // touchManager.forceReset(); // Removed TouchManager dependency
         
         if (this.isInventoryOpen) {
             // Hide any open item popup
@@ -377,9 +376,9 @@ export class InventoryUI extends UIComponent {
             this.game.resume(false);
             
             // Clear touches again after closing to ensure clean state
-            setTimeout(() => {
-                touchManager.clearAllTouches();
-            }, 100);
+            // setTimeout(() => {
+            //     touchManager.clearAllTouches(); // Removed TouchManager dependency
+            // }, 100);
         } else {
             // Update inventory items
             this.updateInventoryItems();
@@ -1097,7 +1096,7 @@ export class InventoryUI extends UIComponent {
      */
     teleportToOrigin() {
         // Clear any stuck touches immediately when teleport button is clicked
-        touchManager.forceReset();
+        // touchManager.forceReset(); // Removed TouchManager dependency
         
         if (!this.game || !this.game.player) {
             console.warn('Cannot create portal: Game or player not available');
@@ -1353,10 +1352,10 @@ export class InventoryUI extends UIComponent {
         this.playerStartPosition = null;
         
         // Clear any stuck touches after teleport completion
-        if (touchManager.hasActiveTouches()) {
-            console.debug('InventoryUI: Clearing stuck touches after teleport completion');
-            touchManager.clearAllTouches();
-        }
+        // if (touchManager.hasActiveTouches()) {
+        //     console.debug('InventoryUI: Clearing stuck touches after teleport completion');
+        //     touchManager.clearAllTouches(); // Removed TouchManager dependency
+        // }
 
         console.debug('Player automatically teleported to origin (0,0,0)');
     }

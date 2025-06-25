@@ -23,17 +23,21 @@ export class InnerSanctuaryEffect extends SkillEffect {
     create(position, direction) {
         position = position.clone();
         position.y -= 2.04;
+        
+        // Adjust for terrain height to ensure effect is visible
+        const adjustedPosition = this.adjustPositionForTerrain(position);
+        
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         
         // Store initial position for orbit calculations
-        this.playerPosition = position.clone();
+        this.playerPosition = adjustedPosition.clone();
         
         // Create the Inner Sanctuary effect
-        this._createInnerSanctuaryEffect(effectGroup, position);
+        this._createInnerSanctuaryEffect(effectGroup, adjustedPosition);
         
         // Position effect at player position
-        effectGroup.position.copy(position);
+        effectGroup.position.copy(adjustedPosition);
         
         // Store effect
         this.effect = effectGroup;

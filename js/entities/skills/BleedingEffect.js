@@ -81,9 +81,12 @@ export class BleedingEffect extends SkillEffect {
         // Create a group to hold all particles
         const effectGroup = new THREE.Group();
         
+        // Adjust for terrain height to ensure effect is visible
+        const adjustedPosition = this.adjustPositionForTerrain(position);
+        adjustedPosition.y += 1; // Raise slightly above the terrain
+        
         // Position the effect
-        effectGroup.position.copy(position);
-        effectGroup.position.y += 1; // Raise slightly above the target
+        effectGroup.position.copy(adjustedPosition);
         
         // Create blood particles
         for (let i = 0; i < this.particleCount; i++) {

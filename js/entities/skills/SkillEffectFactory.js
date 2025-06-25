@@ -142,6 +142,11 @@ export class SkillEffectFactory {
     static createEffect(skill) {
         console.debug(`SkillEffectFactory.createEffect called for skill: ${skill.name}, type: ${skill.type}, variant: ${skill.variant || 'none'}`);
         
+        // Ensure the skill has a valid game reference for terrain height calculations
+        if (!skill.game) {
+            console.warn(`Skill ${skill.name} created without game reference - terrain height features may not work properly`);
+        }
+        
         let effect;
         
         // First check if there's a variant-specific effect class

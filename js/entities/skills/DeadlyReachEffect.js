@@ -28,21 +28,25 @@ export class DeadlyReachEffect extends SkillEffect {
     create(position, direction) {
         position = position.clone();
         position.y -= 0.5;
+        
+        // Adjust for terrain height to ensure effect is visible
+        const adjustedPosition = this.adjustPositionForTerrain(position);
+        
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         
         // Store initial position for movement
-        this.initialPosition.copy(position);
+        this.initialPosition.copy(adjustedPosition);
         this.distanceTraveled = 0;
         
         // Find the nearest enemy and target it
-        this.findAndTargetNearestEnemy(position, direction);
+        this.findAndTargetNearestEnemy(adjustedPosition, direction);
         
         // Create the Deadly Reach effect
         this.createDeadlyReachEffect(effectGroup);
         
         // Position effect
-        effectGroup.position.copy(position);
+        effectGroup.position.copy(adjustedPosition);
         effectGroup.rotation.y = Math.atan2(this.direction.x, this.direction.z);
         
         // Store effect

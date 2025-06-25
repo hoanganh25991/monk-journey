@@ -16,7 +16,7 @@ import { GameState } from './GameState.js';
 import { GameEvents } from './GameEvents.js';
 import { SceneOptimizer } from './SceneOptimizer.js';
 import { LoadingManager } from './LoadingManager.js';
-import { RENDER_CONFIG, MATERIAL_QUALITY_LEVELS } from '../config/render.js';
+import { RENDER_CONFIG } from '../config/render.js';
 import { MenuManager } from '../menu-system/MenuManager.js';
 import { InteractionSystem } from '../interaction/InteractionSystem.js';
 import { MultiplayerManager } from '../multiplayer/MultiplayerManager.js';
@@ -284,6 +284,9 @@ export class Game {
             // Initialize enemy manager
             this.enemyManager = new EnemyManager(this.scene, this.player, this.loadingManager, this, this.itemDropManager);
             await this.enemyManager.init();
+            
+            // Connect WorldManager with EnemyManager for enemy/boss spawning
+            this.world.setEnemyManager(this.enemyManager);
             
             this.updateLoadingProgress(80, 'Setting up physics...', 'Initializing collision detection');
             
@@ -750,8 +753,7 @@ export class Game {
         this.player.update(delta);
         
         // Update world based on player position
-        // Use performance-based draw distance
-        this.world.updateWorldForPlayer(this.player.getPosition(), 1.0, delta);
+        this.world.update(this.player.getPosition(), delta);
         
         // Update enemies
         this.enemyManager.update(delta);
@@ -930,6 +932,12 @@ export class Game {
         // Apply settings
         renderer.setPixelRatio(settings.pixelRatio);
         renderer.shadowMap.enabled = settings.shadowMapEnabled;
+        
+        // Apply shadow map size if shadows are enabled
+        if (settings.shadowMapEnabled && settings.shadowMapSize > 0) {
+            renderer.shadowMap.mapSize = new THREE.Vector2(settings.shadowMapSize, settings.shadowMapSize);
+            console.debug(`Shadow map size set to: ${settings.shadowMapSize}x${settings.shadowMapSize}`);
+        }
         
         // Apply shadow map type
         switch (settings.shadowMapType) {
@@ -1198,7 +1206,7 @@ export class Game {
             // Check if we need to create a downscaled version of the texture
             if (!originalTexture.userData || !originalTexture.userData.isDownscaled) {
                 // Get the texture quality level from config
-                const textureQuality = MATERIAL_QUALITY_LEVELS.low.textureQuality;
+                const textureQuality = RENDER_CONFIG.low.materials.textureQuality;
                 
                 // Only downscale if quality is below threshold
                 if (textureQuality < 0.5) {
@@ -1281,7 +1289,7 @@ export class Game {
             // Check if we need to create a downscaled version of the texture
             if (!originalTexture.userData || !originalTexture.userData.isDownscaled) {
                 // Get the texture quality level from config
-                const textureQuality = MATERIAL_QUALITY_LEVELS.minimal.textureQuality;
+                const textureQuality = RENDER_CONFIG.minimal.materials.textureQuality;
                 
                 // Create a downscaled texture for minimal quality
                 const downscaledTexture = this.createDownscaledTexture(originalTexture, textureQuality);

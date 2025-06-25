@@ -285,6 +285,92 @@ export class InteractiveObjectManager {
     }
     
     /**
+     * Generate interactive object at a specific position - ADDED FOR SAMPLE COMPATIBILITY
+     * @param {THREE.Vector3} position - Position to generate interactive object at
+     */
+    generateInteractiveAtPosition(position) {
+        // Simple interactive object generation for random world generation
+        const interactiveTypes = ['treasure_chest', 'quest_marker'];
+        const randomType = interactiveTypes[Math.floor(Math.random() * interactiveTypes.length)];
+        
+        if (randomType === 'treasure_chest') {
+            this.createTreasureChest(position.x, position.z);
+        } else if (randomType === 'quest_marker') {
+            const questNames = ['Forest Quest', 'Mountain Quest', 'Desert Quest'];
+            const randomQuest = questNames[Math.floor(Math.random() * questNames.length)];
+            this.createQuestMarker(position.x, position.z, randomQuest);
+        }
+        
+        console.debug(`Generated random ${randomType} at (${position.x.toFixed(1)}, ${position.z.toFixed(1)})`);
+    }
+    
+    /**
+     * Clean up distant interactive objects - ADDED FOR SAMPLE COMPATIBILITY
+     * @param {THREE.Vector3} playerPosition - Player position
+     * @param {number} maxDistance - Maximum distance to keep objects
+     */
+    cleanupDistantObjects(playerPosition, maxDistance) {
+        const objectsToRemove = [];
+        
+        // Find objects that are too far away
+        this.interactiveObjects.forEach((objectInfo, index) => {
+            if (objectInfo.position && playerPosition) {
+                const distance = objectInfo.position.distanceTo(playerPosition);
+                if (distance > maxDistance) {
+                    objectsToRemove.push(index);
+                }
+            }
+        });
+        
+        // Remove distant objects
+        objectsToRemove.reverse().forEach(index => {
+            const objectInfo = this.interactiveObjects[index];
+            
+            // Remove from scene
+            if (objectInfo.mesh && objectInfo.mesh.parent) {
+                this.scene.remove(objectInfo.mesh);
+            }
+            
+            // Dispose of resources
+            if (objectInfo.mesh) {
+                if (objectInfo.mesh.traverse) {
+                    objectInfo.mesh.traverse(obj => {
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(mat => mat.dispose());
+                            } else {
+                                obj.material.dispose();
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Remove from array
+            this.interactiveObjects.splice(index, 1);
+        });
+        
+        if (objectsToRemove.length > 0) {
+            console.debug(`Cleaned up ${objectsToRemove.length} distant interactive objects`);
+        }
+    }
+    
+    /**
+     * Update interactive objects for player position - ADDED FOR SAMPLE COMPATIBILITY
+     * @param {THREE.Vector3} playerPosition - Player position
+     * @param {number} drawDistanceMultiplier - Draw distance multiplier
+     */
+    updateForPlayer(playerPosition, drawDistanceMultiplier = 1.0) {
+        // This method can be used for LOD updates or other player-based updates
+        // For now, it's a placeholder for compatibility
+        
+        // Could implement visibility culling based on distance
+        // Could implement interaction radius updates
+        // Could implement dynamic object loading/unloading
+    }
+    
+    /**
      * Clear all interactive objects
      */
     clear() {

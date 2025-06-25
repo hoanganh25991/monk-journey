@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { MATERIAL_QUALITY_LEVELS } from '../../config/render.js';
+import { RENDER_CONFIG } from '../../config/render.js';
 
 /**
  * Ancient Altar - A mystical altar found in ruins

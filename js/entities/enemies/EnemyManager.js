@@ -104,7 +104,7 @@ export class EnemyManager {
         
         // Simplified boss spawning configuration
         this.enemyKillCount = 0;
-        this.killsPerBossSpawn = 100; // Spawn a boss after every 100 enemy kills
+        this.killsPerBossSpawn = this.enemyGroupSize.max; // Spawn a boss after every 100 enemy kills
         
         // Item generation
         this.itemGenerator = new ItemGenerator(game);
@@ -298,10 +298,20 @@ export class EnemyManager {
         // Create enemy
         const enemy = new Enemy(this.scene, this.player, scaledEnemyType);
         enemy.init();
+        
+        // Set world reference before positioning so terrain height can be calculated properly
         enemy.world = this.game.world;
 
+        // Get terrain height and calculate proper Y position
         const terrainHeight = this.game.world.getTerrainHeight(spawnPosition.x, spawnPosition.z);
-        spawnPosition.y += terrainHeight + enemy.heightOffset + 2.04 * enemy.scale;
+        if (terrainHeight !== null) {
+            // Set Y position to terrain height + enemy height offset
+            spawnPosition.y = terrainHeight + enemy.heightOffset;
+        } else {
+            // Fallback if terrain height is not available
+            spawnPosition.y = enemy.heightOffset;
+        }
+        
         enemy.setPosition(spawnPosition.x, spawnPosition.y, spawnPosition.z);
 
         // Assign enemy ID (for multiplayer)
@@ -383,7 +393,17 @@ export class EnemyManager {
             if (this.enemies.has(id)) {
                 // Update existing enemy
                 const enemy = this.enemies.get(id);
-                enemy.setPosition(enemyData.position.x, enemyData.position.y, enemyData.position.z);
+                
+                // For multiplayer sync, ensure proper terrain height calculation
+                let newY = enemyData.position.y;
+                if (enemy.world && enemy.allowTerrainHeightUpdates && !enemy.isBoss) {
+                    const terrainHeight = enemy.world.getTerrainHeight(enemyData.position.x, enemyData.position.z);
+                    if (terrainHeight !== null) {
+                        newY = terrainHeight + enemy.heightOffset;
+                    }
+                }
+                
+                enemy.setPosition(enemyData.position.x, newY, enemyData.position.z);
                 
                 if (enemyData.health !== undefined) {
                     enemy.health = enemyData.health;
@@ -596,11 +616,9 @@ export class EnemyManager {
             const x = groupX + Math.cos(angle) * distance;
             const z = groupZ + Math.sin(angle) * distance;
             
-            // Get terrain height at position
-            const y = this.game.world.getTerrainHeight(x, z);
-            
-            // Spawn enemy
-            const position = new THREE.Vector3(x, y, z);
+            // Don't set Y position here - let the spawnEnemy method handle terrain height
+            // This ensures consistent terrain height calculation
+            const position = new THREE.Vector3(x, 0, z);
             this.spawnEnemy(groupEnemyType, position);
         }
         
@@ -942,20 +960,22 @@ export class EnemyManager {
     }
     
     getRandomSpawnPosition() {
+        // Get player position as reference point
+        const playerPos = this.player.getPosition();
+        
         // Get random angle
         const angle = Math.random() * Math.PI * 2;
         
-        // Get random distance from center
+        // Get random distance from player
         const distance = this.spawnRadius * 0.5 + Math.random() * this.spawnRadius * 0.5;
         
-        // Calculate position
-        const x = Math.cos(angle) * distance;
-        const z = Math.sin(angle) * distance;
+        // Calculate position relative to player
+        const x = playerPos.x + Math.cos(angle) * distance;
+        const z = playerPos.z + Math.sin(angle) * distance;
         
-        // Get terrain height at position
-        const y = this.player.game.world.getTerrainHeight(x, z);
-        
-        return new THREE.Vector3(x, y, z);
+        // Don't set Y position here - let the spawnEnemy method handle terrain height
+        // This prevents conflicts and ensures consistent terrain height calculation
+        return new THREE.Vector3(x, 0, z);
     }
     
     getEnemiesNearPosition(position, radius) {
@@ -969,6 +989,26 @@ export class EnemyManager {
         }
         
         return nearbyEnemies;
+    }
+    
+    /**
+     * Validate all enemy positions and fix any issues
+     * Useful for debugging or after major world changes
+     */
+    validateAllEnemyPositions() {
+        let fixedCount = 0;
+        
+        for (const [id, enemy] of this.enemies.entries()) {
+            if (!enemy.validatePosition()) {
+                fixedCount++;
+            }
+        }
+        
+        if (fixedCount > 0) {
+            console.debug(`Fixed positions for ${fixedCount} enemies`);
+        }
+        
+        return fixedCount;
     }
     
     spawnBoss(bossType, position) {
@@ -1270,11 +1310,9 @@ export class EnemyManager {
                 const x = groupX + Math.cos(angle) * distance;
                 const z = groupZ + Math.sin(angle) * distance;
                 
-                // Get terrain height at position
-                const y = this.game.world.getTerrainHeight(x, z);
-                
-                // Spawn enemy
-                const position = new THREE.Vector3(x, y, z);
+                // Don't set Y position here - let the spawnEnemy method handle terrain height
+                // This ensures consistent terrain height calculation
+                const position = new THREE.Vector3(x, 0, z);
                 this.spawnEnemy(groupEnemyType, position);
             }
         }

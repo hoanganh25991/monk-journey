@@ -27,6 +27,19 @@ export class StructureFactory {
     }
     
     /**
+     * Get terrain height at position
+     * @param {number} x - X coordinate
+     * @param {number} z - Z coordinate
+     * @returns {number} - Height at position
+     */
+    getTerrainHeight(x, z) {
+        if (this.worldManager && this.worldManager.terrainManager) {
+            return this.worldManager.terrainManager.getHeightAt(x, z);
+        }
+        return 0;
+    }
+    
+    /**
      * Get the zone type at the specified position
      * @param {number} x - X coordinate
      * @param {number} z - Z coordinate
@@ -67,7 +80,7 @@ export class StructureFactory {
             const buildingGroup = building.createMesh();
             
             // Position building on terrain
-            buildingGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            buildingGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(buildingGroup);
@@ -82,7 +95,7 @@ export class StructureFactory {
             const towerGroup = tower.createMesh();
             
             // Position tower on terrain
-            towerGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            towerGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(towerGroup);
@@ -96,7 +109,7 @@ export class StructureFactory {
             const ruinsGroup = ruins.createMesh();
             
             // Position ruins on terrain
-            ruinsGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            ruinsGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(ruinsGroup);
@@ -110,7 +123,7 @@ export class StructureFactory {
             const sanctumGroup = darkSanctum.createMesh();
             
             // Position sanctum on terrain
-            sanctumGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            sanctumGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(sanctumGroup);
@@ -138,7 +151,7 @@ export class StructureFactory {
             mountainGroup.rotation.y = Math.random() * Math.PI * 2;
             
             // Position mountain on terrain
-            mountainGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            mountainGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(mountainGroup);
@@ -153,7 +166,7 @@ export class StructureFactory {
             const bridgeGroup = bridge.createMesh();
             
             // Position bridge on terrain
-            bridgeGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            bridgeGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Randomly rotate the bridge
             bridgeGroup.rotation.y = Math.random() * Math.PI;
@@ -171,7 +184,7 @@ export class StructureFactory {
             const villageGroup = village.createMesh();
             
             // Position village on terrain
-            villageGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            villageGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(villageGroup);
@@ -200,7 +213,7 @@ export class StructureFactory {
             const buildingGroup = building.createMesh();
             
             // Position building on terrain
-            buildingGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            buildingGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(buildingGroup);
@@ -215,7 +228,7 @@ export class StructureFactory {
             const buildingGroup = building.createMesh();
             
             // Position building on terrain
-            buildingGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            buildingGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(buildingGroup);
@@ -230,7 +243,7 @@ export class StructureFactory {
             const buildingGroup = building.createMesh();
             
             // Position building on terrain
-            buildingGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            buildingGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(buildingGroup);
@@ -245,7 +258,7 @@ export class StructureFactory {
             const buildingGroup = building.createMesh();
             
             // Position building on terrain
-            buildingGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            buildingGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(buildingGroup);
@@ -260,7 +273,7 @@ export class StructureFactory {
             const buildingGroup = building.createMesh();
             
             // Position building on terrain
-            buildingGroup.position.set(x, this.worldManager.getTerrainHeight(x, z), z);
+            buildingGroup.position.set(x, this.getTerrainHeight(x, z), z);
             
             // Add to scene
             this.scene.add(buildingGroup);
@@ -285,6 +298,8 @@ export class StructureFactory {
      * @returns {Object} - The created structure
      */
     createStructure(type, params = {}) {
+        console.debug(`🏗️ StructureFactory: Creating ${type} with params:`, params);
+        
         const creator = this.registry.get(type);
         
         if (!creator) {
@@ -296,18 +311,22 @@ export class StructureFactory {
         const { x, z, width, depth, height, style, scale } = params;
         
         // Call the creator function with appropriate parameters
+        let result;
         if (type === STRUCTURE_OBJECTS.HOUSE || 
             type === STRUCTURE_OBJECTS.TAVERN || 
             type === STRUCTURE_OBJECTS.TEMPLE || 
             type === STRUCTURE_OBJECTS.SHOP || 
             type === STRUCTURE_OBJECTS.FORTRESS || 
             type === STRUCTURE_OBJECTS.ALTAR) {
-            return creator(x, z, width, depth, height, style);
+            result = creator(x, z, width, depth, height, style);
         } else if (type === STRUCTURE_OBJECTS.MOUNTAIN) {
-            return creator(x, z, scale);
+            result = creator(x, z, scale);
         } else {
-            return creator(x, z);
+            result = creator(x, z);
         }
+        
+        console.debug(`🏗️ StructureFactory: Creation result for ${type}:`, result ? 'SUCCESS' : 'FAILED');
+        return result;
     }
     
     /**

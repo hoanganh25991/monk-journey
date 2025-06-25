@@ -34,15 +34,18 @@ export class MysticAllyEffect extends SkillEffect {
     create(position, direction) {
         position = position.clone();
         position.y -= 2.0;
-        // No longer subtracting from Y position to keep the ally above ground
+        
+        // Adjust for terrain height to ensure effect is visible
+        const adjustedPosition = this.adjustPositionForTerrain(position);
+        
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         
         // Create the Mystic Ally effect
-        this._createMysticAllyEffect(effectGroup, position, direction);
+        this._createMysticAllyEffect(effectGroup, adjustedPosition, direction);
         
         // Position effect
-        effectGroup.position.copy(position);
+        effectGroup.position.copy(adjustedPosition);
         effectGroup.rotation.y = Math.atan2(direction.x, direction.z);
         
         // Store effect

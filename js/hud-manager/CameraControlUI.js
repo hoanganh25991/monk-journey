@@ -1,6 +1,5 @@
 import { UIComponent } from '../UIComponent.js';
 import * as THREE from 'three';
-import { touchManager } from './TouchManager.js';
 
 /**
  * Camera Control UI component

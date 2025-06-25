@@ -565,7 +565,7 @@ export class GameplayTab extends SettingsTab {
         
         if (this.materialQualitySelect) {
             const materialQuality = this.materialQualitySelect.value || 'high';
-            savePromises.push(this.saveSetting(STORAGE_KEYS.MATERIAL_QUALITY, materialQuality));
+            savePromises.push(this.saveSetting(STORAGE_KEYS.QUALITY_LEVEL, materialQuality));
             
             // Material quality will be applied on next game start
             // No need to apply it dynamically here

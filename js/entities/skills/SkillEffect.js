@@ -35,6 +35,35 @@ export class SkillEffect {
     }
 
     /**
+     * Adjust position to respect terrain height
+     * @param {THREE.Vector3} position - The original position
+     * @returns {THREE.Vector3} - The adjusted position
+     */
+    adjustPositionForTerrain(position) {
+        if (!position) return new THREE.Vector3(0, 0, 0);
+        
+        // Create a copy of the position to avoid modifying the original
+        const adjustedPosition = position.clone();
+        
+        // Try to get terrain height from the game world
+        if (this.skill && this.skill.game && this.skill.game.world) {
+            const terrainHeight = this.skill.game.world.getTerrainHeight(position.x, position.z);
+            if (terrainHeight !== null) {
+                // ALWAYS place effects well above the terrain to ensure visibility
+                // Use a generous offset to make sure effects are never underground
+                adjustedPosition.y = terrainHeight + 1.0; // 1 unit above terrain
+                console.debug(`Effect positioned at terrain height ${terrainHeight} + 1.0 = ${adjustedPosition.y}`);
+            } else {
+                console.warn(`Failed to get terrain height for position (${position.x}, ${position.z})`);
+            }
+        } else {
+            console.warn('No world reference available for terrain height adjustment');
+        }
+        
+        return adjustedPosition;
+    }
+
+    /**
      * Create the effect mesh/group
      * @param {THREE.Vector3} position - Position to create the effect at
      * @param {THREE.Vector3} direction - Direction the effect should face
@@ -56,8 +85,9 @@ export class SkillEffect {
         const mesh = new THREE.Mesh(geometry, material);
         effectGroup.add(mesh);
         
-        // Position effect
-        effectGroup.position.copy(position);
+        // Position effect - adjust for terrain height if possible
+        const adjustedPosition = this.adjustPositionForTerrain(position);
+        effectGroup.position.copy(adjustedPosition);
         
         // Store effect
         this.effect = effectGroup;
@@ -79,6 +109,20 @@ export class SkillEffect {
         if (this.elapsedTime >= this.skill.duration) {
             this.isActive = false;
             return;
+        }
+        
+        // ALWAYS adjust effect position for terrain height on first few frames to ensure visibility
+        // Then do it periodically for performance
+        const shouldAdjustTerrain = this.elapsedTime < 0.1 || Math.random() < 0.05; // First 100ms or 5% chance
+        
+        if (shouldAdjustTerrain) {
+            const adjustedPosition = this.adjustPositionForTerrain(this.effect.position);
+            
+            // Always update if it's the first few frames, otherwise check for significant difference
+            if (this.elapsedTime < 0.1 || Math.abs(this.effect.position.y - adjustedPosition.y) > 0.2) {
+                this.effect.position.copy(adjustedPosition);
+                console.debug(`Effect position updated to: ${this.effect.position.y}`);
+            }
         }
         
         // IMPORTANT: Update the skill's position property to match the effect's position
@@ -157,8 +201,9 @@ export class SkillEffect {
         const flash = new THREE.Mesh(flashGeometry, flashMaterial);
         hitEffectGroup.add(flash);
         
-        // Position the hit effect
-        hitEffectGroup.position.copy(position);
+        // Position the hit effect - adjust for terrain height
+        const adjustedHitPosition = this.adjustPositionForTerrain(position);
+        hitEffectGroup.position.copy(adjustedHitPosition);
         
         // Add to scene
         this.skill.game.scene.add(hitEffectGroup);

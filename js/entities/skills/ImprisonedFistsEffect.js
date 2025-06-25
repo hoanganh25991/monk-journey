@@ -107,8 +107,18 @@ export class ImprisonedFistsEffect extends SkillEffect {
         effectGroup.add(this.particleSystem);
         
         // Create a ground indicator
-        const width = this.skill.radius || 5; // Width equals the skill's radius
-        const initialLength = 0.1; // Initial length is small, will grow dynamically
+        let width = (this.skill && isFinite(this.skill.radius)) ? this.skill.radius : 5; // Width equals the skill's radius with validation
+        let initialLength = 0.1; // Initial length is small, will grow dynamically
+        
+        // Validate dimensions
+        if (!isFinite(width) || width <= 0) {
+            console.warn('ImprisonedFistsEffect: Invalid width for PlaneGeometry:', width);
+            width = 5;
+        }
+        if (!isFinite(initialLength) || initialLength <= 0) {
+            console.warn('ImprisonedFistsEffect: Invalid initial length for PlaneGeometry:', initialLength);
+            initialLength = 0.1;
+        }
         
         // Create material for the ground indicator
         const indicatorMaterial = new THREE.MeshBasicMaterial({
@@ -118,7 +128,7 @@ export class ImprisonedFistsEffect extends SkillEffect {
             side: THREE.DoubleSide
         });
         
-        // Create initial geometry
+        // Create initial geometry with validated parameters
         const indicatorGeometry = new THREE.PlaneGeometry(width, initialLength);
         
         // Create the mesh
@@ -222,10 +232,20 @@ export class ImprisonedFistsEffect extends SkillEffect {
         }
         
         // Create a new geometry with the updated length
-        const width = this.skill.radius || 5; // Width equals the skill's radius
+        let width = (this.skill && isFinite(this.skill.radius)) ? this.skill.radius : 5; // Width equals the skill's radius
         const cylinderLength = 5; // Length of the cylinder beam
         // Length increases as the skill moves, plus half the cylinder length to cover the beam
-        const length = Math.max(0.1, distance + (cylinderLength / 2));
+        let length = Math.max(0.1, distance + (cylinderLength / 2));
+        
+        // Validate dimensions
+        if (!isFinite(width) || width <= 0) {
+            console.warn('ImprisonedFistsEffect: Invalid width for updated PlaneGeometry:', width);
+            width = 5;
+        }
+        if (!isFinite(length) || length <= 0) {
+            console.warn('ImprisonedFistsEffect: Invalid length for updated PlaneGeometry:', length);
+            length = 0.1;
+        }
         
         const newGeometry = new THREE.PlaneGeometry(width, length);
         this.groundIndicator.geometry = newGeometry;

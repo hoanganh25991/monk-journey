@@ -1,11 +1,5 @@
 /**
  * Renderer configuration for different quality levels
- * These settings are used by the PerformanceManager to adjust rendering quality
- * 
- * This file contains all quality-related configurations in one place:
- * - MATERIAL_QUALITY_LEVELS: Controls material and object quality settings
- * - FOG_CONFIG: Controls fog appearance and density for different quality levels
- * - RENDER_CONFIG: Controls renderer initialization and settings
  * 
  * Device targeting:
  * - high: Good desktop computers
@@ -16,46 +10,7 @@
  * The quality level is stored in localStorage using the key 'monk_journey_quality_level'.
  */
 
-/**
- * Material and object quality settings for different quality levels
- */
-export const MATERIAL_QUALITY_LEVELS = {
-    high: {
-        shadowMapSize: 1024,
-        particleCount: 0.8,
-        drawDistance: 0.8,
-        textureQuality: 0.8,
-        objectDetail: 0.9,
-        maxVisibleObjects: 500
-    },
-    medium: {
-        shadowMapSize: 0, // Reduced from 256 to match disabled shadows
-        particleCount: 0.3, // Reduced from 0.5 to prevent particle buildup
-        drawDistance: 0.5, // Reduced from 0.6 to cull distant objects sooner
-        textureQuality: 0.4, // Reduced from 0.5 for memory efficiency
-        objectDetail: 0.5, // Reduced from 0.6 for simpler geometry
-        maxVisibleObjects: 200, // Reduced from 250 to prevent object accumulation
-        memoryOptimized: true // Flag for additional memory management
-    },
-    low: {
-        shadowMapSize: 128, // Reduced from 256
-        particleCount: 0.1, // Reduced from 0.2
-        drawDistance: 0.2, // Reduced from 0.3
-        textureQuality: 0.2, // Reduced from 0.3
-        objectDetail: 0.3, // Reduced from 0.4
-        maxVisibleObjects: 100, // Reduced from 150
-        optimizedForLowEnd: true // Flag for additional optimizations
-    },
-    minimal: {
-        shadowMapSize: 0,
-        particleCount: 0.01, // Further reduced for 8-bit look
-        drawDistance: 0.1, // Further reduced for 8-bit look
-        textureQuality: 0.01, // Extremely low for pixelated textures
-        objectDetail: 0.05, // Further reduced for simpler geometry
-        maxVisibleObjects: 30, // Further reduced for performance
-        is8BitMode: true // Flag to indicate 8-bit rendering mode
-    }
-};
+
 
 export const FOG_CONFIG = {
     // Base fog settings
@@ -101,8 +56,16 @@ export const RENDER_CONFIG = {
         settings: {
             pixelRatio: Math.min(window.devicePixelRatio, 1.5),
             shadowMapEnabled: true,
+            shadowMapSize: 1024,
             shadowMapType: 'PCFSoftShadowMap',
             outputColorSpace: 'SRGBColorSpace'
+        },
+        materials: {
+            particleCount: 0.8,
+            drawDistance: 0.8,
+            textureQuality: 0.8,
+            objectDetail: 0.9,
+            maxVisibleObjects: 500
         }
     },
     
@@ -120,8 +83,17 @@ export const RENDER_CONFIG = {
         settings: {
             pixelRatio: Math.min(window.devicePixelRatio, 0.6), // Reduced from 0.7 for better performance
             shadowMapEnabled: false, // Disabled shadows to reduce GPU load
+            shadowMapSize: 0, // Reduced from 256 to match disabled shadows
             shadowMapType: 'BasicShadowMap', // Lighter shadow type if shadows are re-enabled
             outputColorSpace: 'SRGBColorSpace' // Changed to linear for better performance
+        },
+        materials: {
+            particleCount: 0.3, // Reduced from 0.5 to prevent particle buildup
+            drawDistance: 0.5, // Reduced from 0.6 to cull distant objects sooner
+            textureQuality: 0.4, // Reduced from 0.5 for memory efficiency
+            objectDetail: 0.5, // Reduced from 0.6 for simpler geometry
+            maxVisibleObjects: 200, // Reduced from 250 to prevent object accumulation
+            memoryOptimized: true // Flag for additional memory management
         }
     },
     
@@ -139,8 +111,17 @@ export const RENDER_CONFIG = {
         settings: {
             pixelRatio: Math.min(window.devicePixelRatio, 0.5), // Reduced from 0.6
             shadowMapEnabled: false,
+            shadowMapSize: 0, // Reduced from 256
             shadowMapType: 'BasicShadowMap',
             outputColorSpace: 'LinearSRGBColorSpace', // Changed to linear for performance
+        },
+        materials: {
+            particleCount: 0.1, // Reduced from 0.2
+            drawDistance: 0.2, // Reduced from 0.3
+            textureQuality: 0.2, // Reduced from 0.3
+            objectDetail: 0.3, // Reduced from 0.4
+            maxVisibleObjects: 100, // Reduced from 150
+            optimizedForLowEnd: true // Flag for additional optimizations
         }
     },
     
@@ -158,21 +139,20 @@ export const RENDER_CONFIG = {
         settings: {
             pixelRatio: 0.2, // Further reduced for more pixelated 8-bit look
             shadowMapEnabled: false,
+            shadowMapSize: 0,
             shadowMapType: 'BasicShadowMap',
             outputColorSpace: 'LinearSRGBColorSpace', // Linear for performance
             pixelatedMode: true, // New flag for 8-bit rendering
             colorPalette: 'limited', // Simulate limited color palette
             dithering: true // Enable dithering for retro look
+        },
+        materials: {
+            particleCount: 0.01, // Further reduced for 8-bit look
+            drawDistance: 0.1, // Further reduced for 8-bit look
+            textureQuality: 0.01, // Extremely low for pixelated textures
+            objectDetail: 0.05, // Further reduced for simpler geometry
+            maxVisibleObjects: 30, // Further reduced for performance
+            is8BitMode: true // Flag to indicate 8-bit rendering mode
         }
     }
-};
-
-/**
- * Combined configuration object that includes all quality-related settings
- * This is the recommended way to access all quality settings in one place
- */
-export const COMBINED_QUALITY_CONFIG = {
-    MATERIAL_QUALITY_LEVELS,
-    RENDER_CONFIG,
-    FOG_CONFIG
 };

@@ -28,11 +28,15 @@ export class FlyingKickEffect extends SkillEffect {
      */
     create(position, direction) {
         position.y -= 2.04;
+        
+        // Adjust for terrain height to ensure effect is visible
+        const adjustedPosition = this.adjustPositionForTerrain(position);
+        
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         
         // Store initial position and direction for movement
-        this.initialPosition.copy(position);
+        this.initialPosition.copy(adjustedPosition);
         this.direction.copy(direction);
         this.distanceTraveled = 0;
         
@@ -40,7 +44,7 @@ export class FlyingKickEffect extends SkillEffect {
         this.createFlyingKickEffect(effectGroup);
         
         // Position effect
-        effectGroup.position.copy(position);
+        effectGroup.position.copy(adjustedPosition);
         effectGroup.rotation.y = Math.atan2(direction.x, direction.z);
         
         // Store effect

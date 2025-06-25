@@ -14,7 +14,6 @@ import { MiniMapUI } from './MiniMapUI.js';
 import { HomeButton } from './HomeUI.js';
 import { FullscreenButton } from './SkillSelectionButton.js';
 import { SkillTreeButton } from './SkillTreeButton.js';
-import { TouchDebugUI } from './TouchDebugUI.js';
 import { MapSelectionUI } from './MapSelectionUI.js';
 
 import { InventoryButton } from './InventoryButton.js';
@@ -130,18 +129,11 @@ export class HUDManager {
         this.components.skillTreeButton = new SkillTreeButton(this.game);
         this.components.inventoryButton = new InventoryButton(this.game);
         
-        // Create touch debug UI (remove in production)
-        this.components.touchDebugUI = new TouchDebugUI(this.game);
-        this.components.touchDebugUI.init();
-        
         // Create map selection UI
         this.components.mapSelectionUI = new MapSelectionUI(this.game);
         this.components.mapSelectionUI.init();
         
-        // Refresh button protection after all components are created
-        setTimeout(() => {
-            touchManager.refreshButtonProtection();
-        }, 100);
+        // All components initialized successfully
     }
     
     /**

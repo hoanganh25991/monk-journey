@@ -28,7 +28,7 @@ export class TeleportManager {
         // Portal animation properties - enhanced for spiral effects
         this.animationSpeed = 1.5;
         this.hoverHeight = 0.5;
-        this.rotationSpeed = 0.02; // Increased for more dramatic spiral effect
+        this.rotationSpeed = 0.006; // Reduced to 1/3 speed for smoother effect
         this.spiralIntensity = 2.0; // New property for spiral effect strength
         
         // Portal interaction properties
@@ -57,6 +57,9 @@ export class TeleportManager {
         
         // Text display for portals
         this.portalLabels = {}; // Store references to portal labels
+        
+        // Animation loop tracking
+        this.animationLoopId = null; // Track the animation frame ID
         
         // Setup click/touch event listeners
         this.setupTouchClickEvents();
@@ -195,7 +198,51 @@ export class TeleportManager {
         // Re-setup touch/click events to ensure they're properly bound
         this.setupTouchClickEvents();
         
+        // Start the portal animation loop to ensure spirals keep rotating
+        this.startAnimationLoop();
+        
         return true;
+    }
+    
+    /**
+     * Start the continuous animation loop for portal spirals
+     * This ensures portals keep rotating even if the main game loop has issues
+     */
+    startAnimationLoop() {
+        // Clear any existing animation loop
+        if (this.animationLoopId) {
+            cancelAnimationFrame(this.animationLoopId);
+        }
+        
+        const animate = () => {
+            // Only animate if we have portals
+            if (this.portals.length > 0) {
+                const time = Date.now() / 1000;
+                
+                // Animate each portal
+                this.portals.forEach(portal => {
+                    this.animatePortal(portal, time);
+                });
+            }
+            
+            // Continue the animation loop
+            this.animationLoopId = requestAnimationFrame(animate);
+        };
+        
+        // Start the loop
+        animate();
+        console.debug("Portal animation loop started - spirals will rotate continuously");
+    }
+    
+    /**
+     * Stop the continuous animation loop
+     */
+    stopAnimationLoop() {
+        if (this.animationLoopId) {
+            cancelAnimationFrame(this.animationLoopId);
+            this.animationLoopId = null;
+            console.debug("Portal animation loop stopped");
+        }
     }
     
     /**
@@ -480,19 +527,26 @@ export class TeleportManager {
      * @param {THREE.Vector3} playerPosition - Current player position
      */
     update(deltaTime, playerPosition) {
-        // Skip if no portals or no player
-        if (this.portals.length === 0 || !playerPosition) return;
+        // Always animate portals even if no player position to keep spirals rotating
+        if (this.portals.length === 0) return;
+        
+        // Debug logging (only every 2 seconds to avoid spam)
+        if (Date.now() % 2000 < 50) {
+            console.debug(`TeleportManager update called - ${this.portals.length} portals`);
+        }
         
         // Current time for animations
         const time = Date.now() / 1000;
         
         // Update each portal
         this.portals.forEach(portal => {
-            // Animate portal
+            // Always animate portal to keep spiral rotating
             this.animatePortal(portal, time);
             
-            // Check for player interaction
-            this.checkPlayerInteraction(portal, playerPosition);
+            // Check for player interaction only if player position is available
+            if (playerPosition) {
+                this.checkPlayerInteraction(portal, playerPosition);
+            }
             
             // Update portal label position
             this.updatePortalLabel(portal);
@@ -522,21 +576,31 @@ export class TeleportManager {
         
         // Animate the portal mesh components if it's a group
         if (portal.mesh.cycloneMesh) {
-            // Cyclone spiral rotation - only rotate on Y-axis (around the portal's flat surface)
-            portal.mesh.cycloneMesh.rotation.y += this.rotationSpeed * 3;
+            // Cyclone spiral rotation - continuous smooth rotation on Y-axis
+            portal.mesh.cycloneMesh.rotation.y += this.rotationSpeed * 4; // Slightly faster for more visible spiral
             
-            // Add pulsing scale effect
-            const pulseScale = 1 + Math.sin(time * 2) * 0.1;
+            // Add pulsing scale effect for dynamic visual
+            const pulseScale = 1 + Math.sin(time * 2) * 0.12;
             portal.mesh.cycloneMesh.scale.set(pulseScale, pulseScale, pulseScale);
+            
+            // Ensure the spiral never stops - force continuous rotation
+            if (portal.mesh.cycloneMesh.rotation.y > Math.PI * 2) {
+                portal.mesh.cycloneMesh.rotation.y -= Math.PI * 2; // Keep rotation values manageable
+            }
         }
         
         if (portal.mesh.innerRingMesh) {
-            // Inner ring counter-rotation - only rotate on Y-axis (around the portal's flat surface)
-            portal.mesh.innerRingMesh.rotation.y -= this.rotationSpeed * 2;
+            // Inner ring counter-rotation - smooth continuous rotation
+            portal.mesh.innerRingMesh.rotation.y -= this.rotationSpeed * 3; // Counter-rotation for hypnotic effect
             
             // Add breathing effect
-            const breatheScale = 1 + Math.sin(time * 1.5) * 0.15;
+            const breatheScale = 1 + Math.sin(time * 1.5) * 0.18;
             portal.mesh.innerRingMesh.scale.set(breatheScale, breatheScale, breatheScale);
+            
+            // Ensure the inner ring never stops - force continuous rotation
+            if (portal.mesh.innerRingMesh.rotation.y < -Math.PI * 2) {
+                portal.mesh.innerRingMesh.rotation.y += Math.PI * 2; // Keep rotation values manageable
+            }
         }
         
         // Outer ring removed for cleaner look
@@ -571,18 +635,24 @@ export class TeleportManager {
                     const iy = i * 3 + 1;
                     const iz = i * 3 + 2;
                     
-                    // Update angle for spiral motion
-                    angleArray[i] += speedArray[i] * 0.02;
+                    // Update angle for continuous spiral motion
+                    angleArray[i] += speedArray[i] * 0.025; // Slightly faster spiral motion
                     
                     // Calculate spiral position
                     const spiralPosition = (i / particleCount);
-                    const currentAngle = angleArray[i] + time * this.animationSpeed * 2;
-                    const spiralRadius = this.portalRadius * (1 - spiralPosition * 0.8) * (0.8 + Math.sin(time + i) * 0.2);
+                    const currentAngle = angleArray[i] + time * this.animationSpeed * 2.5; // Enhanced spiral speed
+                    const baseRadius = portal.size || this.portalModelFactory?.portalRadius || 3;
+                    const spiralRadius = baseRadius * (1 - spiralPosition * 0.7) * (0.85 + Math.sin(time + i) * 0.15);
                     
-                    // Spiral inward motion - keep particles on the flat surface
+                    // Spiral inward motion - continuous smooth rotation
                     posArray[ix] = Math.cos(currentAngle) * spiralRadius;
-                    posArray[iy] = Math.sin(time * 2 + i) * 0.2; // Reduced vertical movement to keep particles on surface
+                    posArray[iy] = Math.sin(time * 2.2 + i) * 0.15; // Gentle vertical movement
                     posArray[iz] = Math.sin(currentAngle) * spiralRadius;
+                    
+                    // Keep angle values manageable to prevent overflow
+                    if (angleArray[i] > Math.PI * 4) {
+                        angleArray[i] -= Math.PI * 4;
+                    }
                 }
                 
                 positions.needsUpdate = true;
@@ -1567,5 +1637,36 @@ export class TeleportManager {
                 spiralContainer.classList.remove('extreme-spiral');
             }, 800);
         }, this.effectDuration - 800);
+    }
+    
+    /**
+     * Clean up and dispose of the teleport manager
+     * This method should be called when the manager is no longer needed
+     */
+    dispose() {
+        // Stop the animation loop
+        this.stopAnimationLoop();
+        
+        // Remove all portals from scene
+        this.portals.forEach(portal => {
+            if (portal.mesh && portal.mesh.parent) {
+                portal.mesh.parent.remove(portal.mesh);
+            }
+            if (portal.particles && portal.particles.parent) {
+                portal.particles.parent.remove(portal.particles);
+            }
+        });
+        
+        // Clear portals array
+        this.portals = [];
+        
+        // Remove event listeners
+        const canvas = document.querySelector('canvas');
+        if (canvas) {
+            canvas.removeEventListener('click', this.handleTouchClick.bind(this));
+            canvas.removeEventListener('touchend', this.handleTouchClick.bind(this));
+        }
+        
+        console.debug("TeleportManager disposed - all portals cleaned up");
     }
 }

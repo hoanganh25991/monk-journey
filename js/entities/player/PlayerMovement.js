@@ -79,7 +79,7 @@ export class PlayerMovement {
         if (this.game && this.game.world) {
             // Get delta time from game if available, otherwise use a default value
             const delta = this.game.delta || 0.016;
-            this.game.world.updateWorldForPlayer(this.position, undefined, delta);
+            this.game.world.update(this.position, delta);
         }
     }
     

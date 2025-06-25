@@ -121,6 +121,8 @@ export class EnvironmentManager {
      * @returns {THREE.Object3D} - The created object
      */
     createEnvironmentObject(type, x, z, scale = 1.0) {
+        console.debug(`🌳 EnvironmentManager: Creating ${type} at (${x.toFixed(1)}, ${z.toFixed(1)}) with scale ${scale}`);
+        
         let object = null;
         
         // Check if type is valid
@@ -130,7 +132,7 @@ export class EnvironmentManager {
         }
         
         // Use the terrain height at this position
-        const y = this.worldManager.getTerrainHeight(x, z);
+        const y = this.worldManager.terrainManager ? this.worldManager.terrainManager.getHeightAt(x, z) : 0;
         
         // Create a position object with the correct terrain height
         const position = new THREE.Vector3(x, y, z);
@@ -221,7 +223,14 @@ export class EnvironmentManager {
             // Add to scene (only if not already added by factory)
             if (object.parent === null) {
                 this.scene.add(object);
+                console.debug(`🌳 EnvironmentManager: Added ${type} to scene at (${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`);
+            } else {
+                console.debug(`🌳 EnvironmentManager: ${type} already had parent, not adding to scene`);
             }
+            
+            console.debug(`🌳 EnvironmentManager: Successfully created ${type} object`, object);
+        } else {
+            console.warn(`🌳 EnvironmentManager: Failed to create ${type} object`);
         }
         
         return object;
@@ -396,7 +405,7 @@ export class EnvironmentManager {
                 objects.push({
                     type: objData.type,
                     object: object,
-                    position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z)
+                    position: new THREE.Vector3(x, this.worldManager.terrainManager ? this.worldManager.terrainManager.getHeightAt(x, z) : 0, z)
                 });
             }
         }
@@ -439,7 +448,7 @@ export class EnvironmentManager {
         // Create position object with terrain height
         const position = new THREE.Vector3(
             x, 
-            this.worldManager.getTerrainHeight(x, z), 
+            this.worldManager.terrainManager ? this.worldManager.terrainManager.getHeightAt(x, z) : 0, 
             z
         );
         
@@ -615,8 +624,8 @@ export class EnvironmentManager {
             const worldZ = chunkZ * chunkSize;
             
             // Get zone type from the world manager
-            if (this.worldManager && this.worldManager.generationManager) {
-                zoneType = this.worldManager.generationManager.getZoneTypeAt(worldX, worldZ);
+            if (this.worldManager && this.worldManager.terrainManager && this.worldManager.terrainManager.chunkManager) {
+                zoneType = this.worldManager.terrainManager.chunkManager.getZoneTypeAt(worldX, worldZ);
             } else {
                 // Default to Forest if we can't determine zone type
                 zoneType = 'Forest';
@@ -628,10 +637,13 @@ export class EnvironmentManager {
             }
         }
         
-        // Skip if no zone density is provided
+        // Use default zone density if none is provided
         if (!zoneDensity) {
-            console.warn(`No zone density provided for zone type: ${zoneType}`);
-            return;
+            zoneDensity = {
+                environment: 1.0,
+                environmentTypes: ['tree', 'rock', 'bush', 'flower']
+            };
+            console.debug(`Using default zone density for zone type: ${zoneType}`);
         }
         
         // Calculate world coordinates for this chunk
@@ -644,6 +656,8 @@ export class EnvironmentManager {
         
         // Skip if we've already generated objects for this chunk
         if (this.environmentObjectsByChunk[chunkKey]) {
+            console.warn(`⚠️ DUPLICATE PREVENTION: Environment objects already exist for chunk ${chunkKey}, skipping generation`);
+            console.trace('Environment generation call stack:');
             return;
         }
         
@@ -694,7 +708,7 @@ export class EnvironmentManager {
                 const objectInfo = {
                     type: type,
                     object: object,
-                    position: new THREE.Vector3(x, this.worldManager.getTerrainHeight(x, z), z),
+                    position: new THREE.Vector3(x, this.worldManager.terrainManager ? this.worldManager.terrainManager.getHeightAt(x, z) : 0, z),
                     scale: scale,
                     chunkKey: chunkKey
                 };
@@ -710,7 +724,119 @@ export class EnvironmentManager {
             }
         }
         
-        console.debug(`Created ${this.environmentObjectsByChunk[chunkKey].length} environment objects for chunk ${chunkKey}`);
+        console.warn(`🌳 CREATED ENVIRONMENT: ${this.environmentObjectsByChunk[chunkKey].length} objects for chunk ${chunkKey}`);
+    }
+    
+    /**
+     * Generate environment object at a specific position - ADDED FOR SAMPLE COMPATIBILITY
+     * @param {THREE.Vector3} position - Position to generate environment object at
+     */
+    generateEnvironmentAtPosition(position) {
+        // Simple environment generation for random world generation
+        const environmentTypes = ['tree', 'rock', 'bush', 'flower'];
+        const randomType = environmentTypes[Math.floor(Math.random() * environmentTypes.length)];
+        
+        // Random scale variation
+        const scale = 0.7 + Math.random() * 0.6;
+        
+        // Create the environment object
+        const object = this.createEnvironmentObject(randomType, position.x, position.z, scale);
+        
+        if (object) {
+            // Create object info
+            const objectInfo = {
+                type: randomType,
+                object: object,
+                position: position.clone(),
+                scale: scale,
+                id: `random_${Date.now()}_${Math.random()}`
+            };
+            
+            // Add to global environment objects array
+            this.environmentObjects.push(objectInfo);
+            
+            // Add to type-specific collections for minimap
+            this.addToTypeCollection(randomType, object);
+            
+            console.debug(`Generated random ${randomType} at (${position.x.toFixed(1)}, ${position.z.toFixed(1)})`);
+        }
+    }
+    
+    /**
+     * Clean up distant environment objects - ADDED FOR SAMPLE COMPATIBILITY
+     * @param {THREE.Vector3} playerPosition - Player position
+     * @param {number} maxDistance - Maximum distance to keep objects
+     */
+    cleanupDistantObjects(playerPosition, maxDistance) {
+        const objectsToRemove = [];
+        
+        // Find objects that are too far away
+        this.environmentObjects.forEach((objectInfo, index) => {
+            if (objectInfo.position && playerPosition) {
+                const distance = objectInfo.position.distanceTo(playerPosition);
+                if (distance > maxDistance) {
+                    objectsToRemove.push(index);
+                }
+            }
+        });
+        
+        // Remove distant objects
+        objectsToRemove.reverse().forEach(index => {
+            const objectInfo = this.environmentObjects[index];
+            
+            // Remove from scene
+            if (objectInfo.object && objectInfo.object.parent) {
+                this.scene.remove(objectInfo.object);
+            }
+            
+            // Dispose of resources
+            if (objectInfo.object) {
+                if (objectInfo.object.traverse) {
+                    objectInfo.object.traverse(obj => {
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(mat => mat.dispose());
+                            } else {
+                                obj.material.dispose();
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Remove from array
+            this.environmentObjects.splice(index, 1);
+        });
+        
+        // Also clean up from chunk-based collections
+        for (const chunkKey in this.environmentObjectsByChunk) {
+            const chunkObjects = this.environmentObjectsByChunk[chunkKey];
+            const chunkObjectsToRemove = [];
+            
+            chunkObjects.forEach((objectInfo, index) => {
+                if (objectInfo.position && playerPosition) {
+                    const distance = objectInfo.position.distanceTo(playerPosition);
+                    if (distance > maxDistance) {
+                        chunkObjectsToRemove.push(index);
+                    }
+                }
+            });
+            
+            // Remove distant objects from chunk
+            chunkObjectsToRemove.reverse().forEach(index => {
+                chunkObjects.splice(index, 1);
+            });
+            
+            // Remove empty chunks
+            if (chunkObjects.length === 0) {
+                delete this.environmentObjectsByChunk[chunkKey];
+            }
+        }
+        
+        if (objectsToRemove.length > 0) {
+            console.debug(`Cleaned up ${objectsToRemove.length} distant environment objects`);
+        }
     }
     
     /**

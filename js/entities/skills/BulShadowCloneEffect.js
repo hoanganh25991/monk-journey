@@ -50,14 +50,18 @@ export class BulShadowCloneEffect extends SkillEffect {
     create(position, direction) {
         position = position.clone();
         position.y -= 2.04;
+        
+        // Adjust for terrain height to ensure effect is visible
+        const adjustedPosition = this.adjustPositionForTerrain(position);
+        
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         
         // Create the summoning effect
-        this._createSummoningEffect(effectGroup, position, direction);
+        this._createSummoningEffect(effectGroup, adjustedPosition, direction);
         
         // Position effect
-        effectGroup.position.copy(position);
+        effectGroup.position.copy(adjustedPosition);
         effectGroup.rotation.y = Math.atan2(direction.x, direction.z);
         
         // Store effect
