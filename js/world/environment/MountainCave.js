@@ -20,8 +20,8 @@ export class MountainCave {
         this.position = position;
         
         // Randomize cave properties
-        this.random = Math.random;
-        this.size = size * (1 + this.random() * 0.5); // Apply size with some variation
+        
+        this.size = size * (1 + Math.random() * 0.5); // Apply size with some variation
         
         // Store zone type for color selection (get from data or default to Mountains)
         this.zoneType = data.zoneType || 'Mountains';
@@ -58,9 +58,9 @@ export class MountainCave {
             const z = mountainVertices.getZ(i);
             
             // Add some noise to the vertices
-            mountainVertices.setX(i, x + (this.random() - 0.5) * 0.4 * this.size);
-            mountainVertices.setY(i, y + (this.random() - 0.5) * 0.2 * this.size);
-            mountainVertices.setZ(i, z + (this.random() - 0.5) * 0.4 * this.size);
+            mountainVertices.setX(i, x + (Math.random() - 0.5) * 0.4 * this.size);
+            mountainVertices.setY(i, y + (Math.random() - 0.5) * 0.2 * this.size);
+            mountainVertices.setZ(i, z + (Math.random() - 0.5) * 0.4 * this.size);
         }
         
         caveGroup.add(mountain);
@@ -81,9 +81,9 @@ export class MountainCave {
         caveGroup.add(entrance);
         
         // Add some rocks around the entrance
-        const rockCount = 4 + Math.floor(this.random() * 3);
+        const rockCount = 4 + Math.floor(Math.random() * 3);
         for (let i = 0; i < rockCount; i++) {
-            const rockSize = this.size * (0.2 + this.random() * 0.3);
+            const rockSize = this.size * (0.2 + Math.random() * 0.3);
             const rockGeometry = new THREE.DodecahedronGeometry(rockSize, 1);
             const rockMaterial = new THREE.MeshStandardMaterial({
                 color: zoneColors.rock || 0x808080,
@@ -94,19 +94,19 @@ export class MountainCave {
             const rock = new THREE.Mesh(rockGeometry, rockMaterial);
             
             // Position rocks around the entrance
-            const angle = this.random() * Math.PI * 2;
-            const distance = entranceRadius * (0.8 + this.random() * 0.5);
+            const angle = Math.random() * Math.PI * 2;
+            const distance = entranceRadius * (0.8 + Math.random() * 0.5);
             
             rock.position.set(
                 Math.cos(angle) * distance,
-                this.size * 0.4 + this.random() * this.size * 0.4,
+                this.size * 0.4 + Math.random() * this.size * 0.4,
                 this.size * 1.9 + Math.sin(angle) * distance
             );
             
             rock.rotation.set(
-                this.random() * Math.PI,
-                this.random() * Math.PI,
-                this.random() * Math.PI
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
             );
             
             rock.castShadow = true;

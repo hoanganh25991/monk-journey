@@ -8,9 +8,9 @@ export class DarkSanctum {
      * Create a new dark sanctum
      */
     constructor() {
-        this.random = Math.random;
-        this.baseSize = 18 + this.random() * 4; // Base size between 18-22 units
-        this.pillarHeight = 8 + this.random() * 2; // Pillar height between 8-10 units
+        
+        this.baseSize = 18 + Math.random() * 4; // Base size between 18-22 units
+        this.pillarHeight = 8 + Math.random() * 2; // Pillar height between 8-10 units
     }
     
     /**
@@ -124,7 +124,7 @@ export class DarkSanctum {
         sanctumGroup.add(aura);
         
         // Add some random decorative elements
-        if (this.random() > 0.5) {
+        if (Math.random() > 0.5) {
             // Add skulls around the altar
             for (let i = 0; i < 5; i++) {
                 const skullGeometry = new THREE.SphereGeometry(0.3, 8, 8);

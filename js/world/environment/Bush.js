@@ -9,9 +9,8 @@ export class Bush {
      */
     constructor() {
         // Randomize bush properties
-        this.random = Math.random;
-        this.baseSize = 0.5 + this.random() * 0.5; // Base size between 0.5-1 units
-        this.numSpheres = 3 + Math.floor(this.random() * 3); // 3-5 spheres
+        this.baseSize = 0.5 + Math.random() * 0.5; // Base size between 0.5-1 units
+        this.numSpheres = 3 + Math.floor(Math.random() * 3); // 3-5 spheres
     }
     
     /**
@@ -30,13 +29,13 @@ export class Bush {
         
         // Create several spheres for the bush
         for (let i = 0; i < this.numSpheres; i++) {
-            const size = this.baseSize * (0.7 + this.random() * 0.6);
+            const size = this.baseSize * (0.7 + Math.random() * 0.6);
             const bushGeometry = new THREE.SphereGeometry(size, 8, 6);
             const bushPart = new THREE.Mesh(bushGeometry, bushMaterial);
             
             // Position spheres to form a bush shape
-            const angle = this.random() * Math.PI * 2;
-            const radius = this.random() * 0.3;
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * 0.3;
             bushPart.position.set(
                 Math.cos(angle) * radius,
                 size * 0.8,
@@ -45,9 +44,9 @@ export class Bush {
             
             // Add some random scaling
             bushPart.scale.set(
-                1.0 + this.random() * 0.2,
-                0.8 + this.random() * 0.4,
-                1.0 + this.random() * 0.2
+                1.0 + Math.random() * 0.2,
+                0.8 + Math.random() * 0.4,
+                1.0 + Math.random() * 0.2
             );
             
             bushPart.castShadow = true;

@@ -8,8 +8,8 @@ export class Ruins {
      * Create new ruins
      */
     constructor() {
-        this.random = Math.random;
-        this.size = 5 + this.random() * 10; // Size between 5-15 units
+        
+        this.size = 5 + Math.random() * 10; // Size between 5-15 units
     }
     
     /**
@@ -21,19 +21,19 @@ export class Ruins {
         
         // Create stone material with variations
         const stoneMaterial = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0.6 + this.random() * 0.2, 0.6 + this.random() * 0.2, 0.6 + this.random() * 0.2),
+            color: new THREE.Color(0.6 + Math.random() * 0.2, 0.6 + Math.random() * 0.2, 0.6 + Math.random() * 0.2),
             roughness: 0.9,
             metalness: 0.1
         });
         
         // Create broken walls
-        const numWalls = 3 + Math.floor(this.random() * 4); // 3-6 wall sections
+        const numWalls = 3 + Math.floor(Math.random() * 4); // 3-6 wall sections
         
         for (let i = 0; i < numWalls; i++) {
             // Randomize wall dimensions
-            const wallWidth = 0.5 + this.random() * 0.5;
-            const wallHeight = 1 + this.random() * 3;
-            const wallDepth = 2 + this.random() * 4;
+            const wallWidth = 0.5 + Math.random() * 0.5;
+            const wallHeight = 1 + Math.random() * 3;
+            const wallDepth = 2 + Math.random() * 4;
             
             // Create wall geometry
             const wallGeometry = new THREE.BoxGeometry(wallWidth, wallHeight, wallDepth);
@@ -53,8 +53,8 @@ export class Ruins {
             wall.rotation.y = angle + Math.PI / 2;
             
             // Add some random rotation to make it look broken
-            wall.rotation.z = (this.random() - 0.5) * 0.5;
-            wall.rotation.x = (this.random() - 0.5) * 0.2;
+            wall.rotation.z = (Math.random() - 0.5) * 0.5;
+            wall.rotation.x = (Math.random() - 0.5) * 0.2;
             
             wall.castShadow = true;
             wall.receiveShadow = true;
@@ -63,18 +63,18 @@ export class Ruins {
         }
         
         // Create fallen columns
-        const numColumns = 2 + Math.floor(this.random() * 3); // 2-4 columns
+        const numColumns = 2 + Math.floor(Math.random() * 3); // 2-4 columns
         
         for (let i = 0; i < numColumns; i++) {
-            const columnRadius = 0.5 + this.random() * 0.3;
-            const columnHeight = 3 + this.random() * 2;
+            const columnRadius = 0.5 + Math.random() * 0.3;
+            const columnHeight = 3 + Math.random() * 2;
             
             const columnGeometry = new THREE.CylinderGeometry(columnRadius, columnRadius, columnHeight, 8);
             const column = new THREE.Mesh(columnGeometry, stoneMaterial);
             
             // Position column randomly within the ruins
-            const angle = this.random() * Math.PI * 2;
-            const distance = this.random() * (this.size / 3);
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * (this.size / 3);
             
             column.position.set(
                 Math.cos(angle) * distance,
@@ -83,8 +83,8 @@ export class Ruins {
             );
             
             // Make column fallen
-            column.rotation.x = Math.PI / 2 + (this.random() - 0.5) * 0.5;
-            column.rotation.z = this.random() * Math.PI * 2;
+            column.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+            column.rotation.z = Math.random() * Math.PI * 2;
             
             column.castShadow = true;
             column.receiveShadow = true;
@@ -93,31 +93,31 @@ export class Ruins {
         }
         
         // Create rubble piles
-        const numRubblePiles = 4 + Math.floor(this.random() * 5); // 4-8 rubble piles
+        const numRubblePiles = 4 + Math.floor(Math.random() * 5); // 4-8 rubble piles
         
         for (let i = 0; i < numRubblePiles; i++) {
             // Create a small pile of rocks
             const rubbleGroup = new THREE.Group();
             
-            const numRocks = 3 + Math.floor(this.random() * 5); // 3-7 rocks per pile
+            const numRocks = 3 + Math.floor(Math.random() * 5); // 3-7 rocks per pile
             
             for (let j = 0; j < numRocks; j++) {
-                const rockSize = 0.2 + this.random() * 0.4;
+                const rockSize = 0.2 + Math.random() * 0.4;
                 const rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0);
                 const rock = new THREE.Mesh(rockGeometry, stoneMaterial);
                 
                 // Position rocks in a small pile
                 rock.position.set(
-                    (this.random() - 0.5) * 0.5,
+                    (Math.random() - 0.5) * 0.5,
                     j * rockSize * 0.8,
-                    (this.random() - 0.5) * 0.5
+                    (Math.random() - 0.5) * 0.5
                 );
                 
                 // Random rotation
                 rock.rotation.set(
-                    this.random() * Math.PI,
-                    this.random() * Math.PI,
-                    this.random() * Math.PI
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI
                 );
                 
                 rock.castShadow = true;
@@ -127,8 +127,8 @@ export class Ruins {
             }
             
             // Position rubble pile randomly within the ruins
-            const angle = this.random() * Math.PI * 2;
-            const distance = this.random() * this.size / 2;
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * this.size / 2;
             
             rubbleGroup.position.set(
                 Math.cos(angle) * distance,

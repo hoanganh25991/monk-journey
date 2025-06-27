@@ -20,14 +20,14 @@ export class GiantMushroom {
         this.position = position;
         
         // Randomize mushroom properties
-        this.random = Math.random;
-        this.size = size * (1 + this.random() * 0.5); // Apply size with some variation
+        
+        this.size = size * (1 + Math.random() * 0.5); // Apply size with some variation
         
         // Store zone type for color selection (get from data or default to Swamp)
         this.zoneType = data.zoneType || 'Swamp';
         
         // Determine if the mushroom should glow
-        this.isGlowing = data.isGlowing !== undefined ? data.isGlowing : (this.random() > 0.5);
+        this.isGlowing = data.isGlowing !== undefined ? data.isGlowing : (Math.random() > 0.5);
     }
     
     /**
@@ -96,8 +96,8 @@ export class GiantMushroom {
             
             // Only modify x and z to keep the height consistent
             if (y > stemHeight * 0.1 && y < stemHeight * 0.9) {
-                stemVertices.setX(i, x + (this.random() - 0.5) * 0.1 * stemRadius);
-                stemVertices.setZ(i, z + (this.random() - 0.5) * 0.1 * stemRadius);
+                stemVertices.setX(i, x + (Math.random() - 0.5) * 0.1 * stemRadius);
+                stemVertices.setZ(i, z + (Math.random() - 0.5) * 0.1 * stemRadius);
             }
         }
         
@@ -134,17 +134,17 @@ export class GiantMushroom {
             const z = capVertices.getZ(i);
             
             // Add some noise to the vertices
-            capVertices.setX(i, x + (this.random() - 0.5) * 0.1 * capRadius);
-            capVertices.setY(i, y + (this.random() - 0.5) * 0.1 * capRadius);
-            capVertices.setZ(i, z + (this.random() - 0.5) * 0.1 * capRadius);
+            capVertices.setX(i, x + (Math.random() - 0.5) * 0.1 * capRadius);
+            capVertices.setY(i, y + (Math.random() - 0.5) * 0.1 * capRadius);
+            capVertices.setZ(i, z + (Math.random() - 0.5) * 0.1 * capRadius);
         }
         
         mushroomGroup.add(cap);
         
         // Add spots on the cap
-        const spotCount = 8 + Math.floor(this.random() * 8);
+        const spotCount = 8 + Math.floor(Math.random() * 8);
         for (let i = 0; i < spotCount; i++) {
-            const spotSize = capRadius * (0.1 + this.random() * 0.15);
+            const spotSize = capRadius * (0.1 + Math.random() * 0.15);
             const spotGeometry = new THREE.CircleGeometry(spotSize, 8);
             const spotMaterial = new THREE.MeshBasicMaterial({
                 color: 0xFFFFFF,
@@ -154,8 +154,8 @@ export class GiantMushroom {
             const spot = new THREE.Mesh(spotGeometry, spotMaterial);
             
             // Position spots on the cap
-            const phi = this.random() * Math.PI / 3; // Angle from top
-            const theta = this.random() * Math.PI * 2; // Angle around
+            const phi = Math.random() * Math.PI / 3; // Angle from top
+            const theta = Math.random() * Math.PI * 2; // Angle around
             
             const x = Math.sin(phi) * Math.cos(theta) * capRadius;
             const y = Math.cos(phi) * capRadius;
@@ -178,9 +178,9 @@ export class GiantMushroom {
         }
         
         // Add small mushrooms around the base
-        const smallMushroomCount = 3 + Math.floor(this.random() * 4);
+        const smallMushroomCount = 3 + Math.floor(Math.random() * 4);
         for (let i = 0; i < smallMushroomCount; i++) {
-            const smallSize = this.size * (0.2 + this.random() * 0.3);
+            const smallSize = this.size * (0.2 + Math.random() * 0.3);
             
             // Create small stem
             const smallStemHeight = smallSize * 0.8;
@@ -209,8 +209,8 @@ export class GiantMushroom {
             smallMushroom.add(smallCap);
             
             // Position small mushroom around the base
-            const angle = this.random() * Math.PI * 2;
-            const distance = stemRadius * (1.2 + this.random() * 1.5);
+            const angle = Math.random() * Math.PI * 2;
+            const distance = stemRadius * (1.2 + Math.random() * 1.5);
             
             smallMushroom.position.set(
                 Math.cos(angle) * distance,
@@ -219,7 +219,7 @@ export class GiantMushroom {
             );
             
             // Random rotation
-            smallMushroom.rotation.y = this.random() * Math.PI * 2;
+            smallMushroom.rotation.y = Math.random() * Math.PI * 2;
             
             mushroomGroup.add(smallMushroom);
         }

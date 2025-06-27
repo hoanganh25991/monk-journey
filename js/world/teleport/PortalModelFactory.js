@@ -37,20 +37,35 @@ export class PortalModelFactory {
         }
         
         // Use custom size or default, ensure it's a valid number
-        const portalRadius = (size && !isNaN(size)) ? size : this.portalRadius;
+        let portalRadius = (size && !isNaN(size) && size > 0) ? size : this.portalRadius;
+        
+        // Additional validation to prevent NaN in geometry
+        if (!portalRadius || isNaN(portalRadius) || portalRadius <= 0) {
+            console.warn('Invalid portal radius detected, using default:', portalRadius);
+            portalRadius = this.portalRadius;
+        }
         
         // Create a group to hold all portal effects
         const portalGroup = new THREE.Group();
         
-        // 1. Base portal disc
-        const baseGeometry = new THREE.CylinderGeometry(
-            portalRadius, // Top radius
-            portalRadius, // Bottom radius
-            this.portalHeight, // Height
-            32, // Radial segments
-            1, // Height segments
-            false // Open ended
-        );
+        // 1. Base portal disc - use safe geometry creation
+        const baseGeometry = window.createSafeCylinderGeometry ? 
+            window.createSafeCylinderGeometry(
+                portalRadius, // Top radius
+                portalRadius, // Bottom radius
+                this.portalHeight, // Height
+                32, // Radial segments
+                1, // Height segments
+                false // Open ended
+            ) : 
+            new THREE.CylinderGeometry(
+                portalRadius || this.portalRadius, // Top radius
+                portalRadius || this.portalRadius, // Bottom radius
+                this.portalHeight, // Height
+                32, // Radial segments
+                1, // Height segments
+                false // Open ended
+            );
         
         const baseMaterial = new THREE.MeshStandardMaterial({
             color: color || this.portalColor,
@@ -102,6 +117,12 @@ export class PortalModelFactory {
      * @returns {THREE.Mesh} - The cyclone mesh
      */
     createCycloneSpiral(radius, color, emissiveColor) {
+        // Validate radius parameter to prevent NaN in geometry
+        if (!radius || isNaN(radius) || radius <= 0) {
+            console.warn('Invalid radius for cyclone spiral, using default:', radius);
+            radius = this.portalRadius;
+        }
+        
         // Create a simple flat spiral that stays within the portal
         const spiralPoints = [];
         const spiralTurns = 3; // Number of complete spiral turns
@@ -148,7 +169,15 @@ export class PortalModelFactory {
      * @returns {THREE.Mesh} - The swirl ring mesh
      */
     createSwirlRing(radius, color, emissiveColor) {
-        const ringGeometry = new THREE.TorusGeometry(radius, radius * 0.1, 8, 32);
+        // Validate radius parameter to prevent NaN in geometry
+        if (!radius || isNaN(radius) || radius <= 0) {
+            console.warn('Invalid radius for swirl ring, using default:', radius);
+            radius = this.portalRadius * 0.7;
+        }
+        
+        const ringGeometry = window.createSafeTorusGeometry ? 
+            window.createSafeTorusGeometry(radius, radius * 0.1, 8, 32) :
+            new THREE.TorusGeometry(radius || this.portalRadius * 0.7, (radius || this.portalRadius * 0.7) * 0.1, 8, 32);
         
         const ringMaterial = new THREE.MeshStandardMaterial({
             color: color || this.portalColor,
@@ -173,7 +202,15 @@ export class PortalModelFactory {
      * @returns {THREE.Mesh} - The energy ring mesh
      */
     createEnergyRing(radius, color, emissiveColor) {
-        const ringGeometry = new THREE.TorusGeometry(radius, radius * 0.05, 4, 24);
+        // Validate radius parameter to prevent NaN in geometry
+        if (!radius || isNaN(radius) || radius <= 0) {
+            console.warn('Invalid radius for energy ring, using default:', radius);
+            radius = this.portalRadius * 1.2;
+        }
+        
+        const ringGeometry = window.createSafeTorusGeometry ? 
+            window.createSafeTorusGeometry(radius, radius * 0.05, 4, 24) :
+            new THREE.TorusGeometry(radius || this.portalRadius * 1.2, (radius || this.portalRadius * 1.2) * 0.05, 4, 24);
         
         const ringMaterial = new THREE.MeshStandardMaterial({
             color: color || this.portalColor,

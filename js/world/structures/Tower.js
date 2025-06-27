@@ -11,10 +11,10 @@ export class Tower {
      */
     constructor(zoneType = 'Forest') {
         // Randomize tower properties
-        this.random = Math.random;
-        this.height = 10 + this.random() * 15; // Tower height between 10-25 units
-        this.radius = 2 + this.random() * 3; // Tower radius between 2-5 units
-        this.segments = Math.floor(6 + this.random() * 6); // Tower segments between 6-12
+        
+        this.height = 10 + Math.random() * 15; // Tower height between 10-25 units
+        this.radius = 2 + Math.random() * 3; // Tower radius between 2-5 units
+        this.segments = Math.floor(6 + Math.random() * 6); // Tower segments between 6-12
         
         // Store zone type for color selection
         this.zoneType = zoneType;
@@ -32,7 +32,7 @@ export class Tower {
         
         // Create pagoda-style tower for Monk Journey theme
         // We'll create multiple tiers for a pagoda-like appearance
-        const tiers = Math.floor(3 + this.random() * 2); // 3-5 tiers
+        const tiers = Math.floor(3 + Math.random() * 2); // 3-5 tiers
         const tierHeight = this.height / tiers;
         
         // Create each tier
@@ -103,7 +103,7 @@ export class Tower {
             }
             
             // Add windows to each tier
-            const windowsPerTier = Math.floor(4 + this.random() * 2); // 4-6 windows
+            const windowsPerTier = Math.floor(4 + Math.random() * 2); // 4-6 windows
             
             for (let j = 0; j < windowsPerTier; j++) {
                 const angle = (j / windowsPerTier) * Math.PI * 2;
@@ -215,11 +215,11 @@ export class Tower {
         });
         
         // Add lanterns around the base
-        const lanternCount = Math.floor(4 + this.random() * 3); // 4-7 lanterns
+        const lanternCount = Math.floor(4 + Math.random() * 3); // 4-7 lanterns
         
         for (let i = 0; i < lanternCount; i++) {
             const angle = (i / lanternCount) * Math.PI * 2;
-            const lanternSize = 0.4 + this.random() * 0.2;
+            const lanternSize = 0.4 + Math.random() * 0.2;
             const lanternGeometry = new THREE.SphereGeometry(lanternSize, 8, 8);
             const lantern = new THREE.Mesh(lanternGeometry, lanternMaterial);
             
@@ -233,7 +233,7 @@ export class Tower {
             towerGroup.add(lantern);
             
             // Add string to lantern
-            const stringHeight = 1 + this.random() * 0.5;
+            const stringHeight = 1 + Math.random() * 0.5;
             const stringGeometry = new THREE.CylinderGeometry(0.02, 0.02, stringHeight, 4);
             const stringMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
             const string = new THREE.Mesh(stringGeometry, stringMaterial);
@@ -263,12 +263,12 @@ export class Tower {
         });
         
         // Add banners at different heights
-        const bannerCount = Math.floor(2 + this.random() * 2); // 2-4 banners
+        const bannerCount = Math.floor(2 + Math.random() * 2); // 2-4 banners
         
         for (let i = 0; i < bannerCount; i++) {
             const bannerHeight = this.height * (0.3 + i * 0.2); // Position at different heights
-            const bannerWidth = 2 + this.random() * 1;
-            const bannerLength = 4 + this.random() * 2;
+            const bannerWidth = 2 + Math.random() * 1;
+            const bannerLength = 4 + Math.random() * 2;
             
             // Create banner
             const bannerGeometry = new THREE.PlaneGeometry(bannerWidth, bannerLength);
@@ -327,7 +327,7 @@ export class Tower {
         towerGroup.add(snowCap);
         
         // Add snow on window sills
-        const tiers = Math.floor(3 + this.random() * 2); // Match the number of tiers
+        const tiers = Math.floor(3 + Math.random() * 2); // Match the number of tiers
         const tierHeight = this.height / tiers;
         
         for (let i = 0; i < tiers; i++) {
@@ -367,11 +367,11 @@ export class Tower {
         towerGroup.add(orb);
         
         // Add energy tendrils coming from the orb
-        const tendrilCount = 5 + Math.floor(this.random() * 5); // 5-10 tendrils
+        const tendrilCount = 5 + Math.floor(Math.random() * 5); // 5-10 tendrils
         
         for (let i = 0; i < tendrilCount; i++) {
             const angle = (i / tendrilCount) * Math.PI * 2;
-            const tendrilLength = this.radius * 2 + this.random() * this.radius;
+            const tendrilLength = this.radius * 2 + Math.random() * this.radius;
             
             const tendrilGeometry = new THREE.CylinderGeometry(0.1, 0.3, tendrilLength, 6);
             const tendril = new THREE.Mesh(tendrilGeometry, energyMaterial);

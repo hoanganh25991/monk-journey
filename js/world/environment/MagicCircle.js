@@ -20,16 +20,16 @@ export class MagicCircle {
         this.position = position;
         
         // Randomize circle properties
-        this.random = Math.random;
-        this.size = size * (1 + this.random() * 0.3); // Apply size with some variation
+        
+        this.size = size * (1 + Math.random() * 0.3); // Apply size with some variation
         
         // Store zone type for color selection (get from data or default to Ruins)
         this.zoneType = data.zoneType || 'Ruins';
         
         // Animation properties
-        this.rotationSpeed = 0.001 + this.random() * 0.002;
-        this.pulseSpeed = 0.01 + this.random() * 0.01;
-        this.pulseAmount = 0.1 + this.random() * 0.2;
+        this.rotationSpeed = 0.001 + Math.random() * 0.002;
+        this.pulseSpeed = 0.01 + Math.random() * 0.01;
+        this.pulseAmount = 0.1 + Math.random() * 0.2;
         this.time = 0;
     }
     
@@ -135,7 +135,7 @@ export class MagicCircle {
         circleGroup.add(innerCircle);
         
         // Create runes around the circle
-        const runeCount = 8 + Math.floor(this.random() * 8);
+        const runeCount = 8 + Math.floor(Math.random() * 8);
         for (let i = 0; i < runeCount; i++) {
             const angle = (i / runeCount) * Math.PI * 2;
             const runeRadius = this.size * 0.2;

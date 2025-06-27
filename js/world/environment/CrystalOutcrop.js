@@ -21,9 +21,9 @@ export class CrystalOutcrop {
         this.position = position;
         
         // Randomize crystal properties
-        this.random = Math.random;
-        this.size = size * (1 + this.random() * 0.5); // Apply size with some variation
-        this.crystalCount = 8 + Math.floor(this.random() * 7); // 8-14 crystals
+        
+        this.size = size * (1 + Math.random() * 0.5); // Apply size with some variation
+        this.crystalCount = 8 + Math.floor(Math.random() * 7); // 8-14 crystals
         
         // Store zone type for color selection (get from data or default to Mountains)
         this.zoneType = data.zoneType || 'Mountains';
@@ -88,9 +88,9 @@ export class CrystalOutcrop {
             const z = baseVertices.getZ(i);
             
             // Add some noise to the vertices
-            baseVertices.setX(i, x + (this.random() - 0.5) * 0.3 * this.size);
-            baseVertices.setY(i, y + (this.random() - 0.5) * 0.3 * this.size);
-            baseVertices.setZ(i, z + (this.random() - 0.5) * 0.3 * this.size);
+            baseVertices.setX(i, x + (Math.random() - 0.5) * 0.3 * this.size);
+            baseVertices.setY(i, y + (Math.random() - 0.5) * 0.3 * this.size);
+            baseVertices.setZ(i, z + (Math.random() - 0.5) * 0.3 * this.size);
         }
         
         crystalGroup.add(base);
@@ -109,26 +109,26 @@ export class CrystalOutcrop {
         // Create multiple crystals in a formation
         for (let i = 0; i < this.crystalCount; i++) {
             // Create crystal geometry (elongated pyramid)
-            const height = 0.8 + this.random() * 2.0;
-            const width = 0.3 + this.random() * 0.4;
+            const height = 0.8 + Math.random() * 2.0;
+            const width = 0.3 + Math.random() * 0.4;
             
             const crystalGeometry = new THREE.ConeGeometry(width, height, 5);
             const crystal = new THREE.Mesh(crystalGeometry, crystalMaterial);
             
             // Position crystal on the base with random placement
-            const angle = this.random() * Math.PI * 2;
-            const radius = this.random() * this.size * 0.8;
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * this.size * 0.8;
             
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
-            const y = (this.random() * 0.5 + 0.2) * this.size;
+            const y = (Math.random() * 0.5 + 0.2) * this.size;
             
             crystal.position.set(x, y, z);
             
             // Random rotation and tilt
-            crystal.rotation.y = this.random() * Math.PI * 2;
-            crystal.rotation.x = (this.random() - 0.5) * 0.7;
-            crystal.rotation.z = (this.random() - 0.5) * 0.7;
+            crystal.rotation.y = Math.random() * Math.PI * 2;
+            crystal.rotation.x = (Math.random() - 0.5) * 0.7;
+            crystal.rotation.z = (Math.random() - 0.5) * 0.7;
             
             crystal.castShadow = true;
             

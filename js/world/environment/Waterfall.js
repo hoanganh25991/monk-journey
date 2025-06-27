@@ -11,10 +11,10 @@ export class Waterfall {
      */
     constructor(zoneType = 'Forest') {
         // Randomize waterfall properties
-        this.random = Math.random;
-        this.height = 5 + this.random() * 5; // Height between 5-10 units
-        this.width = 2 + this.random() * 3; // Width between 2-5 units
-        this.depth = 1 + this.random() * 1; // Depth between 1-2 units
+        
+        this.height = 5 + Math.random() * 5; // Height between 5-10 units
+        this.width = 2 + Math.random() * 3; // Width between 2-5 units
+        this.depth = 1 + Math.random() * 1; // Depth between 1-2 units
         
         // Store zone type for color selection
         this.zoneType = zoneType;

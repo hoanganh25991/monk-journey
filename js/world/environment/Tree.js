@@ -11,10 +11,9 @@ export class Tree {
      */
     constructor(zoneType = 'Forest') {
         // Randomize tree properties
-        this.random = Math.random;
-        this.trunkHeight = 2 + this.random() * 1; // Trunk height between 2-3 units
-        this.trunkRadius = 0.3 + this.random() * 0.2; // Trunk radius between 0.3-0.5 units
-        this.foliageSize = 1.5 + this.random() * 0.5; // Foliage size between 1.5-2 units
+        this.trunkHeight = 2 + Math.random() * 1; // Trunk height between 2-3 units
+        this.trunkRadius = 0.3 + Math.random() * 0.2; // Trunk radius between 0.3-0.5 units
+        this.foliageSize = 1.5 + Math.random() * 0.5; // Foliage size between 1.5-2 units
         
         // Store zone type for color selection
         this.zoneType = zoneType;
@@ -54,7 +53,7 @@ export class Tree {
         });
         
         // Create multiple layers of foliage in a pagoda-like style
-        const foliageLayers = 2 + Math.floor(this.random() * 2); // 2-3 layers
+        const foliageLayers = 2 + Math.floor(Math.random() * 2); // 2-3 layers
         
         for (let i = 0; i < foliageLayers; i++) {
             const layerSize = this.foliageSize * (1 - i * 0.15); // Each layer is slightly smaller
@@ -74,7 +73,7 @@ export class Tree {
         }
         
         // Add small decorative elements for certain zone types (like flowers in forest)
-        if (this.zoneType === 'Forest' && this.random() > 0.7) {
+        if (this.zoneType === 'Forest' && Math.random() > 0.7) {
             const flowerMaterial = new THREE.MeshStandardMaterial({
                 color: zoneColors.accent || 0x8B0000, // Deep Red default
                 roughness: 0.7,
@@ -84,16 +83,16 @@ export class Tree {
             });
             
             // Add small flower-like decorations
-            const flowerCount = Math.floor(this.random() * 3) + 1;
+            const flowerCount = Math.floor(Math.random() * 3) + 1;
             for (let i = 0; i < flowerCount; i++) {
-                const flowerSize = 0.2 + this.random() * 0.1;
+                const flowerSize = 0.2 + Math.random() * 0.1;
                 const flowerGeometry = new THREE.SphereGeometry(flowerSize, 4, 4);
                 const flower = new THREE.Mesh(flowerGeometry, flowerMaterial);
                 
                 // Position flowers randomly in the foliage
-                const angle = this.random() * Math.PI * 2;
-                const radius = this.foliageSize * 0.7 * this.random();
-                const height = this.trunkHeight + this.foliageSize * (0.5 + this.random() * 0.5);
+                const angle = Math.random() * Math.PI * 2;
+                const radius = this.foliageSize * 0.7 * Math.random();
+                const height = this.trunkHeight + this.foliageSize * (0.5 + Math.random() * 0.5);
                 
                 flower.position.set(
                     Math.cos(angle) * radius,

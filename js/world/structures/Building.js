@@ -23,7 +23,7 @@ export class Building {
         this.zoneType = zoneType || 'Forest';
         this.buildingType = buildingType || 'house';
         this.style = style || 0;
-        this.random = Math.random;
+        
     }
     
     /**

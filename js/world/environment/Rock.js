@@ -11,8 +11,7 @@ export class Rock {
      */
     constructor(zoneType = 'Forest') {
         // Randomize rock properties
-        this.random = Math.random;
-        this.size = 0.5 + this.random() * 1.5; // Rock size between 0.5-2 units
+        this.size = 0.5 + Math.random() * 1.5; // Rock size between 0.5-2 units
         
         // Store zone type for color selection
         this.zoneType = zoneType;
@@ -57,15 +56,15 @@ export class Rock {
         rock.position.y = this.size / 2;
         
         // Add some random rotation to make it look more natural
-        rock.rotation.x = this.random() * Math.PI;
-        rock.rotation.y = this.random() * Math.PI;
-        rock.rotation.z = this.random() * Math.PI;
+        rock.rotation.x = Math.random() * Math.PI;
+        rock.rotation.y = Math.random() * Math.PI;
+        rock.rotation.z = Math.random() * Math.PI;
         
         // Add some random scaling to make it look more natural but maintain style
         rock.scale.set(
-            0.8 + this.random() * 0.4,
-            0.8 + this.random() * 0.4,
-            0.8 + this.random() * 0.4
+            0.8 + Math.random() * 0.4,
+            0.8 + Math.random() * 0.4,
+            0.8 + Math.random() * 0.4
         );
         
         rock.castShadow = true;
@@ -74,7 +73,7 @@ export class Rock {
         rockGroup.add(rock);
         
         // Add decorative elements for certain zone types
-        if (this.zoneType === 'Forest' && this.random() > 0.7) {
+        if (this.zoneType === 'Forest' && Math.random() > 0.7) {
             // Add moss or small plants on forest rocks
             const mossGeometry = new THREE.SphereGeometry(this.size * 0.3, 4, 4);
             const mossMaterial = new THREE.MeshStandardMaterial({
@@ -86,12 +85,12 @@ export class Rock {
             const moss = new THREE.Mesh(mossGeometry, mossMaterial);
             moss.scale.set(1, 0.3, 1); // Flatten it
             moss.position.set(
-                (this.random() - 0.5) * this.size * 0.5,
+                (Math.random() - 0.5) * this.size * 0.5,
                 this.size * 0.8,
-                (this.random() - 0.5) * this.size * 0.5
+                (Math.random() - 0.5) * this.size * 0.5
             );
             rockGroup.add(moss);
-        } else if (this.zoneType === 'Desert' && this.random() > 0.8) {
+        } else if (this.zoneType === 'Desert' && Math.random() > 0.8) {
             // Add sand texture or cracks to desert rocks
             const crackGeometry = new THREE.BoxGeometry(this.size * 0.8, 0.05, 0.05);
             const crackMaterial = new THREE.MeshStandardMaterial({
@@ -105,13 +104,13 @@ export class Rock {
                 const crack = new THREE.Mesh(crackGeometry, crackMaterial);
                 crack.position.set(
                     0,
-                    this.size * (0.3 + this.random() * 0.5),
+                    this.size * (0.3 + Math.random() * 0.5),
                     0
                 );
                 crack.rotation.set(
-                    this.random() * Math.PI,
-                    this.random() * Math.PI,
-                    this.random() * Math.PI
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI
                 );
                 rockGroup.add(crack);
             }

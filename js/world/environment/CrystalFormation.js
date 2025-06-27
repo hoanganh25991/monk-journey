@@ -20,9 +20,9 @@ export class CrystalFormation {
         this.position = position;
         
         // Randomize crystal properties
-        this.random = Math.random;
-        this.size = size * (1 + this.random() * 0.5); // Apply size with some variation
-        this.crystalCount = 3 + Math.floor(this.random() * 5); // 3-7 crystals
+        
+        this.size = size * (1 + Math.random() * 0.5); // Apply size with some variation
+        this.crystalCount = 3 + Math.floor(Math.random() * 5); // 3-7 crystals
         
         // Store zone type for color selection (get from data or default to Forest)
         this.zoneType = data.zoneType || 'Forest';
@@ -96,15 +96,15 @@ export class CrystalFormation {
         // Create multiple crystals in a formation
         for (let i = 0; i < this.crystalCount; i++) {
             // Create crystal geometry (elongated pyramid)
-            const height = 0.5 + this.random() * 1.5;
-            const width = 0.2 + this.random() * 0.3;
+            const height = 0.5 + Math.random() * 1.5;
+            const width = 0.2 + Math.random() * 0.3;
             
             const crystalGeometry = new THREE.ConeGeometry(width, height, 5);
             const crystal = new THREE.Mesh(crystalGeometry, crystalMaterial);
             
             // Position crystal on the base with random placement
-            const angle = this.random() * Math.PI * 2;
-            const radius = this.random() * this.size * 0.4;
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * this.size * 0.4;
             
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
@@ -113,9 +113,9 @@ export class CrystalFormation {
             crystal.position.set(x, y, z);
             
             // Random rotation and tilt
-            crystal.rotation.y = this.random() * Math.PI * 2;
-            crystal.rotation.x = (this.random() - 0.5) * 0.5;
-            crystal.rotation.z = (this.random() - 0.5) * 0.5;
+            crystal.rotation.y = Math.random() * Math.PI * 2;
+            crystal.rotation.x = (Math.random() - 0.5) * 0.5;
+            crystal.rotation.z = (Math.random() - 0.5) * 0.5;
             
             crystal.castShadow = true;
             

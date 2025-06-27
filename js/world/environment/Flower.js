@@ -9,7 +9,6 @@ export class Flower {
      */
     constructor() {
         // Randomize flower properties
-        this.random = Math.random;
         
         // Random flower color
         this.flowerColors = [
@@ -19,10 +18,10 @@ export class Flower {
             0xff55ff, // Purple
             0xffffff  // White
         ];
-        this.flowerColor = this.flowerColors[Math.floor(this.random() * this.flowerColors.length)];
+        this.flowerColor = this.flowerColors[Math.floor(Math.random() * this.flowerColors.length)];
         
         // Randomly choose between different flower shapes
-        this.flowerType = this.random();
+        this.flowerType = Math.random();
     }
     
     /**
@@ -83,7 +82,7 @@ export class Flower {
             flowerGroup.add(flowerHead);
         } else {
             // Multiple small petals
-            const numPetals = 5 + Math.floor(this.random() * 3);
+            const numPetals = 5 + Math.floor(Math.random() * 3);
             
             for (let i = 0; i < numPetals; i++) {
                 const petalGeometry = new THREE.SphereGeometry(0.08, 8, 8);

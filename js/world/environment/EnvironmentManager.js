@@ -117,11 +117,28 @@ export class EnvironmentManager {
      * @param {string} type - Type of environment object
      * @param {number} x - X coordinate
      * @param {number} z - Z coordinate
-     * @param {number} scale - Scale factor
+     * @param {number|object} scaleOrOptions - Scale factor or options object {size, variant, glow, canCluster}
      * @returns {THREE.Object3D} - The created object
      */
-    createEnvironmentObject(type, x, z, scale = 1.0) {
-        console.debug(`🌳 EnvironmentManager: Creating ${type} at (${x.toFixed(1)}, ${z.toFixed(1)}) with scale ${scale}`);
+    createEnvironmentObject(type, x, z, scaleOrOptions = 1.0) {
+        // Handle backward compatibility and validate input
+        let scale = 1.0;
+        let options = {};
+        
+        if (typeof scaleOrOptions === 'number') {
+            scale = isFinite(scaleOrOptions) && scaleOrOptions > 0 ? scaleOrOptions : 1.0;
+        } else if (typeof scaleOrOptions === 'object' && scaleOrOptions !== null) {
+            scale = scaleOrOptions.size || 1.0;
+            scale = isFinite(scale) && scale > 0 ? scale : 1.0;
+            options = scaleOrOptions;
+        }
+        
+        // Validate coordinates
+        if (!isFinite(x) || !isFinite(z)) {
+            console.warn(`Invalid coordinates for environment object: x=${x}, z=${z}`);
+            return null;
+        }
+        console.debug(`🌳 EnvironmentManager: Creating ${type} at (${x.toFixed(1)}, ${z.toFixed(1)}) with options:`, { scale, ...options });
         
         let object = null;
         
@@ -162,11 +179,11 @@ export class EnvironmentManager {
                 // Fall back to direct creation for traditional types
                 switch (type) {
                     case ENVIRONMENT_OBJECTS.TREE:
-                        const tree = new Tree();
+                        const tree = new Tree('Forest'); // Pass zone type
                         object = tree.createMesh();
                         break;
                     case ENVIRONMENT_OBJECTS.ROCK:
-                        const rock = new Rock();
+                        const rock = new Rock('Forest'); // Pass zone type
                         object = rock.createMesh();
                         break;
                     case ENVIRONMENT_OBJECTS.BUSH:
@@ -178,16 +195,29 @@ export class EnvironmentManager {
                         object = flower.createMesh();
                         break;
                     case ENVIRONMENT_OBJECTS.TALL_GRASS:
-                        const tallGrass = new TallGrass();
+                        // Fallback to bush for now
+                        const tallGrass = new Bush();
                         object = tallGrass.createMesh();
+                        object.scale.multiplyScalar(0.5); // Make it smaller like grass
                         break;
                     case ENVIRONMENT_OBJECTS.ANCIENT_TREE:
-                        const ancientTree = new AncientTree();
+                        // Fallback to regular tree but bigger
+                        const ancientTree = new Tree();
                         object = ancientTree.createMesh();
+                        object.scale.multiplyScalar(1.5); // Make it bigger
+                        break;
+                    case ENVIRONMENT_OBJECTS.SMALL_PLANT:
+                        // Fallback to small flower
+                        const smallPlant = new Flower();
+                        object = smallPlant.createMesh();
+                        object.scale.multiplyScalar(0.7); // Make it smaller
                         break;
                     default:
-                        console.warn(`Unknown environment object type: ${type}`);
-                        return null;
+                        console.warn(`Unknown environment object type: ${type}, creating fallback rock`);
+                        // Create a fallback rock as default
+                        const fallbackRock = new Rock();
+                        object = fallbackRock.createMesh();
+                        break;
                 }
             }
         } catch (error) {
