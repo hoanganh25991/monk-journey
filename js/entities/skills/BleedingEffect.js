@@ -9,6 +9,7 @@ export class BleedingEffect extends SkillEffect {
     /**
      * Create a new BleedingEffect
      * @param {Object} config - Configuration object
+     * @param {Object} config.game - Game reference for terrain height calculations (optional)
      */
     constructor(config) {
         // Create a temporary skill object to pass to the parent constructor
@@ -16,7 +17,8 @@ export class BleedingEffect extends SkillEffect {
             color: 0xff0000, // Default red color for blood
             duration: config.duration || 1.0, // Default duration of 1.5 seconds
             position: new THREE.Vector3(),
-            damage: config.amount || 0
+            damage: config.amount || 0,
+            game: config.game // Pass game reference if provided
         };
         
         super(tempSkill);
@@ -77,13 +79,20 @@ export class BleedingEffect extends SkillEffect {
      * @returns {THREE.Group} - The created effect
      */
     create(position, direction) {
-        position.y -= 2.04;
         // Create a group to hold all particles
         const effectGroup = new THREE.Group();
         
-        // Adjust for terrain height to ensure effect is visible
-        const adjustedPosition = this.adjustPositionForTerrain(position);
-        adjustedPosition.y += 1; // Raise slightly above the terrain
+        // Try to adjust for terrain height if game reference is available
+        let adjustedPosition;
+        if (this.skill.game) {
+            adjustedPosition = this.adjustPositionForTerrain(position);
+            // Add minimal offset to appear just above the terrain/enemy
+            adjustedPosition.y += 0.1;
+        } else {
+            // Fallback: use position directly with minimal offset
+            adjustedPosition = position.clone();
+            adjustedPosition.y += 0.05;
+        }
         
         // Position the effect
         effectGroup.position.copy(adjustedPosition);
@@ -342,15 +351,13 @@ export class BleedingEffect extends SkillEffect {
         const hitBleedingEffect = new BleedingEffect({
             amount: this.amount > 0 ? this.amount * 0.7 : 15, // Use 70% of original damage or default to 15
             duration: 0.8, // Shorter duration for hit effects
-            isPlayerDamage: false // This is enemy damage
+            isPlayerDamage: false, // This is enemy damage
+            game: this.skill.game // Pass game reference for terrain adjustment
         });
         
         // Create the effect at the specified position
-        // Adjust position slightly to avoid exact overlap with the main effect
-        const adjustedPosition = position.clone();
-        adjustedPosition.y += 0.2; // Raise slightly
-        
-        const effectGroup = hitBleedingEffect.create(adjustedPosition, new THREE.Vector3(0, 1, 0));
+        // The terrain adjustment will be handled by the create method
+        const effectGroup = hitBleedingEffect.create(position, new THREE.Vector3(0, 1, 0));
         
         // Add the effect to the scene
         this.skill.game.scene.add(effectGroup);
