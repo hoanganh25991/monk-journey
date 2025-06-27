@@ -349,8 +349,7 @@ export class BulShadowCloneEffect extends SkillEffect {
                 // Add the model to the group
                 cloneGroup.add(cloneModel);
                 
-                // Add energy aura
-                this._addCloneAura(cloneGroup);
+                // Energy aura removed - keeping only the model
                 
                 // Add to scene
                 this.skill.game.scene.add(cloneGroup);
@@ -384,31 +383,7 @@ export class BulShadowCloneEffect extends SkillEffect {
         );
     }
     
-    /**
-     * Add energy aura to a clone
-     * @param {THREE.Group} cloneGroup - Group to add aura to
-     * @private
-     */
-    _addCloneAura(cloneGroup) {
-        // Create energy sphere
-        const auraGeometry = new THREE.SphereGeometry(0.8, 16, 16);
-        const auraMaterial = new THREE.MeshBasicMaterial({
-            color: this.cloneColor,
-            transparent: true,
-            opacity: 0.3,
-            side: THREE.DoubleSide,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending,
-            wireframe: true
-        });
-        
-        const aura = new THREE.Mesh(auraGeometry, auraMaterial);
-        aura.scale.set(1.5, 1.5, 1.5);
-        cloneGroup.add(aura);
-        
-        // Store for animation
-        cloneGroup.userData.aura = aura;
-    }
+
     
     /**
      * Clear all clones
@@ -578,18 +553,7 @@ export class BulShadowCloneEffect extends SkillEffect {
                     break;
             }
             
-            // Update aura animation
-            if (clone.group.userData.aura) {
-                const aura = clone.group.userData.aura;
-                
-                // Pulse the aura
-                const pulseFactor = 1 + 0.2 * Math.sin(this.elapsedTime * 5 + clone.index);
-                aura.scale.set(pulseFactor, pulseFactor, pulseFactor);
-                
-                // Rotate the aura
-                aura.rotation.y += delta * 0.5;
-                aura.rotation.z += delta * 0.3;
-            }
+
         }
     }
     
