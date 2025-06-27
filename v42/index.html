@@ -900,14 +900,35 @@
                             
                             // Handle navigation based on path type
                             let targetUrl;
-                            if (selectedPath === '/') {
-                                // Root path
-                                targetUrl = '/';
-                            } else if (selectedPath.startsWith('./')) {
-                                // Relative path - convert to absolute
-                                targetUrl = selectedPath;
+                            
+                            // Get the current base path (e.g., '/monk-journey/' if hosted on domain.com/monk-journey)
+                            const currentPath = window.location.pathname;
+                            const pathSegments = currentPath.split('/').filter(segment => segment.length > 0);
+                            
+                            // Calculate base path - go up one level from current location
+                            let basePath;
+                            if (pathSegments.length > 1) {
+                                // Remove the current directory/file to get the parent directory
+                                basePath = '/' + pathSegments.slice(0, -1).join('/') + '/';
+                            } else if (pathSegments.length === 1) {
+                                // We're at the root level
+                                basePath = '/';
                             } else {
-                                targetUrl = selectedPath;
+                                basePath = '/';
+                            }
+                            
+                            if (selectedPath === '/') {
+                                // Root path - use base path instead of absolute root
+                                targetUrl = basePath;
+                            } else if (selectedPath.startsWith('./')) {
+                                // Relative path starting with ./ - treat as sibling directory
+                                targetUrl = basePath + selectedPath.substring(2);
+                            } else if (selectedPath.startsWith('/')) {
+                                // Absolute path - prepend base path
+                                targetUrl = basePath + selectedPath.substring(1);
+                            } else {
+                                // Relative path without ./ prefix - treat as sibling directory
+                                targetUrl = basePath + selectedPath;
                             }
                             
                             // Navigate to the selected version
