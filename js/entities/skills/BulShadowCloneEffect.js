@@ -49,11 +49,18 @@ export class BulShadowCloneEffect extends SkillEffect {
      */
     create(position, direction) {
         position = position.clone();
-        position.y -= 2.04;
         
-        // Adjust for terrain height to ensure effect is visible
-        const adjustedPosition = this.adjustPositionForTerrain(position);
-        
+        let adjustedPosition;
+        if (this.skill.game) {
+            adjustedPosition = this.adjustPositionForTerrain(position);
+            // Add minimal offset to appear just above the terrain
+            adjustedPosition.y += 0.1;
+        } else {
+            // Fallback: use position directly with minimal offset
+            adjustedPosition = position.clone();
+            adjustedPosition.y += 0.1;
+        }
+
         // Create a group for the effect
         const effectGroup = new THREE.Group();
         

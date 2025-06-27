@@ -22,10 +22,18 @@ export class InnerSanctuaryEffect extends SkillEffect {
      */
     create(position, direction) {
         position = position.clone();
-        position.y -= 2.04;
         
-        // Adjust for terrain height to ensure effect is visible
-        const adjustedPosition = this.adjustPositionForTerrain(position);
+        // Try to adjust for terrain height if game reference is available
+        let adjustedPosition;
+        if (this.skill.game) {
+            adjustedPosition = this.adjustPositionForTerrain(position);
+            // Add minimal offset to appear just above the terrain
+            adjustedPosition.y -= 1.0;
+        } else {
+            // Fallback: use position directly with minimal offset
+            adjustedPosition = position.clone();
+            adjustedPosition.y -= 1.0;
+        }
         
         // Create a group for the effect
         const effectGroup = new THREE.Group();

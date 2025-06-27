@@ -27,10 +27,17 @@ export class FlyingKickEffect extends SkillEffect {
      * @returns {THREE.Group} - The created effect
      */
     create(position, direction) {
-        position.y -= 2.04;
-        
-        // Adjust for terrain height to ensure effect is visible
-        const adjustedPosition = this.adjustPositionForTerrain(position);
+        // Try to adjust for terrain height if game reference is available
+        let adjustedPosition;
+        if (this.skill.game) {
+            adjustedPosition = this.adjustPositionForTerrain(position);
+            // Add minimal offset to appear just above the terrain
+            adjustedPosition.y += 0.1;
+        } else {
+            // Fallback: use position directly with minimal offset
+            adjustedPosition = position.clone();
+            adjustedPosition.y += 0.1;
+        }
         
         // Create a group for the effect
         const effectGroup = new THREE.Group();
