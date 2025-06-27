@@ -128,7 +128,14 @@ export class NecromancerModel extends EnemyModel {
         const time = Date.now() * 0.001; // Convert to seconds
         
         if (this.modelGroup) {
-            // Don't modify head rotation - it conflicts with Enemy class model group rotation updates
+            // Fix head orientation - now safe since Enemy class preserves head rotation
+            const head = this.modelGroup.children[1]; // Head is the 2nd child
+            if (head) {
+                // Keep head in correct upright position
+                head.rotation.x = 0;
+                head.rotation.y = 0;
+                head.rotation.z = 0;
+            }
             
             // Get the staff and orb
             const staff = this.modelGroup.children[3]; // Staff is the 4th child
