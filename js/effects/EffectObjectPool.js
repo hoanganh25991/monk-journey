@@ -1,5 +1,6 @@
 import { ObjectPool } from '../world/utils/ObjectPool.js';
 import * as THREE from 'three';
+import GeometryFactory from '../utils/GeometryFactory.js';
 
 /**
  * Specialized object pool for visual effects
@@ -119,7 +120,7 @@ export class EffectObjectPool {
             
             // Create projectile mesh with proper material for shadows
             const mesh = new THREE.Mesh(
-                new THREE.SphereGeometry(0.2, 8, 8),
+                GeometryFactory.createSphereGeometry(0.2, 8, 8),
                 new THREE.MeshStandardMaterial({ 
                     color: color,
                     emissive: color,
@@ -138,7 +139,7 @@ export class EffectObjectPool {
             
             // Add trail effect with improved material
             const trail = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.05, 0.15, 0.5, 8),
+                GeometryFactory.createCylinderGeometry(0.05, 0.15, 0.5, 8),
                 new THREE.MeshStandardMaterial({ 
                     color: color, 
                     transparent: true, 
@@ -251,7 +252,7 @@ export class EffectObjectPool {
             // Create impact mesh (simple particle system placeholder)
             for (let i = 0; i < 8; i++) {
                 const particle = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.1, 4, 4),
+                    GeometryFactory.createSphereGeometry(0.1, 4, 4),
                     new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.8 })
                 );
                 
@@ -348,7 +349,7 @@ export class EffectObjectPool {
             // Add particles for effect
             for (let i = 0; i < 12; i++) {
                 const particle = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.1, 4, 4),
+                    GeometryFactory.createSphereGeometry(0.1, 4, 4),
                     new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.6 })
                 );
                 
@@ -419,7 +420,7 @@ export class EffectObjectPool {
             
             // Create simple effect mesh
             const mesh = new THREE.Mesh(
-                new THREE.SphereGeometry(0.3, 8, 8),
+                GeometryFactory.createSphereGeometry(0.3, 8, 8),
                 new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })
             );
             group.add(mesh);

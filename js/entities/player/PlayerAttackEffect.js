@@ -4,6 +4,7 @@
  */
 
 import * as THREE from 'three';
+import GeometryFactory from '../../utils/GeometryFactory.js';
 
 export class PlayerAttackEffect {
     constructor(scene) {
@@ -140,7 +141,7 @@ export class PlayerAttackEffect {
         );
         
         // Create main punch effect (sphere)
-        const punchGeometry = new THREE.SphereGeometry(0.3, 12, 12);
+        const punchGeometry = GeometryFactory.createSphereGeometry(0.3, 12, 12);
         const punchMaterial = new THREE.MeshBasicMaterial({
             color: color,
             transparent: true,
@@ -181,7 +182,7 @@ export class PlayerAttackEffect {
                 0
             ).applyEuler(new THREE.Euler(0, modelGroup.rotation.y, 0));
             
-            const lineGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.4, 4);
+            const lineGeometry = GeometryFactory.createCylinderGeometry(0.03, 0.03, 0.4, 4);
             const lineMaterial = new THREE.MeshBasicMaterial({
                 color: color,
                 transparent: true,
@@ -272,7 +273,7 @@ export class PlayerAttackEffect {
         );
         
         // Create main punch effect (larger sphere)
-        const punchGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+        const punchGeometry = GeometryFactory.createSphereGeometry(0.4, 16, 16);
         const punchMaterial = new THREE.MeshBasicMaterial({
             color: 0xff3300, // Fiery orange-red
             transparent: true,
@@ -341,7 +342,7 @@ export class PlayerAttackEffect {
             
             // Create particle
             const size = 0.05 + Math.random() * 0.15;
-            const particleGeometry = new THREE.SphereGeometry(size, 8, 8);
+            const particleGeometry = GeometryFactory.createSphereGeometry(size, 8, 8);
             
             // Random color from yellow to red
             const colorValue = Math.random();
@@ -389,7 +390,7 @@ export class PlayerAttackEffect {
                 0
             ).applyEuler(new THREE.Euler(0, modelGroup.rotation.y, 0));
             
-            const lineGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.6, 4);
+            const lineGeometry = GeometryFactory.createCylinderGeometry(0.04, 0.04, 0.6, 4);
             const lineMaterial = new THREE.MeshBasicMaterial({
                 color: 0xff5500,
                 transparent: true,

@@ -8,6 +8,9 @@ import { DEFAULT_CHARACTER_MODEL } from './config/player-models.js';
 import { STORAGE_KEYS } from './config/storage-keys.js';
 import * as THREE from 'three';
 
+// Import and setup geometry factory for safe THREE.js geometry creation
+import GeometryFactory from './utils/GeometryFactory.js';
+
 // Set up console warning filter to suppress specific THREE.js warnings
 (function setupConsoleFilter() {
     // Store the original console.warn
@@ -49,85 +52,7 @@ import * as THREE from 'three';
         // Pass other errors to the original console.error
         return originalError.apply(console, args);
     };
-    
-    // Since we can't patch THREE geometry constructors directly in ES6 modules,
-    // we'll rely on robust validation at the factory level and add a utility function
-    window.createSafeCylinderGeometry = function(radiusTop, radiusBottom, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength) {
-        // Validate parameters to prevent NaN
-        const validatedRadiusTop = (typeof radiusTop === 'number' && !isNaN(radiusTop) && radiusTop >= 0) ? radiusTop : 1;
-        const validatedRadiusBottom = (typeof radiusBottom === 'number' && !isNaN(radiusBottom) && radiusBottom >= 0) ? radiusBottom : 1;
-        const validatedHeight = (typeof height === 'number' && !isNaN(height) && height > 0) ? height : 1;
-        const validatedRadialSegments = (typeof radialSegments === 'number' && !isNaN(radialSegments) && radialSegments >= 3) ? radialSegments : 8;
-        const validatedHeightSegments = (typeof heightSegments === 'number' && !isNaN(heightSegments) && heightSegments >= 1) ? heightSegments : 1;
-        
-        // Log if we had to correct any values
-        if (radiusTop !== validatedRadiusTop || radiusBottom !== validatedRadiusBottom || height !== validatedHeight || 
-            radialSegments !== validatedRadialSegments || heightSegments !== validatedHeightSegments) {
-            console.warn('CylinderGeometry: Invalid parameters detected and corrected', {
-                original: { radiusTop, radiusBottom, height, radialSegments, heightSegments },
-                corrected: { 
-                    radiusTop: validatedRadiusTop, 
-                    radiusBottom: validatedRadiusBottom, 
-                    height: validatedHeight, 
-                    radialSegments: validatedRadialSegments, 
-                    heightSegments: validatedHeightSegments 
-                }
-            });
-        }
-        
-        return new THREE.CylinderGeometry(
-            validatedRadiusTop, 
-            validatedRadiusBottom, 
-            validatedHeight, 
-            validatedRadialSegments, 
-            validatedHeightSegments, 
-            openEnded, 
-            thetaStart, 
-            thetaLength
-        );
-    };
-    
-    // Add a more comprehensive safe geometry creator that can handle all cases
-    window.SafeGeometry = {
-        createCylinder: function(radiusTop, radiusBottom, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength) {
-            return window.createSafeCylinderGeometry(radiusTop, radiusBottom, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength);
-        },
-        createTorus: function(radius, tube, radialSegments, tubularSegments, arc) {
-            return window.createSafeTorusGeometry(radius, tube, radialSegments, tubularSegments, arc);
-        }
-    };
-    
-    window.createSafeTorusGeometry = function(radius, tube, radialSegments, tubularSegments, arc) {
-        // Validate parameters to prevent NaN
-        const validatedRadius = (typeof radius === 'number' && !isNaN(radius) && radius > 0) ? radius : 1;
-        const validatedTube = (typeof tube === 'number' && !isNaN(tube) && tube > 0) ? tube : 0.4;
-        const validatedRadialSegments = (typeof radialSegments === 'number' && !isNaN(radialSegments) && radialSegments >= 3) ? radialSegments : 12;
-        const validatedTubularSegments = (typeof tubularSegments === 'number' && !isNaN(tubularSegments) && tubularSegments >= 3) ? tubularSegments : 48;
-        const validatedArc = (typeof arc === 'number' && !isNaN(arc) && arc > 0) ? arc : Math.PI * 2;
-        
-        // Log if we had to correct any values
-        if (radius !== validatedRadius || tube !== validatedTube || radialSegments !== validatedRadialSegments || tubularSegments !== validatedTubularSegments) {
-            console.warn('TorusGeometry: Invalid parameters detected and corrected', {
-                original: { radius, tube, radialSegments, tubularSegments, arc },
-                corrected: { 
-                    radius: validatedRadius, 
-                    tube: validatedTube, 
-                    radialSegments: validatedRadialSegments, 
-                    tubularSegments: validatedTubularSegments, 
-                    arc: validatedArc 
-                }
-            });
-        }
-        
-        return new THREE.TorusGeometry(
-            validatedRadius, 
-            validatedTube, 
-            validatedRadialSegments, 
-            validatedTubularSegments, 
-            validatedArc
-        );
-    };
-    
+
     // Patch THREE.BufferGeometry.prototype.computeBoundingSphere to handle NaN values
     try {
         const originalComputeBoundingSphere = THREE.BufferGeometry.prototype.computeBoundingSphere;
@@ -160,188 +85,6 @@ import * as THREE from 'three';
         };
     } catch (e) {
         console.warn('Could not patch BufferGeometry.computeBoundingSphere, using factory-level validation only:', e);
-    }
-    
-    // Patch THREE.CylinderGeometry constructor to catch NaN values globally
-    try {
-        const originalCylinderGeometry = THREE.CylinderGeometry;
-        
-        // Create a wrapper class that extends the original
-        class PatchedCylinderGeometry extends originalCylinderGeometry {
-            constructor(radiusTop, radiusBottom, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength) {
-                // Validate parameters to prevent NaN
-                const validatedRadiusTop = (typeof radiusTop === 'number' && !isNaN(radiusTop) && radiusTop >= 0) ? radiusTop : 1;
-                const validatedRadiusBottom = (typeof radiusBottom === 'number' && !isNaN(radiusBottom) && radiusBottom >= 0) ? radiusBottom : 1;
-                const validatedHeight = (typeof height === 'number' && !isNaN(height) && height > 0) ? height : 1;
-                const validatedRadialSegments = (typeof radialSegments === 'number' && !isNaN(radialSegments) && radialSegments >= 3) ? radialSegments : 8;
-                const validatedHeightSegments = (typeof heightSegments === 'number' && !isNaN(heightSegments) && heightSegments >= 1) ? heightSegments : 1;
-                
-                // Log if we had to correct any values
-                if (radiusTop !== validatedRadiusTop || radiusBottom !== validatedRadiusBottom || height !== validatedHeight || 
-                    radialSegments !== validatedRadialSegments || heightSegments !== validatedHeightSegments) {
-                    console.warn('THREE.CylinderGeometry: Invalid parameters detected and corrected', {
-                        original: { radiusTop, radiusBottom, height, radialSegments, heightSegments },
-                        corrected: { 
-                            radiusTop: validatedRadiusTop, 
-                            radiusBottom: validatedRadiusBottom, 
-                            height: validatedHeight, 
-                            radialSegments: validatedRadialSegments, 
-                            heightSegments: validatedHeightSegments 
-                        }
-                    });
-                }
-                
-                super(
-                    validatedRadiusTop, 
-                    validatedRadiusBottom, 
-                    validatedHeight, 
-                    validatedRadialSegments, 
-                    validatedHeightSegments, 
-                    openEnded, 
-                    thetaStart, 
-                    thetaLength
-                );
-            }
-        }
-        
-        // Try to replace the CylinderGeometry using Object.defineProperty
-        try {
-            Object.defineProperty(THREE, 'CylinderGeometry', {
-                value: PatchedCylinderGeometry,
-                writable: false,
-                enumerable: true,
-                configurable: true
-            });
-            console.debug('Successfully patched THREE.CylinderGeometry constructor for NaN protection');
-        } catch (defineError) {
-            // If we can't override, create a global alternative
-            window.SafeCylinderGeometry = PatchedCylinderGeometry;
-            console.warn('Could not override THREE.CylinderGeometry, created window.SafeCylinderGeometry instead:', defineError);
-        }
-        
-    } catch (e) {
-        console.warn('Could not patch THREE.CylinderGeometry constructor:', e);
-    }
-    
-    // Patch THREE.TorusGeometry constructor to catch NaN values globally
-    try {
-        const originalTorusGeometry = THREE.TorusGeometry;
-        
-        // Create a wrapper class that extends the original
-        class PatchedTorusGeometry extends originalTorusGeometry {
-            constructor(radius, tube, radialSegments, tubularSegments, arc) {
-                // Validate parameters to prevent NaN
-                const validatedRadius = (typeof radius === 'number' && !isNaN(radius) && radius > 0) ? radius : 1;
-                const validatedTube = (typeof tube === 'number' && !isNaN(tube) && tube > 0) ? tube : 0.4;
-                const validatedRadialSegments = (typeof radialSegments === 'number' && !isNaN(radialSegments) && radialSegments >= 3) ? radialSegments : 12;
-                const validatedTubularSegments = (typeof tubularSegments === 'number' && !isNaN(tubularSegments) && tubularSegments >= 3) ? tubularSegments : 48;
-                const validatedArc = (typeof arc === 'number' && !isNaN(arc) && arc > 0) ? arc : Math.PI * 2;
-                
-                // Log if we had to correct any values
-                if (radius !== validatedRadius || tube !== validatedTube || radialSegments !== validatedRadialSegments || 
-                    tubularSegments !== validatedTubularSegments || arc !== validatedArc) {
-                    console.warn('THREE.TorusGeometry: Invalid parameters detected and corrected', {
-                        original: { radius, tube, radialSegments, tubularSegments, arc },
-                        corrected: { 
-                            radius: validatedRadius, 
-                            tube: validatedTube, 
-                            radialSegments: validatedRadialSegments, 
-                            tubularSegments: validatedTubularSegments, 
-                            arc: validatedArc 
-                        }
-                    });
-                }
-                
-                super(
-                    validatedRadius, 
-                    validatedTube, 
-                    validatedRadialSegments, 
-                    validatedTubularSegments, 
-                    validatedArc
-                );
-            }
-        }
-        
-        // Try to replace the TorusGeometry using Object.defineProperty
-        try {
-            Object.defineProperty(THREE, 'TorusGeometry', {
-                value: PatchedTorusGeometry,
-                writable: false,
-                enumerable: true,
-                configurable: true
-            });
-            console.debug('Successfully patched THREE.TorusGeometry constructor for NaN protection');
-        } catch (defineError) {
-            // If we can't override, create a global alternative
-            window.SafeTorusGeometry = PatchedTorusGeometry;
-            console.warn('Could not override THREE.TorusGeometry, created window.SafeTorusGeometry instead:', defineError);
-        }
-        
-    } catch (e) {
-        console.warn('Could not patch THREE.TorusGeometry constructor:', e);
-    }
-    
-    // Patch THREE.SphereGeometry constructor to catch NaN values globally
-    try {
-        const originalSphereGeometry = THREE.SphereGeometry;
-        
-        // Create a wrapper class that extends the original
-        class PatchedSphereGeometry extends originalSphereGeometry {
-            constructor(radius, widthSegments, heightSegments, phiStart, phiLength, thetaStart, thetaLength) {
-                // Validate parameters to prevent NaN
-                const validatedRadius = (typeof radius === 'number' && !isNaN(radius) && radius > 0) ? radius : 1;
-                const validatedWidthSegments = (typeof widthSegments === 'number' && !isNaN(widthSegments) && widthSegments >= 3) ? widthSegments : 32;
-                const validatedHeightSegments = (typeof heightSegments === 'number' && !isNaN(heightSegments) && heightSegments >= 2) ? heightSegments : 16;
-                const validatedPhiStart = (typeof phiStart === 'number' && !isNaN(phiStart)) ? phiStart : 0;
-                const validatedPhiLength = (typeof phiLength === 'number' && !isNaN(phiLength) && phiLength > 0) ? phiLength : Math.PI * 2;
-                const validatedThetaStart = (typeof thetaStart === 'number' && !isNaN(thetaStart)) ? thetaStart : 0;
-                const validatedThetaLength = (typeof thetaLength === 'number' && !isNaN(thetaLength) && thetaLength > 0) ? thetaLength : Math.PI;
-                
-                // Log if we had to correct any values
-                if (radius !== validatedRadius || widthSegments !== validatedWidthSegments || heightSegments !== validatedHeightSegments) {
-                    console.warn('THREE.SphereGeometry: Invalid parameters detected and corrected', {
-                        original: { radius, widthSegments, heightSegments, phiStart, phiLength, thetaStart, thetaLength },
-                        corrected: { 
-                            radius: validatedRadius, 
-                            widthSegments: validatedWidthSegments, 
-                            heightSegments: validatedHeightSegments,
-                            phiStart: validatedPhiStart,
-                            phiLength: validatedPhiLength,
-                            thetaStart: validatedThetaStart,
-                            thetaLength: validatedThetaLength
-                        }
-                    });
-                }
-                
-                super(
-                    validatedRadius, 
-                    validatedWidthSegments, 
-                    validatedHeightSegments, 
-                    validatedPhiStart, 
-                    validatedPhiLength, 
-                    validatedThetaStart, 
-                    validatedThetaLength
-                );
-            }
-        }
-        
-        // Try to replace the SphereGeometry using Object.defineProperty
-        try {
-            Object.defineProperty(THREE, 'SphereGeometry', {
-                value: PatchedSphereGeometry,
-                writable: false,
-                enumerable: true,
-                configurable: true
-            });
-            console.debug('Successfully patched THREE.SphereGeometry constructor for NaN protection');
-        } catch (defineError) {
-            // If we can't override, create a global alternative
-            window.SafeSphereGeometry = PatchedSphereGeometry;
-            console.warn('Could not override THREE.SphereGeometry, created window.SafeSphereGeometry instead:', defineError);
-        }
-        
-    } catch (e) {
-        console.warn('Could not patch THREE.SphereGeometry constructor:', e);
     }
 
     // Patch THREE.WebGLRenderer.prototype.render to catch shader errors
@@ -386,6 +129,19 @@ import * as THREE from 'three';
         console.warn('Could not patch WebGLRenderer.render, using default error handling:', e);
     }
 })();
+
+// Expose geometry factory globally for backward compatibility
+window.GeometryFactory = GeometryFactory;
+window.createSafeCylinderGeometry = GeometryFactory.createCylinderGeometry;
+window.createSafeTorusGeometry = GeometryFactory.createTorusGeometry;
+window.createSafeSphereGeometry = GeometryFactory.createSphereGeometry;
+
+// Legacy support for existing code
+window.SafeGeometry = {
+    createCylinder: GeometryFactory.createCylinderGeometry,
+    createTorus: GeometryFactory.createTorusGeometry,
+    createSphere: GeometryFactory.createSphereGeometry
+};
 
 /**
  * Main class responsible for initializing and managing the game startup process
