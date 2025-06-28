@@ -28,7 +28,7 @@ export class MiniMapUI extends UIComponent {
         this.ctx = null;
         
         // Adjust map size based on device
-        this.mapSize = this.mobile ? 120 : 200; // Smaller size on mobile
+        this.mapSize = this.mobile ? 140 : 200; // Smaller size on mobile
         this.canvasSize = this.mapSize; // Canvas size matches map size
         this.scale = 1; // Scale factor for world coverage
         this.lastRenderTime = 0;

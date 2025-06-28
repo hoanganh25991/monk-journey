@@ -127,11 +127,7 @@ export class UIComponent {
     }
 
     get mobile() {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-
-        // Check for typical smartphone dimensions
-        return (width <= 768 && height <= 1024);
+        return window.innerHeight <= 500;
     }
 
     /**
