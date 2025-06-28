@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Terrain Test - Monk Journey</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+            font-size: 14px;
+            max-width: 300px;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 8px 12px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        button:hover {
+            background: #555;
+        }
+        
+        button.active {
+            background: #007acc;
+        }
+        
+        #debug {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 250px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>🌍 Enhanced Terrain System Debug</h3>
+        <p><strong>Status:</strong> <span id="status">Loading...</span></p>
+        <p><strong>Current Zone:</strong> <span id="currentZone">Terrant</span></p>
+        <p><strong>Chunks:</strong> <span id="chunkCount">0</span></p>
+        <p>Move camera around to see terrain variations</p>
+    </div>
+    
+    <div id="controls">
+        <h4>Test Biomes:</h4>
+        <button id="btn-Terrant" class="active" onclick="changeZone('Terrant')">🌱 Terrant</button>
+        <button id="btn-Desert" onclick="changeZone('Desert')">🏜️ Desert</button>
+        <button id="btn-Forest" onclick="changeZone('Forest')">🌲 Forest</button>
+        <button id="btn-Mountains" onclick="changeZone('Mountains')">⛰️ Mountains</button>
+        <br>
+        <button onclick="regenerateTerrain()">🔄 Force Regenerate</button>
+        <button onclick="toggleWireframe()">📐 Wireframe</button>
+        <button onclick="clearAllTerrain()">🗑️ Clear All</button>
+    </div>
+    
+    <div id="debug">
+        <h4>Debug Info:</h4>
+        <div id="debugContent">Initializing...</div>
+    </div>
+
+    <!-- ES Module Shims and Import Map for THREE.js -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.176.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.176.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        
+        let scene, camera, renderer, controls;
+        let terrainManager;
+        let currentZone = 'Terrant';
+        let wireframeMode = false;
+        
+        // Mock world manager for testing
+        const mockWorldManager = {
+            getZoneAt: (position) => {
+                console.log(`Getting zone at position:`, position, `-> ${currentZone}`);
+                return { name: currentZone };
+            }
+        };
+        
+        // Mock game object
+        const mockGame = {};
+        
+        // Debug logging
+        function updateDebug(message) {
+            const debugDiv = document.getElementById('debugContent');
+            const now = new Date().toLocaleTimeString();
+            debugDiv.innerHTML = `[${now}] ${message}<br>` + debugDiv.innerHTML.split('<br>').slice(0, 10).join('<br>');
+        }
+        
+        function updateStatus(status) {
+            document.getElementById('status').textContent = status;
+        }
+        
+        function updateChunkCount(count) {
+            document.getElementById('chunkCount').textContent = count;
+        }
+        
+        init();
+        animate();
+        
+        async function init() {
+            try {
+                updateStatus('Initializing...');
+                updateDebug('Starting initialization');
+                
+                // Scene setup
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x87CEEB); // Sky blue
+                
+                // Camera setup
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(0, 30, 30);
+                
+                // Renderer setup
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.body.appendChild(renderer.domElement);
+                
+                // Controls
+                controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.1;
+                controls.target.set(0, 0, 0);
+                
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(100, 100, 50);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                scene.add(directionalLight);
+                
+                updateDebug('Basic setup complete, loading terrain...');
+                
+                // Import terrain system
+                const { TerrainManager } = await import('./js/world/terrain/TerrainManager.js');
+                updateDebug('TerrainManager imported successfully');
+                
+                // Initialize terrain manager
+                terrainManager = new TerrainManager(scene, mockWorldManager, mockGame);
+                updateDebug('TerrainManager instance created');
+                
+                // Test noise functions
+                updateDebug('Testing noise functions...');
+                for (let i = 0; i < 5; i++) {
+                    const x = i * 10;
+                    const z = i * 10;
+                    const noise = terrainManager.improvedNoise(x * 0.02, z * 0.02);
+                    console.log(`🔧 Noise at (${x}, ${z}): ${noise.toFixed(3)}`);
+                    updateDebug(`Noise at (${x}, ${z}): ${noise.toFixed(3)}`);
+                }
+                
+                await terrainManager.init();
+                updateDebug('TerrainManager initialized');
+                
+                // Force initial terrain generation
+                terrainManager.updateTerrain(new THREE.Vector3(0, 0, 0));
+                updateDebug('Initial terrain generated');
+                
+                updateStatus('Ready');
+                
+                // Window resize handler
+                window.addEventListener('resize', onWindowResize, false);
+                
+                console.log('✅ Enhanced terrain test initialized!');
+                
+            } catch (error) {
+                console.error('❌ Initialization failed:', error);
+                updateStatus('Error: ' + error.message);
+                updateDebug('ERROR: ' + error.message);
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (controls) {
+                controls.update();
+            }
+            
+            // Update terrain if needed
+            if (terrainManager) {
+                terrainManager.updateTerrain(camera.position);
+                
+                // Update chunk count
+                const chunkCount = terrainManager.chunks ? terrainManager.chunks.size : 0;
+                updateChunkCount(chunkCount);
+            }
+            
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+        
+        function onWindowResize() {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+        
+        // Global functions for buttons
+        window.changeZone = function(zoneName) {
+            // Update button states
+            document.querySelectorAll('button[id^="btn-"]').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${zoneName}`).classList.add('active');
+            
+            currentZone = zoneName;
+            document.getElementById('currentZone').textContent = zoneName;
+            
+            updateDebug(`Changed to ${zoneName} biome`);
+            console.log(`🌍 Changed to ${zoneName} biome`);
+            
+            // Force regenerate terrain
+            regenerateTerrain();
+        };
+        
+        window.regenerateTerrain = function() {
+            if (!terrainManager) {
+                updateDebug('ERROR: TerrainManager not initialized');
+                return;
+            }
+            
+            updateDebug('Starting terrain regeneration...');
+            
+            // Clear terrain manager caches
+            terrainManager.chunks.clear();
+            terrainManager.buffer.clear();
+            terrainManager.textureCache.clear();
+            
+            // Clear existing terrain from scene
+            const chunksToRemove = [];
+            scene.traverse((child) => {
+                if (child.isMesh && child.geometry && 
+                    (child.geometry.type === 'PlaneGeometry' || child.geometry.type === 'PlaneBufferGeometry')) {
+                    chunksToRemove.push(child);
+                }
+            });
+            
+            chunksToRemove.forEach(chunk => {
+                scene.remove(chunk);
+                if (chunk.geometry) chunk.geometry.dispose();
+            });
+            
+            updateDebug(`Removed ${chunksToRemove.length} old terrain chunks`);
+            
+            // Force regenerate terrain around current camera position
+            terrainManager.updateTerrain(camera.position);
+            
+            updateDebug(`Regenerated terrain for ${currentZone}`);
+            console.log(`🔄 Regenerated terrain for ${currentZone}`);
+        };
+        
+        window.clearAllTerrain = function() {
+            const chunksToRemove = [];
+            scene.traverse((child) => {
+                if (child.isMesh && child.geometry && 
+                    (child.geometry.type === 'PlaneGeometry' || child.geometry.type === 'PlaneBufferGeometry')) {
+                    chunksToRemove.push(child);
+                }
+            });
+            
+            chunksToRemove.forEach(chunk => {
+                scene.remove(chunk);
+                if (chunk.geometry) chunk.geometry.dispose();
+            });
+            
+            if (terrainManager) {
+                terrainManager.chunks.clear();
+                terrainManager.buffer.clear();
+            }
+            
+            updateDebug(`Cleared ${chunksToRemove.length} terrain chunks`);
+        };
+        
+        window.toggleWireframe = function() {
+            wireframeMode = !wireframeMode;
+            scene.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    child.material.wireframe = wireframeMode;
+                }
+            });
+            updateDebug(`Wireframe mode: ${wireframeMode ? 'ON' : 'OFF'}`);
+            console.log(`📐 Wireframe mode: ${wireframeMode ? 'ON' : 'OFF'}`);
+        };
+    </script>
+</body>
+</html>
