@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { MULTIPLIER_PORTALS, RETURN_PORTAL, DESTINATION_TERRAINS } from '../../config/teleport-portals.js';
-import { ZONE_COLORS } from '../../config/colors.js';
 import { ZONE_ENEMIES } from '../../config/game-balance.js';
 import { PortalModelFactory } from './PortalModelFactory.js';
+import { WaveManager } from '../managers/WaveManager.js';
 
 /**
  * TeleportManager - Manages teleport portals in the game world
@@ -60,6 +60,9 @@ export class TeleportManager {
         
         // Animation loop tracking
         this.animationLoopId = null; // Track the animation frame ID
+        
+        // Wave Manager for wave-based enemy spawning
+        this.waveManager = new WaveManager(game);
         
         // Setup click/touch event listeners
         this.setupTouchClickEvents();
@@ -365,6 +368,7 @@ export class TeleportManager {
             
             // Store additional properties on the portal object
             portal.multiplier = portalConfig.multiplier;
+            portal.difficulty = portalConfig.difficulty || 1.0;
             portal.multiplierPortalId = portalConfig.id;
             portal.destinationTerrain = terrainType;
             
@@ -892,7 +896,7 @@ export class TeleportManager {
                 }, 8000);
             }
             
-            // If this is a multiplier portal, create a return portal
+            // If this is a multiplier portal, create a return portal and start wave mode
             if (isMultiplierPortal && !isReturnPortal) {
                 this.createReturnPortal(
                     new THREE.Vector3(
@@ -903,13 +907,20 @@ export class TeleportManager {
                     this.lastPlayerPosition
                 );
                 
-                // Spawn enemies based on multiplier
-                this.spawnMultiplierEnemies(portal.multiplier, portal.targetPosition);
+                // Start wave-based enemy spawning with portal difficulty
+                const difficulty = portal.difficulty || 1.0;
+                const portalName = portal.sourceName || `${portal.multiplier}x Mode`;
+                
+                // Pass the destination position as the wave area center
+                this.waveManager.startWaveMode(difficulty, portalName, portal.targetPosition);
                 
                 // Modify terrain if we have a destination terrain type
                 if (portal.destinationTerrain && this.worldManager && this.worldManager.terrainManager) {
                     this.modifyDestinationTerrain(portal.targetPosition, portal.destinationTerrain);
                 }
+            } else if (isReturnPortal) {
+                // Stop wave mode when returning
+                this.waveManager.stopWaveMode();
             }
         }, this.effectDuration);
     }
@@ -960,236 +971,35 @@ export class TeleportManager {
     }
     
     /**
-     * Spawn enemies based on the multiplier
-     * @param {number} multiplier - The enemy spawn multiplier
-     * @param {THREE.Vector3} position - Center position for spawning
+     * Legacy method - now handled by WaveManager
+     * @deprecated Use WaveManager for wave-based enemy spawning
      */
     spawnMultiplierEnemies(multiplier, position) {
-        // Skip if no enemy manager
-        if (!this.game || !this.game.enemyManager) {
-            console.warn("Cannot spawn multiplier enemies: enemy manager not found");
-            return;
-        }
-        
-        console.debug(`Spawning enemies with ${multiplier}x multiplier at (${position.x.toFixed(1)}, ${position.z.toFixed(1)})`);
-        
-        const spawnCount = multiplier;
-        
-        // Get current zone for appropriate enemy types
-        let currentZone = this.game.world.getZoneAt(position);
-
-        // Get enemy types for this zone
-        const zoneEnemyTypes = this.getRandomzoneEnemyTypes();
-        
-        // Dramatically increase max enemies limit for extreme multipliers
-        const originalMaxEnemies = this.game.enemyManager.maxEnemies;
-        // For extreme multipliers, allow up to 1000 enemies on screen (double the multiplier)
-        this.game.enemyManager.maxEnemies = Math.max(originalMaxEnemies, multiplier * 2);
-        console.debug(`Set max enemies to ${this.game.enemyManager.maxEnemies} for ${multiplier}x multiplier`);
-       
-        // For extreme multipliers, spawn in a complete 360° surrounding pattern
-        // with multiple rings to completely surround the player
-        this.spawnMassiveEnemyWave(position, multiplier, spawnCount, zoneEnemyTypes);
-        
-        
-        // For higher multipliers, add some elite or champion enemies
-        // Number of special enemies scales with multiplier
-        const specialEnemyCount = Math.min(50, Math.floor(multiplier / 10));
-        
-        // Get elite or champion enemy types
-        const eliteTypes = this.game.enemyManager.enemyTypes.filter(type => 
-            type.rarity === 'elite' || type.rarity === 'champion'
-        );
-        
-        if (eliteTypes.length > 0) {
-            console.debug(`Adding ${specialEnemyCount} elite/champion enemies to multiplier zone`);
-            
-            for (let i = 0; i < specialEnemyCount; i++) {
-                // Select a random elite type
-                const eliteType = eliteTypes[Math.floor(Math.random() * eliteTypes.length)];
-                
-                // Random position within a closer range to the player
-                const angle = Math.random() * Math.PI * 2;
-                const distance = 15 + Math.random() * 10; // 15-25 units from center
-                const x = position.x + Math.cos(angle) * distance;
-                const z = position.z + Math.sin(angle) * distance;
-                let y = 0;
-                try {
-                    const terrainHeight = this.game.world.getTerrainHeight(x, z);
-                    y = (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) ? terrainHeight : 0;
-                } catch (error) {
-                    console.debug(`Error getting terrain height for elite spawn: ${error.message}`);
-                    y = 0;
-                }
-                
-                // Spawn elite enemy
-                const elitePosition = new THREE.Vector3(x, y, z);
-                this.game.enemyManager.spawnEnemy(eliteType.type, elitePosition);
-            }
-        }
-        
-        // More dramatic notification for higher multipliers
-        if (multiplier >= 500) {
-            this.game.hudManager.showNotification(
-                `DEATH ZONE! ${multiplier} enemies spawned!`,
-                5000
-            );
-        } else if (multiplier >= 100) {
-            this.game.hudManager.showNotification(
-                `EXTREME DANGER! ${multiplier} enemies approaching!`,
-                5000
-            );
-        } else if (multiplier >= 50) {
-            this.game.hudManager.showNotification(
-                `DANGER! Massive enemy wave approaching!`,
-                5000
-            );
-        } else if (multiplier >= 20) {
-            this.game.hudManager.showNotification(
-                `WARNING! Large enemy force detected!`,
-                4000
-            );
-        } else {
-            this.game.hudManager.showNotification(
-                `Spawned ${spawnCount} enemies!`,
-                3000
-            );
-        }
-        
-        // For extreme multipliers, start a continuous spawn loop with very short intervals
-        this.startContinuousSpawning(multiplier, spawnCount);
+        console.debug(`Legacy spawnMultiplierEnemies called - now handled by WaveManager`);
+        // This method is now deprecated as wave spawning is handled by WaveManager
     }
     
     /**
-     * Spawn a massive wave of enemies for extreme multipliers (x100+)
-     * This creates a complete 360° surrounding pattern with multiple rings
-     * @param {THREE.Vector3} position - Center position for spawning
-     * @param {number} multiplier - The enemy spawn multiplier
-     * @param {number} totalEnemies - Total number of enemies to spawn
-     * @param {Array} zoneEnemyTypes - Array of enemy types for the current zone
+     * Legacy method - now handled by WaveManager
+     * @deprecated Use WaveManager for wave-based enemy spawning
      */
     spawnMassiveEnemyWave(position, multiplier, totalEnemies) {
-        console.debug(`Spawning massive wave of ${totalEnemies} enemies for ${multiplier}x multiplier`);
-        
-        // Create multiple rings of enemies to completely surround the player
-        const numRings = 5; // 5 concentric rings of enemies
-        const enemiesPerRing = Math.ceil(totalEnemies / numRings);
-        
-        // Ring distances from player (units)
-        const ringDistances = [
-            10,  // Inner ring (very close)
-            20,  // Second ring
-            35,  // Middle ring
-            50,  // Fourth ring
-            70   // Outer ring
-        ];
-        
-        // For each ring, distribute enemies evenly around the circle
-        for (let r = 0; r < numRings; r++) {
-            const ringDistance = ringDistances[r];
-            
-            // More enemies in inner rings, fewer in outer rings
-            const ringEnemyMultiplier = r === 0 ? 1.5 : // 50% more in inner ring
-                                       r === 1 ? 1.2 : // 20% more in second ring
-                                       r === 2 ? 1.0 : // Normal amount in middle ring
-                                       r === 3 ? 0.8 : // 20% fewer in fourth ring
-                                       0.5;            // 50% fewer in outer ring
-                                       
-            const enemiesInThisRing = Math.ceil(enemiesPerRing * ringEnemyMultiplier);
-            
-            // Calculate angle step for even distribution
-            const angleStep = (Math.PI * 2) / enemiesInThisRing;
-            
-            // Random starting angle for variation
-            const startAngle = Math.random() * Math.PI * 2;
-            
-            // Select a random enemy type for this ring
-            const zoneEnemyTypes = this.getRandomzoneEnemyTypes();
-            const ringEnemyType = zoneEnemyTypes[Math.floor(Math.random() * zoneEnemyTypes.length)];
-            
-            // Spawn enemies in this ring
-            for (let i = 0; i < enemiesInThisRing; i++) {
-                // Calculate position on the ring
-                const angle = startAngle + (angleStep * i);
-                
-                // Add some randomness to the distance
-                const jitter = (Math.random() * 0.3 + 0.85) * ringDistance; // 85-115% of ring distance
-                
-                const x = position.x + Math.cos(angle) * jitter;
-                const z = position.z + Math.sin(angle) * jitter;
-                
-                // Get terrain height at position
-                let y = 0;
-                try {
-                    const terrainHeight = this.game.world.getTerrainHeight(x, z);
-                    y = (terrainHeight !== null && terrainHeight !== undefined && isFinite(terrainHeight)) ? terrainHeight : 0;
-                } catch (error) {
-                    console.debug(`Error getting terrain height for enemy spawn: ${error.message}`);
-                    y = 0;
-                }
-                
-                // Spawn enemy
-                const enemyPosition = new THREE.Vector3(x, y, z);
-                this.game.enemyManager.spawnEnemy(ringEnemyType, enemyPosition);
-            }
-        }
+        console.debug(`Legacy spawnMassiveEnemyWave called - now handled by WaveManager`);
+        // This method is now deprecated as wave spawning is handled by WaveManager
     }
     
     /**
-     * Start continuous spawning of enemies at very short intervals
-     * For extreme multipliers like x500, this creates an overwhelming experience
-     * @param {THREE.Vector3} position - Center position for spawning
-     * @param {number} multiplier - The enemy spawn multiplier
+     * Legacy method - now handled by WaveManager
+     * @deprecated Use WaveManager for wave-based enemy spawning
      */
     startContinuousSpawning(multiplier, spawnCount) {
-        // Skip if no enemy manager
-        if (!this.game || !this.game.enemyManager) {
-            return;
-        }
-        
-        // Store a reference to the continuous spawning interval
-        if (!this.continuousSpawnIntervals) {
-            this.continuousSpawnIntervals = [];
-        }
-        
-        // For extreme multipliers, spawn very frequently
-        // x500 = every 1 second
-        // x100 = every 2 seconds
-        const spawnInterval = 10_000 / Math.log(multiplier);
-        const zoneEnemyTypes = this.getRandomzoneEnemyTypes();
-        
-        console.debug(`Starting continuous enemy spawning every ${spawnInterval}ms for ${multiplier}x multiplier`);
-        
-        // Start the continuous spawning interval
-        const intervalId = setInterval(() => {
-            // Only continue if still in multiplier zone
-            if (this.activeMultiplier > 1) {
-                // Get player's current position
-                const playerPos = this.game.player.getPosition();
-                
-                // For extreme multipliers, spawn massive waves continuously
-                // This will spawn exactly 500 enemies every second for x500 multiplier
-                this.spawnMassiveEnemyWave(playerPos, multiplier, spawnCount, zoneEnemyTypes);
-            } else {
-                // Player left multiplier zone, stop spawning
-                console.debug(`Player left multiplier zone, stopping continuous spawning`);
-                clearInterval(intervalId);
-                
-                // Remove this interval from the tracking array
-                const index = this.continuousSpawnIntervals.indexOf(intervalId);
-                if (index > -1) {
-                    this.continuousSpawnIntervals.splice(index, 1);
-                }
-            }
-        }, spawnInterval);
-        
-        // Track this interval for cleanup
-        this.continuousSpawnIntervals.push(intervalId);
-        
-        // Also track player movement to spawn enemies as they move
-        this.trackPlayerMovement(multiplier);
+        console.debug(`Legacy startContinuousSpawning called - now handled by WaveManager`);
+        // This method is now deprecated as wave spawning is handled by WaveManager
     }
 
+    /**
+     * Get random zone enemy types for compatibility
+     */
     getRandomzoneEnemyTypes() {
         const keys = Object.keys(ZONE_ENEMIES);
         const randomIndex = Math.floor(Math.random() * keys.length);
@@ -1197,52 +1007,12 @@ export class TeleportManager {
     }
     
     /**
-     * Track player movement and spawn enemies when they move
-     * This ensures enemies continuously spawn around the player as they move
-     * @param {number} multiplier - The enemy spawn multiplier
+     * Legacy method - now handled by WaveManager
+     * @deprecated Use WaveManager for wave-based enemy spawning
      */
     trackPlayerMovement(multiplier) {
-        // Skip if already tracking
-        if (this.playerMovementTrackerId) {
-            return;
-        }
-        
-        let lastPosition = this.game.player.getPosition().clone();
-        const movementThreshold = 10; // Units of movement to trigger new spawn
-        
-        // Check player position every 500ms
-        this.playerMovementTrackerId = setInterval(() => {
-            // Only continue if still in multiplier zone
-            if (this.game && 
-                this.game.teleportManager && 
-                this.game.teleportManager.activeMultiplier > 1) {
-                
-                const currentPosition = this.game.player.getPosition();
-                const distanceMoved = currentPosition.distanceTo(lastPosition);
-                
-                // If player moved significantly, spawn new enemies
-                if (distanceMoved > movementThreshold) {
-                    console.debug(`Player moved ${distanceMoved.toFixed(1)} units, spawning new enemies`);
-                    
-                    // For extreme multipliers, spawn a full wave when player moves
-                    if (multiplier >= 500) {
-                        // Spawn exactly 500 enemies for x500 portals
-                        this.spawnMassiveWave(currentPosition, 500);
-                    } else if (multiplier >= 100) {
-                        // For x100-x499, spawn half-sized waves on movement
-                        this.spawnMassiveWave(currentPosition, Math.floor(multiplier / 2));
-                    }
-                    
-                    // Update last position
-                    lastPosition = currentPosition.clone();
-                }
-            } else {
-                // Player left multiplier zone, stop tracking
-                console.debug(`Player left multiplier zone, stopping movement tracking`);
-                clearInterval(this.playerMovementTrackerId);
-                this.playerMovementTrackerId = null;
-            }
-        }, 500);
+        console.debug(`Legacy trackPlayerMovement called - now handled by WaveManager`);
+        // This method is now deprecated as wave spawning is handled by WaveManager
     }
     
     
@@ -1661,6 +1431,12 @@ export class TeleportManager {
         // Stop the animation loop
         this.stopAnimationLoop();
         
+        // Clean up wave manager
+        if (this.waveManager) {
+            this.waveManager.destroy();
+            this.waveManager = null;
+        }
+        
         // Remove all portals from scene
         this.portals.forEach(portal => {
             if (portal.mesh && portal.mesh.parent) {
@@ -1681,6 +1457,6 @@ export class TeleportManager {
             canvas.removeEventListener('touchend', this.handleTouchClick.bind(this));
         }
         
-        console.debug("TeleportManager disposed - all portals cleaned up");
+        console.debug("TeleportManager disposed - all portals and wave manager cleaned up");
     }
 }

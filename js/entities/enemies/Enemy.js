@@ -1102,19 +1102,7 @@ export class Enemy {
         // Update model position and rotation
         if (this.modelGroup) {
             this.modelGroup.position.copy(this.position);
-            
-            // For necromancers, preserve head rotation before updating model group rotation
-            let headRotation = null;
-            if (this.type === 'necromancer' && this.modelGroup.children[1]) {
-                headRotation = this.modelGroup.children[1].rotation.clone();
-            }
-            
             this.modelGroup.rotation.copy(this.rotation);
-            
-            // Restore head rotation for necromancers
-            if (this.type === 'necromancer' && this.modelGroup.children[1] && headRotation) {
-                this.modelGroup.children[1].rotation.copy(headRotation);
-            }
         }
     }
     

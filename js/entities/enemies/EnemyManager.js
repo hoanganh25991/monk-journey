@@ -1481,6 +1481,11 @@ export class EnemyManager {
                 this.queueEnemyForDisposal(enemy);
             }
             
+            // Notify wave manager if it exists (for wave-based spawning)
+            if (this.game && this.game.teleportManager && this.game.teleportManager.waveManager) {
+                this.game.teleportManager.waveManager.onEnemyKilled(enemy.id);
+            }
+            
             // Remove from main enemies map
             this.enemies.delete(enemy.id);
             
