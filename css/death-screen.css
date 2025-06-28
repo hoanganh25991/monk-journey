@@ -10,7 +10,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: rgba(0, 0, 0);
+    background-color: rgba(0, 0, 0, 0.5);
     z-index: 200; /* Same as game menu */
     position: fixed;
     top: 0;

@@ -19,21 +19,6 @@ export class DeathScreenUI extends UIComponent {
      * @returns {boolean} - True if initialization was successful
      */
     init() {
-        // <div class="death-stats">
-        //     <div class="death-stats-title">Battle Statistics</div>
-        //     <div class="death-stats-item">
-        //         <span class="death-stats-label">Time Survived:</span>
-        //         <span class="death-stats-value" id="time-survived">00:00</span>
-        //     </div>
-        //     <div class="death-stats-item">
-        //         <span class="death-stats-label">Enemies Defeated:</span>
-        //         <span class="death-stats-value" id="enemies-defeated">0</span>
-        //     </div>
-        //     <div class="death-stats-item">
-        //         <span class="death-stats-label">Level Reached:</span>
-        //         <span class="death-stats-value" id="level-reached">1</span>
-        //     </div>
-        // </div>
         const template = `
             <div id="death-screen-content">
                 <h1>You Died</h1>
