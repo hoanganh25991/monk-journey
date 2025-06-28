@@ -1,9 +1,9 @@
 {
   "versions": [
     {
-      "version": "v62",
+      "version": "v64",
       "path": "/",
-      "label": "v62",
+      "label": "v64",
       "description": "Latest version with all features"
     },
     {

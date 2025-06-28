@@ -738,10 +738,16 @@ export class TeleportManager {
      * @param {Object} [player] - The player to teleport (defaults to local player if not provided)
      */
     teleportPlayer(portal, player) {
-        // Validate portal
-        if (!portal || !portal.sourceName || !portal.targetName || !portal.targetPosition) {
+        // Validate portal - handle both sourceName and name properties
+        const sourceName = portal?.sourceName || portal?.name;
+        if (!portal || !sourceName || !portal.targetName || !portal.targetPosition) {
             console.error("Cannot teleport: invalid portal data", portal);
             return;
+        }
+        
+        // Ensure portal has sourceName property for consistency
+        if (!portal.sourceName && portal.name) {
+            portal.sourceName = portal.name;
         }
         
         // Use provided player or default to local player
@@ -1246,8 +1252,13 @@ export class TeleportManager {
             position: portal.sourcePosition,
             targetPosition: portal.targetPosition,
             name: portal.sourceName,
+            sourceName: portal.sourceName, // Include sourceName for consistency
             targetName: portal.targetName,
-            type: 'portal'
+            type: 'portal',
+            // Include additional portal properties that might be needed
+            multiplier: portal.multiplier,
+            difficulty: portal.difficulty,
+            id: portal.id
         }));
     }
     

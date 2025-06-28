@@ -15,6 +15,7 @@ import { HomeButton } from './HomeUI.js';
 import { FullscreenButton } from './SkillSelectionButton.js';
 import { SkillTreeButton } from './SkillTreeButton.js';
 import { MapSelectionUI } from './MapSelectionUI.js';
+import { PortalButton } from './PortalButton.js';
 
 import { InventoryButton } from './InventoryButton.js';
 
@@ -106,6 +107,10 @@ export class HUDManager {
         // Create camera control UI
         this.components.cameraControlUI = new CameraControlUI(this.game);
         this.components.cameraControlUI.init();
+        
+        // Create portal button UI
+        this.components.portalButton = new PortalButton(this.game);
+        this.components.portalButton.init();
         
         // Create death screen UI
         this.components.deathScreenUI = new DeathScreenUI(this.game);
