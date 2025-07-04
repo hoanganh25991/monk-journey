@@ -4,13 +4,13 @@
  */
 
 const CACHE_NAME = 'monk-journey-cache';
-const CACHE_VERSION = '65';
+const CACHE_VERSION = '66';
 const CACHE_KEY = CACHE_NAME + '-v' + CACHE_VERSION;
 
 
 // Total cache size in bytes and MB
-const TOTAL_CACHE_SIZE_BYTES = 9027868;
-const TOTAL_CACHE_SIZE_MB = 8.61;
+const TOTAL_CACHE_SIZE_BYTES = 8983151;
+const TOTAL_CACHE_SIZE_MB = 8.57;
 
 // Assets to cache
 const ASSETS_TO_CACHE = [
@@ -243,14 +243,13 @@ const ASSETS_TO_CACHE = [
   'js/hud-manager/MiniMapUI.js',
   'js/hud-manager/NotificationsUI.js',
   'js/hud-manager/PlayerUI.js',
+  'js/hud-manager/PortalButton.js',
   'js/hud-manager/QuestLogUI.js',
   'js/hud-manager/SkillSelectionButton.js',
   'js/hud-manager/SkillSelectionUI.js',
   'js/hud-manager/SkillTreeButton.js',
   'js/hud-manager/SkillTreeUI.js',
   'js/hud-manager/SkillsUI.js',
-  'js/hud-manager/TouchDebugUI.js',
-  'js/hud-manager/TouchManager.js',
   'js/hud-manager/VirtualJoystickUI.js',
   'js/interaction/InteractionSystem.js',
   'js/menu-system/ControlsDisplay.js',
@@ -291,8 +290,8 @@ const ASSETS_TO_CACHE = [
   'js/save-manager/serializers/SettingsSerializer.js',
   'js/save-manager/utils/SaveOperationProgress.js',
   'js/utils/AnimationUtils.js',
+  'js/utils/GeometryFactory.js',
   'js/utils/SkillTreeUtils.js',
-  'js/world/LODManager.js',
   'js/world/WorldManager.js',
   'js/world/environment/AlpineFlower.js',
   'js/world/environment/AncientAltar.js',
@@ -384,6 +383,7 @@ const ASSETS_TO_CACHE = [
   'js/world/lighting/LightingManager.js',
   'js/world/managers/MemoryManager.js',
   'js/world/managers/PerformanceManager.js',
+  'js/world/managers/WaveManager.js',
   'js/world/paths/BranchingPath.js',
   'js/world/paths/CircularPath.js',
   'js/world/paths/CurvedPath.js',
@@ -405,16 +405,10 @@ const ASSETS_TO_CACHE = [
   'js/world/structures/Village.js',
   'js/world/teleport/PortalModelFactory.js',
   'js/world/teleport/TeleportManager.js',
-  'js/world/terrain/TerrainChunkManager.js',
-  'js/world/terrain/TerrainCleanupManager.js',
-  'js/world/terrain/TerrainColoringManager.js',
   'js/world/terrain/TerrainManager.js',
-  'js/world/terrain/TerrainQueueManager.js',
-  'js/world/terrain/TerrainTemplateManager.js',
   'js/world/utils/EnvironmentObjectPool.js',
   'js/world/utils/RandomGenerator.js',
   'js/world/utils/SpatialGrid.js',
-  'js/world/utils/TerrainChunkPool.js',
   'js/world/zones/ZoneManager.js',
   'images/apple-touch-icon.png',
   'images/favicon-16x16.png',

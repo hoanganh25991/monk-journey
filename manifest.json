@@ -2,7 +2,7 @@
   "name": "Monk Journey",
   "short_name": "Monk Journey",
   "description": "A Diablo Immortal inspired game featuring a monk character",
-  "start_url": "index.html",
+  "start_url": "monk-journey",
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#000000",
