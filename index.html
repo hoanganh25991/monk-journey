@@ -1179,16 +1179,19 @@
                     versionSelect.addEventListener('change', (event) => {
                         const selectedPath = event.target.value;
                         
-                        if (selectedPath && selectedPath !== currentPath) {
-                            console.debug(`Version selected: ${selectedPath}`);
-                            console.debug(`Current path: ${currentPath}`);
-                            
+                        console.log(`🔄 Version switching initiated`);
+                        console.log(`📍 Selected path: ${selectedPath}`);
+                        console.log(`📍 Current path: ${currentPath}`);
+                        console.log(`📍 Current URL: ${window.location.href}`);
+                        
+                        // Always proceed with navigation (selectedPath comes from versions.json, currentPath is URL path)
+                        if (selectedPath) {
                             // Handle navigation based on path type
                             let targetUrl;
                             
                             // Get the current base path (e.g., '/monk-journey/' if hosted on domain.com/monk-journey)
-                            const currentPath = window.location.pathname;
-                            const pathSegments = currentPath.split('/').filter(segment => segment.length > 0);
+                            const currentURLPath = window.location.pathname;
+                            const pathSegments = currentURLPath.split('/').filter(segment => segment.length > 0);
                             
                             // Calculate base path - detect if we're in a subdirectory deployment
                             let basePath;
@@ -1229,10 +1232,12 @@
                                 targetUrl = basePath + selectedPath;
                             }
                             
-                            console.debug(`Calculated base path: ${basePath}`);
-                            console.debug(`Target URL: ${targetUrl}`);
+                            console.log(`📍 Path segments: ${JSON.stringify(pathSegments)}`);
+                            console.log(`📍 Calculated base path: ${basePath}`);
+                            console.log(`📍 Target URL: ${targetUrl}`);
                             
                             // Navigate to the selected version
+                            console.log(`🚀 Navigating to: ${targetUrl}`);
                             window.location.href = targetUrl;
                         }
                     });
