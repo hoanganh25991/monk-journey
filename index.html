@@ -1181,6 +1181,7 @@
                         
                         if (selectedPath && selectedPath !== currentPath) {
                             console.debug(`Version selected: ${selectedPath}`);
+                            console.debug(`Current path: ${currentPath}`);
                             
                             // Handle navigation based on path type
                             let targetUrl;
@@ -1189,14 +1190,27 @@
                             const currentPath = window.location.pathname;
                             const pathSegments = currentPath.split('/').filter(segment => segment.length > 0);
                             
-                            // Calculate base path - go up one level from current location
+                            // Calculate base path - detect if we're in a subdirectory deployment
                             let basePath;
-                            if (pathSegments.length > 1) {
-                                // Remove the current directory/file to get the parent directory
-                                basePath = '/' + pathSegments.slice(0, -1).join('/') + '/';
-                            } else if (pathSegments.length === 1) {
-                                // We're at the root level
-                                basePath = '/';
+                            
+                            // Check if we're hosted under a subdirectory like /monk-journey
+                            // Look for common deployment patterns
+                            if (pathSegments.length > 0) {
+                                // Check if the first segment looks like a project/app name
+                                const firstSegment = pathSegments[0];
+                                
+                                // If we're in a version subdirectory (like /monk-journey/v42/)
+                                // or just in the main directory (like /monk-journey/)
+                                if (pathSegments.length >= 2 && pathSegments[1].match(/^v\d+$/)) {
+                                    // We're in a version subdirectory, base is the parent
+                                    basePath = '/' + firstSegment + '/';
+                                } else if (pathSegments.length === 1 || !pathSegments[pathSegments.length - 1].match(/^v\d+$/)) {
+                                    // We're in the main directory or a non-version subdirectory
+                                    basePath = '/' + firstSegment + '/';
+                                } else {
+                                    // Fallback to root
+                                    basePath = '/';
+                                }
                             } else {
                                 basePath = '/';
                             }
@@ -1208,12 +1222,15 @@
                                 // Relative path starting with ./ - treat as sibling directory
                                 targetUrl = basePath + selectedPath.substring(2);
                             } else if (selectedPath.startsWith('/')) {
-                                // Absolute path - prepend base path
+                                // Absolute path - prepend base path (remove leading slash to avoid double slash)
                                 targetUrl = basePath + selectedPath.substring(1);
                             } else {
                                 // Relative path without ./ prefix - treat as sibling directory
                                 targetUrl = basePath + selectedPath;
                             }
+                            
+                            console.debug(`Calculated base path: ${basePath}`);
+                            console.debug(`Target URL: ${targetUrl}`);
                             
                             // Navigate to the selected version
                             window.location.href = targetUrl;
